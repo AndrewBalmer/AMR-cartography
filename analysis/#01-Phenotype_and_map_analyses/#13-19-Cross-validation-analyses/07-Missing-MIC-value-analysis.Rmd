@@ -1,0 +1,865 @@
+---
+title: "07-Cross-validation-missing-values"
+author: "Andrew Balmer"
+date: "2024-01-03"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+# Clear the workspace
+remove(list = ls())
+
+# Load required packages
+library(tidyverse)     # For data manipulation and visualization
+library(smacof)        # For multidimensional scaling
+library(RColorBrewer)  # For color palettes
+library(calibrate)     # For calibration
+library(matrixStats)   
+library(ggExtra)       # For marginal histograms
+library(ggdensity)     # For density distrbutions
+library(foreach)
+library(doParallel)
+
+# Set the working directory
+setwd("/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#13-19-Cross-validation-analyses/results/")
+
+# Read the MIC table data
+tablemic <- read.csv("/Users/ajb306/AMR-cartography/data/MIC_table_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+
+# Read in the relevant meta data
+tablemic_meta <- read.csv("/Users/ajb306/AMR-cartography/data/meta_data_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+
+# Specify the full path to the data file
+phen_map <- "/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#03-06-Generating-phenotype-and-genotype-maps/results/Spneumo_3628_PCA_start_2D_METRIC.RData"
+
+# Load the pre-computed PCA start 2D metric data
+load(phen_map)
+
+
+```
+
+
+### ==== Background
+
+Measuring resistance phenotypes using MIC dilution series can be challenging to analyse. When the MIC assay is conducted for many isolates across different laboratories, it is not uncommon for individual MIC values to be missing in the final dataset. This can occur for a number of reasons, such limitations in cost, time or inability to grow an isolate on a given day. However, these missing values pose a challenge for downstream analysis, particularly when isolates have missing values for several drugs. During standard univariate analysis, these isolates are often simply excluded. However this is a considerable cost in the usefulness of the data and time spent collecting it. In contrast, with multivariate methods, the information present for the other drugs can be used to impute one or more missing MIC value.
+
+One advantage of the MDS framework is its ability to take relatively imprecise data and generate a more accurate representation of that data. In theory, because isolates are positioned using several MIC correlated values, missing values for any individual can be predicted in the final representation. Here I tested the ability of MDS to predict missing MIC value. I did this by computationally removing MIC values (replaced with NA) and testing how well MDS could cope with this
+
+
+## Aims and objectives 
+In this document, I have used several methods to ensure MDS is robust to missing values in the underlying assay data. Firstly, I tried making maps with missing data for a subset of isolates and comparing them to the original maps made with their 'true' observed values. I then compared the two maps using the 'congruence coefficient' between the two maps. Secondly, I measured the euclidean distance between the true value on the map and its position with missing values. Lastly, I tested prediction error was increased or decreased when using more than two dimensions (a cross-validation analysis). 
+
+I also calculated the levels of stress for the missing-value maps, as well as stress-per-point for the isolates with and without missing values. 
+
+### Generating datasets with 'missing' values
+In order to use these methods, I generated 100 datasets with missing value for 10% of the MIC entries (i.e. 10% of the 3628 * 6 MIC titres). A pairwise distance matrix for each dataset was then generated. In cases where one or both samples have missing values present, distances are calculated by excluding the column(s) with the missing value in estimating the pairwise distance to the other isolates, and estimating pairwise distance only using those present. In cases where MICs were included for all drugs for a pair of isolates (i,e. no missing values), all information was used to generate the distance estimate. 
+
+# 1 - Generate Missing Sample Datasets
+In this first chunk, I generate the 100 missing datasets needed to run the analysis. I do this by generating 100 copies of the original dataset, then randomly removing 10% of the MIC values from each. Lastly, I compute the distance matrices for both the original dataset, and the 100 'missing' sample datasets.
+
+```{r, echo = F}
+
+# Set seed 
+set.seed(1234)
+
+# Number of missing sample datasets to be run
+no_missing_samples <- 8
+
+# List to store missing sample datasets
+missing_samples <- list()
+
+# Generate missing samples by duplicating the original tablemic data
+for (i in 1:no_missing_samples) {
+  missing_samples[[i]] <- tablemic
+  colnames(missing_samples[[i]]) <- colnames(tablemic)
+
+  # Randomly delete a proportion (10%) of the data in each missing sample
+  while (sum(is.na(missing_samples[[i]]) == TRUE) < (nrow(missing_samples[[i]]) * ncol(missing_samples[[i]]) * 10 / 100)) {
+    missing_samples[[i]][sample(nrow(missing_samples[[i]]), 1), sample(ncol(missing_samples[[i]]), 1)] <- NA
+  }
+}
+
+# Check the proportion of NA values in a missing sample to ensure the above worked
+(sum(is.na(missing_samples[[1]])) / (nrow(tablemic) * ncol(tablemic))) * 100
+
+# List to store distance matrices of missing samples
+missing_samples_dists <- list()
+
+# Compute distance matrices for each missing sample
+for (i in 1:no_missing_samples) {
+  missing_samples_dists[[i]] <- dist(missing_samples[[i]])
+}
+
+# Compute the distance matrix for the original data
+dist_pne <- dist(tablemic)
+
+```
+
+# 2 - Reshape Data for Analysis
+
+```{r,echo = F}
+# List to store actual values of each missing sample
+missing_samples_values <- list()
+
+# Extract LABID, MIC values, and reshape the data for each missing sample
+for (i in 1:no_missing_samples) {
+  missing_samples_values[[i]] <- missing_samples[[i]]
+  missing_samples[[i]] <- cbind(tablemic_meta[, 1], missing_samples[[i]])
+
+  missing_samples[[i]] <- missing_samples[[i]] %>%
+    rename(LABID = 1)
+
+  missing_samples[[i]] <- missing_samples[[i]] %>% 
+    pivot_longer(!LABID, names_to = "drug", values_to = "MIC_value")
+}
+
+```
+
+# 3 - Merge Actual Values with Missing Samples
+
+Here, we merge the missing value tables with the real values. This will be useful later, as this can be used to compare the true values to their predicted values
+
+```{r, echo = F}
+# Create a data frame with the actual values of the original data
+tablemic_real_values <- cbind(tablemic_meta[, 1], tablemic)
+
+tablemic_real_values <- tablemic_real_values %>% 
+  rename(LABID = 1)
+
+tablemic_real_values <- tablemic_real_values %>% pivot_longer(!LABID, names_to = "drug", values_to = "true_value")
+
+# Merge actual values with missing samples and add a dataset column
+for (i in 1:no_missing_samples) {
+  missing_samples[[i]]$LABID <- as.character(missing_samples[[i]]$LABID)
+  missing_samples[[i]] <- left_join(missing_samples[[i]], tablemic_real_values, by = c("LABID" = "LABID", "drug" = "drug")) %>%
+    mutate(dataset = i)
+}
+
+```
+
+# 4 - Compute Weight Matrices for Each Missing Sample
+
+Isolates with one or more missing value were also given less weight in generating the map. This lessens the effect of isolates with missing MIC values on the positioning of other isolates. This makes sense as isolates without missing values have more information on where to position them. To do this, a weight matrix was constructed for each of the 100 samples based on how may MIC values were missing for each isolate. To generate this weight matrix, the pairwise distance between each pair of isolates was weighted by multiplying the number of MIC values present for that pair of isolates, then squaring the result  The absolute values of the weight matrix is less important than the differences between them. Under this weighting structure, an isolate with 3 missing values should therefore be weighted less strongly than one with 2, and 2 would be less strongly than 1 and so on. Finding the precise weighting structure with the least prediction error is a process of trial and error, but this structure seems to work well for the S. pneumoniae map. The MDS algorithm is then used later to generate a map for each of the 100 samples, using the metric, PCoA start method.
+
+```{r, echo = F}
+
+# List to store weight matrices for each missing sample
+weight_missing_samples <- list()
+
+# List to store weight matrices for each missing sample
+missing_samples_weight_matrices <- list()
+
+# List to store column names of each missing sample
+number_of_MIC_values <- list()
+
+# Compute weight matrices for each missing sample based on actual values
+for (i in 1:no_missing_samples) {
+  number_of_MIC_values <- rowCounts(as.matrix(missing_samples_values[[i]]), value = NA, na.rm = FALSE)
+  number_of_MIC_values <- (number_of_MIC_values * -1)
+  number_of_MIC_values <- number_of_MIC_values + -min(number_of_MIC_values, na.rm = TRUE) + 1
+
+  missing_samples_weight_matrices[[i]] <- matrix(1, nrow(tablemic), nrow(tablemic))
+
+  for (f in 1:ncol(dist_pne)) {
+    missing_samples_weight_matrices[[i]][, f] <- number_of_MIC_values * missing_samples_weight_matrices[[i]][, f] 
+  }
+
+  missing_samples_weight_matrices[[i]] <- t(missing_samples_weight_matrices[[i]])
+
+  for (f in 1:ncol(dist_pne)) {
+    missing_samples_weight_matrices[[i]][, f] <- number_of_MIC_values * missing_samples_weight_matrices[[i]][, f] 
+  }
+
+  diag(missing_samples_weight_matrices[[i]]) = 0
+}
+
+# Square each element of the weight matrices so as to weight samples with more MIC values more strongly
+for (i in 1:no_missing_samples) {
+  missing_samples_weight_matrices[[i]] <- missing_samples_weight_matrices[[i]] * missing_samples_weight_matrices[[i]]
+}
+
+# Extract LABID and MIC values for each missing sample
+for (i in 1:no_missing_samples) {
+  missing_samples_values[[i]] <- cbind(tablemic_meta[, 1], missing_samples_values[[i]])
+  missing_samples_values[[i]] <- missing_samples_values[[i]] %>% 
+    rename(LABID = 1)
+}
+
+```
+
+
+# 5 - Run MDS on each of the 100 datasets with missing values
+
+Next we run MDS on each of the 100 datasets with missing values. In this case, the 100 datasets are split into four batches and processed in parallel to speed up computation. 
+
+```{r, echo = F}
+
+missing_samples_mds_objects <- NULL
+
+# Set the number of cores to use
+num_cores <- 4  # Change this to the desired number of cores
+
+# Register parallel backend
+registerDoParallel(cores = num_cores)
+
+# Define ranges for each core
+core_ranges <- rep(ceiling(no_missing_samples / num_cores), num_cores)
+
+# Define a function to perform MDS on a chunk of datasets
+run_mds <- function(indices) {
+  missing_values_test <- list()
+  
+  for (i in 1:no_missing_samples) {
+    temp_MDS <- mds(missing_samples_dists[[i]], ndim = 2, type = c("ratio"), 
+                    weightmat = missing_samples_weight_matrices[[i]], init = "torgerson", 
+                    modulus = 1, itmax = 1000, eps = 1e-06)
+    
+    missing_values_test[[i]] <- list(conf = temp_MDS$conf, stress = temp_MDS$stress, spp = temp_MDS$spp)
+    temp_MDS <- NULL
+  }
+  
+  return(missing_values_test)
+}
+
+# Run MDS in parallel
+missing_samples_mds_objects <- foreach(indices = core_ranges, .combine = "c") %dopar% {
+  run_mds(1:no_missing_samples)
+}
+
+# Stop parallel processing
+registerDoSEQ()
+
+
+# Save and restore the MDS results
+saveRDS(missing_samples_mds_objects, file = "missing_samples_mds_objects.rds")
+missing_samples_mds_objects <- readRDS(file = "missing_samples_mds_objects.rds")
+
+
+```
+
+# 6 - Saving the generated objects
+As the objects generated by the previous processes are quite large, I have also included code to save each of these. 
+
+```{r, echo = F}
+
+# Define a list of objects to save
+objects_to_save <- list(
+  missing_samples = missing_samples,
+  missing_samples_dists = missing_samples_dists,
+  missing_samples_weight_matrices = missing_samples_weight_matrices,
+  missing_samples_values = missing_samples_values#,
+  #missing_samples_mds_objects = missing_samples_mds_objects
+)
+
+# Loop to save each object
+for (obj_name in names(objects_to_save)) {
+  saveRDS(objects_to_save[[obj_name]], file = paste0(obj_name, ".rds"))
+}
+
+# Loop to restore each object
+for (obj_name in names(objects_to_save)) {
+  assign(obj_name, readRDS(file = paste0(obj_name, ".rds")))
+}
+
+```
+
+# Load the S. pneumoniae phenotype map
+
+Here, I load in the S. pneumoniae phenotype map object and rotate/dilate it to an interpretable scale. 
+
+```{r, echo =F}
+# Set the rotation angle in radians
+theta <- 326 * pi / 180
+
+# Create a rotation matrix
+rot <- matrix(c(cos(theta), sin(theta), -sin(theta), cos(theta)), ncol = 2)
+
+# Apply rotation to the configuration data
+torg_met$conf <- torg_met$conf %*% rot
+
+# Initialize a list to store rotated configurations of missing samples
+missing_samples_dists_confs <- list()
+
+# Extract rotated configurations from each missing sample MDS result
+for (i in 1:no_missing_samples) {
+  missing_samples_dists_confs[[i]] <- as_tibble(missing_samples_mds_objects[[i]]$conf)
+}
+
+# Initialize a vector to store stress values of missing samples
+missing_samples_stress <- vector()
+
+# Extract stress values from each missing sample MDS result
+for (i in 1:no_missing_samples) {
+  missing_samples_stress[i] <- missing_samples_mds_objects[[i]]$stress
+}
+
+# Convert the stress vector to a tibble
+missing_samples_stress <- as_tibble(missing_samples_stress)
+
+# Extract original configurations from the "torg_met" object
+torg_met_conf <- as.data.frame(torg_met$conf)
+
+# Extract distance matrices from "torg_met"
+table_distances <- as_tibble(as.matrix(torg_met[[1]]))
+map_distances <- as_tibble(as.matrix(torg_met[[3]]))
+
+# Rename columns of map_distances to match table_distances
+colnames(map_distances) <- colnames(table_distances)
+
+# Reshape distance matrices into long format using pivot_longer
+table_distances <- pivot_longer(table_distances, cols = 1:nrow(tablemic), names_to = "antibiotic", values_to = "table_distance")
+map_distances <- pivot_longer(map_distances, cols = 1:nrow(tablemic), names_to = "antibiotic", values_to = "map_distance")
+
+# Combine distance values into a single data frame
+distances <- bind_cols(table_distances, map_distances)
+
+# Convert distance values to numeric
+distances$table_distance <- as.numeric(distances$table_distance)
+distances$map_distance <- as.numeric(distances$map_distance)
+
+# Fit a linear model to relate map_distance to table_distance
+mapvtable <- lm(map_distance ~ table_distance, data = distances)
+
+# Extract slope from the linear model
+slope <- as.numeric(coef(mapvtable)[2])
+
+# Calculate the dilation factor based on the slope
+dilation <- 1 / slope
+
+# Rename columns of the original configuration data
+colnames(torg_met_conf) <- c("D1", "D2")
+
+# Apply dilation to each column of the original configuration data
+for (i in 1:ncol(torg_met_conf)) {
+  torg_met_conf[, i] <- torg_met_conf[, i] * dilation
+}
+
+
+```
+
+
+### Congruence coefficient.
+
+To more quantitatively compare the full map with those with missing values, I used procrustes to rotate and dilate the maps into the same rotation. I first calculated the congruence coefficient between the sets of maps which can be used too compare the similarity of two solutions (https://en.wikipedia.org/wiki/Congruence_coefficient#:~:text=In%20multivariate%20statistics%2C%20the%20congruence,derived%20in%20a%20factor%20analysis.&text=It%20can%20be%20used%20to,have%20taken%20the%20same%20test.)
+
+Below, the plot shows that the maps with missing values are essentially the same as the one made without these isolates. This suggests the missing values are not having a strong effect on how the maps are positioning the isolates with actual values. Generally, a congruence coefficient above 0.95 is considered very similar, and above .99 is near identical For each transformation. hHre, the estimate is >0.998, suggesting the solutions are essentially the same. While there are more fine-grain measures to measure error for the isolates with missing values (see below), this parameter provides a good estimate of the overall similarity of the maps.
+
+```{r, echo = F}
+
+# Initialize variables to store intermediate results
+mapvtable <- NULL
+map_distances <- NULL
+table_distances <- NULL
+distances <- NULL
+
+# Initialize lists to store Procrustes analysis results
+met_ord_comparison <- list()
+met_ord_comparison_congcoef <- vector()
+met_ord_comparison_aliencoef <- vector()
+
+# Perform Procrustes analysis for each missing sample
+for (i in 1:no_missing_samples) {
+  met_ord_comparison[[i]] <- Procrustes(as.matrix(torg_met_conf), as.matrix(missing_samples_dists_confs[[i]]))
+  met_ord_comparison_congcoef[i] <- met_ord_comparison[[i]]$congcoef
+  met_ord_comparison_aliencoef[i] <- met_ord_comparison[[i]]$aliencoef
+}
+
+# Convert alignment coefficients to a tibble
+met_ord_comparison_congcoef <- as_tibble(met_ord_comparison_congcoef)
+
+# Calculate and print the mean of congruence coefficients
+mean_congcoef <- round(mean(met_ord_comparison_congcoef$value), 3)
+cat("Mean Congruence Coefficient:", mean_congcoef, "\n")
+
+# Plot histogram of congruence coefficients
+B <- ggplot(met_ord_comparison_congcoef, aes(x = value)) + 
+  geom_histogram(position = "identity", alpha = 0.5, color = "black", fill = "#E41A1C", bins = 30) + 
+  geom_vline(aes(xintercept = mean(value)),
+             color = "#E41A1C", linetype = "dashed", size = 1) + 
+  geom_vline(aes(xintercept = 0.99),
+             color = "black", linetype = "solid", size = 1) +
+  theme_bw() +
+  labs(x = "Congruence Coefficient", y = "Count") +
+  coord_fixed(ratio = 0.000075) 
+B
+# Save the plot as a JPEG file
+ggsave("S_pneumoniae_missing_cong_conf.jpg", B)
+
+
+```
+
+
+### Testing whether datasets with additional error have higher stress
+
+In MDS, stress is the sum of the squared distances between the points on the plot and their distances in the original data table. This is the parameter MDS tries to minimise when making the map. Theoretically, given there strong correlations between MICs to the different drugs, adding missing values might effect their stress values on the map. This is because the missing values may have the effect of altering those correlations, and meaning the distances can not be as well represented in 2 dimensions. 
+
+I estimated stress for each of the maps with missing values (histogram) and compared them to the stress for the original map (black line). Notably, all of the missing value maps had higher stress than the original map. Moreover, the isolates which had missing values tended to have a higher level of stress-per-point (as a % of total stress). Below is the histogram of stress per point for the missing values (red) compared to the other isolates on the map (grey). The stress for the points with missing values is slightly larger than those without.
+
+Notably, some isolates had missing values for more than one of their MIC values (up to a maximum of 5 of the 6 MIC values), below I have aggregated this error in this plot. Isolates contribution to stress was higher when they had multiple missing values. 
+
+
+```{r, echo = F}
+
+# Initialize variables to store intermediate results
+missing_samples_stress <- vector()
+missing_samples_stress_torg <- vector()
+
+# Extract pairwise distances and additional information for each missing sample
+for (i in 1:no_missing_samples) {
+  met_ord_comparison[[i]]$pairwise_dist <- cbind(met_ord_comparison[[i]]$X, met_ord_comparison[[i]]$Yhat)
+  colnames(met_ord_comparison[[i]]$pairwise_dist) <- c("D1_X", "D2_X", "D1_Y", "D2_Y")
+
+  met_ord_comparison[[i]]$pairwise_dist <- as_tibble(met_ord_comparison[[i]]$pairwise_dist) %>% 
+    mutate(dist_phen = sqrt((D1_X - D1_Y)^2 + (D2_X - D2_Y)^2),
+           LABID = tablemic_meta[, 1])
+
+  missing_samples_mds_objects[[i]]$spp <- cbind(tablemic_meta$LABID, missing_samples_mds_objects[[i]]$spp)
+  colnames(missing_samples_mds_objects[[i]]$spp) <- c("LABID", "spp")
+
+  met_ord_comparison[[i]]$pairwise_dist <- left_join(met_ord_comparison[[i]]$pairwise_dist, 
+                                                     as_tibble(missing_samples_mds_objects[[i]]$spp), 
+                                                     by = "LABID")
+}
+
+# Combine pairwise distances and additional information
+torg_met_conf <- cbind(torg_met_conf, tablemic_meta$LABID, torg_met$spp)
+colnames(torg_met_conf) <- c("D1", "D2", "LABID", "stress_per_point_real")
+
+# Initialize a list to store stress per point comparison results
+stress_per_point_comparison <- list()
+
+# Perform additional data manipulations and comparisons
+for (i in 1:no_missing_samples) {
+  stress_per_point_comparison[[i]] <- left_join(met_ord_comparison[[i]]$pairwise_dist, missing_samples[[i]], by = "LABID")
+  stress_per_point_comparison[[i]]$spp <- as.numeric(stress_per_point_comparison[[i]]$spp)
+
+  stress_per_point_comparison_2 <- left_join(stress_per_point_comparison[[i]], torg_met_conf, by = "LABID") %>%
+    group_by(LABID) %>%
+    mutate(count_na = sum(is.na(MIC_value))) %>%
+    ungroup() %>%  
+    distinct(LABID, .keep_all = TRUE) %>%
+    dplyr::select(LABID, count_na, stress_per_point_real) 
+
+  stress_per_point_comparison[[i]] <- left_join(stress_per_point_comparison[[i]], stress_per_point_comparison_2, by = c("LABID" = "LABID")) 
+
+  stress_per_point_comparison[[i]]$spp <- as.numeric(stress_per_point_comparison[[i]]$spp)
+
+  stress_per_point_comparison[[i]] <- stress_per_point_comparison[[i]] %>%
+    mutate(dataset = i)
+}
+
+# Combine results into a single data frame and add a column 'missing_values' based on the count of missing values
+stress_per_point_comparison <- bind_rows(stress_per_point_comparison) %>% 
+  mutate(missing_values = ifelse(count_na == "0", "No missing values", "Missing values"))
+
+
+# Calculate and print the difference in means of spp values
+mu <- stress_per_point_comparison %>%
+  group_by(missing_values) %>%
+  summarize(Mean = mean(spp, na.rm = TRUE))
+
+difference_in_means <- round(mu$Mean[1] - mu$Mean[2], 3)
+cat("Difference in Means:", difference_in_means, "\n")
+
+# Plot histogram of overall map stress
+ggplot(as_tibble(missing_samples_stress), aes(x = value)) + 
+  geom_histogram(color = "black", alpha = 0.5, fill = "#E41A1C", bins = 20) +
+  theme_bw() +
+  geom_vline(xintercept = torg_met$stress) +
+  labs(x = "Overall map stress", y = "Count") 
+
+# Plot histogram and density plot of stress per point
+E <- ggplot(stress_per_point_comparison, aes(spp, y = stat(density), colour = missing_values, fill = missing_values)) + 
+  geom_histogram(position = "identity", alpha = 0.45, color = "black") + 
+  geom_freqpoly(bins = 30, stat = "bin") + 
+  theme_bw() + 
+  geom_vline(data = mu, aes(xintercept = Mean, color = missing_values),
+             linetype = "dashed", size = 0.75) +
+  scale_x_continuous(breaks = seq(0, max(abs(stress_per_point_comparison$spp), na.rm = TRUE) + 0.2, 0.2)) +
+  scale_y_continuous(breaks = seq(0, 60, 10)) +
+  labs(x = "Stress per point (%)", y = "Density") +
+  theme(legend.position = "none") + 
+  guides(colour = "none") +
+  guides(fill = guide_legend(title = "Error added")) +
+  scale_colour_manual(values = c("#E41A1C", "darkgrey")) +
+  scale_fill_manual(values = c("#E41A1C", "darkgrey"))
+E
+
+# Save the plot as a JPEG file
+ggsave("S_pneumo_missing_spp.jpg", E)
+
+
+```
+
+
+### Euclidean distance between true values and predicted values
+
+After reorientation of the missing value maps to compare to the real map, I then estimated the euclidean distance between each isolates true value and their missing value. Below is a histogram of those values for the isolates with missing MICs (Red) and the distances for those without noise added (grey). Typically the values were less than 1 MIC unit away from their true values. Generally the distances tended to be slightly higher when multiple MICs were missing. However, some points were very far away from their true values. This was typically those which had error added for several drugs or high very high contribution to stress on the map with or without the missing value.
+
+
+```{r, echo = F}
+
+# Calculate and print the mean of dist_phen values
+mu <- stress_per_point_comparison %>%
+  group_by(missing_values) %>%
+  summarize(Mean = mean(dist_phen, na.rm = TRUE))
+
+mean_dist_phen <- round(mu$Mean[1], 3)
+cat("Mean Distance from True Value:", mean_dist_phen, "\n")
+
+# Plot histogram and density plot of dist_phen
+C <- ggplot(filter(stress_per_point_comparison), aes(dist_phen, y = stat(density), colour = missing_values, fill = missing_values)) + 
+  geom_histogram(position = "identity", alpha = 0.45, color = "black") + 
+  geom_freqpoly(bins = 40, stat = "bin") + 
+  theme_bw() + 
+  geom_vline(data = mu, aes(xintercept = Mean, color = missing_values),
+            linetype = "dashed", size = 0.75) +
+  geom_vline(aes(xintercept = 1), color = "black",
+             linetype = "solid", size = 0.5) +
+  scale_x_continuous(breaks = seq(0, 7, 1)) +
+  labs(x = "Distance from true value (MIC units)", y = "Density") +
+  theme(legend.justification = c(0.95, 0.725), legend.position = c(0.95, 0.8),
+        axis.text = element_text(size = 16), 
+        axis.title = element_text(size = 16)) +
+  guides(colour = "none") +
+  guides(fill = guide_legend(title = "Error added")) +
+  scale_colour_manual(values = c("#E41A1C", "darkgrey")) +
+  scale_fill_manual(values = c("#E41A1C", "darkgrey")) +
+  theme(legend.position = "none") 
+C
+# Save the plot as a JPEG file
+ggsave("S_pneumoniae_noise_euc_phen_dist.jpg", C)
+
+
+```
+
+
+
+### Visually comparing a noise-added map to true values
+
+I then plotted a map made with missing values and the original map on the same plot after reorienting them to the same scale/rotation. Here, the black points are the true values, while the red points are the noise added values. The black crosses indicate points which did not have error added. Although it is a little difficult to see because of the number of points, most values are within 1log fold of their true value (see above).
+
+```{r, echo = F}
+
+
+# Create a scatter plot with segments for missing values
+A <- ggplot(filter(stress_per_point_comparison, missing_values != "No missing values" & dataset == 1), aes(x = D1_X, y = D2_X)) + 
+  geom_point(data = filter(stress_per_point_comparison, missing_values == "No missing values" & dataset == 1), aes(x = D1_X, y = D2_X), shape = 4, fill = "grey", size = 1.5, alpha = 0.6) +
+  geom_segment(data = filter(stress_per_point_comparison, missing_values != "No missing values" & dataset == 1), aes(x = D1_X, y = D2_X, xend = D1_Y, yend = D2_Y), size = 0.5, colour = "grey") + 
+  geom_point(data = filter(stress_per_point_comparison, missing_values != "No missing values" & dataset == 1), shape = 21, fill = "black", size = 2, colour = "white") + 
+  geom_point(data = filter(stress_per_point_comparison, missing_values != "No missing values" & dataset == 1), aes(x = D1_Y, y = D2_Y), shape = 21, fill = "#E41A1C", size = 2, colour = "white") +
+  theme_bw() +   
+  scale_x_continuous(breaks = seq(min(c(stress_per_point_comparison$D1_Y, stress_per_point_comparison$D1_X), na.rm = TRUE), max(c(stress_per_point_comparison$D1_Y, stress_per_point_comparison$D1_X), na.rm = TRUE) + 1, 1)) +
+  scale_y_continuous(breaks = seq(min(c(stress_per_point_comparison$D2_Y, stress_per_point_comparison$D2_X), na.rm = TRUE), max(c(stress_per_point_comparison$D2_Y, stress_per_point_comparison$D2_X), na.rm = TRUE) + 1, 1)) +
+  labs(title = "") +
+  labs(x = "MDR distance", y = "MDR distance") + 	
+  theme(axis.text = element_text(size = 16), 
+        axis.title = element_text(size = 16), 
+        panel.grid.major = element_line(colour = "grey", size = 0.3),
+        panel.grid.minor = element_blank(),
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        strip.text.x = element_text(size = 14)) +
+  coord_fixed()
+A
+# Save the plot as a JPEG file
+ggsave("S_pneumo_noise_pred_error_map.jpg", A)
+
+```
+
+
+
+
+### Cross-validation analysis - multiple dimensions
+
+Lastly, I made maps in several different dimensions using the same datasets with missing values as before. I also made maps using the true values for each dimension to compare them to. Here, I again calculated the euclidean distance between the 'true' map position and the missing value map position, after reorientation of the maps to overlap. I found that prediction error was lowest at 1 dimension, but that there were marginal increases in error when using more than 2 dimensions. This suggests that using more than two dimensions may overfit the data. Although 1 dimension offered the lowest prediction error here, it was clear from the stress and goodness of fit analyses (previous markdowns) that a minimum of two dimensions was needed to accurately represent the data. 
+
+Here, I plotted each dimension on the x axis, and the mean prediction error for each missing value dataset on the y axis. The points and error bars show the standard error for the mean of the means for each dataset.
+
+
+```{r, echo = FALSE}
+
+# Initialize a list to store results for each dimension
+missing_samples_dists_dimensions <- list()
+
+# Create nested lists for each dimension
+for (f in 1:4){
+  missing_samples_dists_dimensions[[f]] <- list()
+}
+
+# Set the number of samples
+no_missing_samples <- 1
+
+# Set the number of cores to use
+num_cores <- 4  # Change this to the desired number of cores
+
+# Register parallel backend
+registerDoParallel(cores = num_cores)
+
+# Function to perform MDS for a given dimension
+run_mds_dimension <- function(dim) {
+  MDS_missing_samples_dim_test <- list()
+
+  # Loop over samples
+  for (i in 1:no_missing_samples) {
+    # Perform MDS
+    temp_MDS <- mds(missing_samples_dists[[i]], ndim = dim, type = c("ratio"),
+                    weightmat = missing_samples_weight_matrices[[i]], init = "torgerson",
+                    modulus = 1, itmax = 1000, eps = 1e-06)
+
+    # Store MDS results
+    MDS_missing_samples_dim_test[[dim]][[i]] <- list(conf = temp_MDS$conf, stress = temp_MDS$stress, spp = temp_MDS$spp)
+    temp_MDS <- NULL
+  }
+  
+  return(MDS_missing_samples_dim_test)
+}
+26/6
+# Run MDS for each dimension in parallel
+missing_samples_dists_dimensions <- foreach(dim = 1:4, .combine = "c") %dopar% {
+  run_mds_dimension(dim)
+}
+
+# Stop parallel processing
+registerDoSEQ()
+
+# Save and restore the MDS results
+saveRDS(missing_samples_dists_dimensions, file = "missing_samples_dists_dimensions_missing_values.rds")
+missing_samples_dists_dimensions <- readRDS(file = "missing_samples_dists_dimensions_missing_values.rds")
+
+
+
+```
+
+
+```{r, echo = F}
+# generate maps in several dimensions for all data in order to compare
+torg_met_dimensions <- list()
+
+for (f in 1:4){
+torg_met_dimensions[[f]] <- mds(dist_pne, ndim = f, type = c("ratio") , init = "torgerson", modulus = 1, itmax = 1000, eps = 1e-06)
+}
+
+# Save an object to a file
+saveRDS(torg_met_dimensions, file = "torg_met_dimensions_missing_values.rds")
+# Restore the object
+torg_met_dimensions <- readRDS(file = "torg_met_dimensions_missing_values.rds")
+
+
+```
+
+
+```{r, echo = F}
+
+# Initialize lists for storing results
+missing_samples_dists_confs_dim <- list()
+missing_samples_stress_dim <- list()
+torg_met_dimensions_conf <- list()
+torg_met_dimensions_stress <- vector()
+
+# Loop over dimensions
+for (f in 1:4){
+  missing_samples_dists_confs_dim[[f]] <- list()
+  missing_samples_stress_dim[[f]] <- vector()
+
+  # Loop over samples
+  for (i in 1:no_missing_samples) {
+    missing_samples_dists_confs_dim[[f]][[i]] <- as_tibble(missing_samples_dists_dimensions[[f]][[i]]$conf)
+    missing_samples_stress_dim[[f]][i] <- missing_samples_dists_dimensions[[f]][[i]]$stress
+  }
+
+  missing_samples_stress_dim[[f]] <- as_tibble(missing_samples_stress_dim[[f]])
+
+  torg_met_dimensions_conf[[f]] <- as_tibble(torg_met_dimensions[[f]]$conf)
+  torg_met_dimensions_stress[f] <- torg_met_dimensions[[f]]$stress
+}
+
+torg_met_dimensions_stress <- as_tibble(torg_met_dimensions_stress)
+
+# Initialize vectors for storing results
+slope_dim <- vector()
+dilation_dim <- vector()
+
+# Loop over dimensions
+for (f in 1:4) {
+  # Process distances
+  table_distances <- as_tibble(as.matrix(torg_met_dimensions[[f]][[1]]))
+  map_distances <- as_tibble(as.matrix(torg_met_dimensions[[f]][[3]]))
+  colnames(map_distances) <- colnames(table_distances)
+  table_distances <- gather(table_distances, "antibiotic", "table_distance", 1:nrow(tablemic)) 
+  map_distances <- gather(map_distances, "antibiotic", "map_distance", 1:nrow(tablemic))
+  distances <- bind_cols(table_distances, map_distances)
+  distances$table_distance <- as.numeric(distances$table_distance)
+  distances$map_distance <- as.numeric(distances$map_distance)
+  
+  # Fit linear model
+  mapvtable <- lm(map_distance ~ table_distance, data = distances)
+  summary(mapvtable)
+  mapvtable
+  coef(mapvtable)
+  
+  # Store results
+  slope_dim[f] <- as.numeric(coef(mapvtable)[2])
+  dilation_dim[f] <- 1/slope_dim[f]
+}
+
+# Apply dilation to each dimension separately
+for (f in 1:4){
+for (i in 1:ncol(torg_met_dimensions_conf[[f]])){
+  torg_met_dimensions_conf[[f]][,i] <- torg_met_dimensions_conf[[f]][,i] * dilation_dim[f]
+}
+}
+
+# Initialize lists for storing results
+met_ord_comparison_dim <- list()
+met_ord_comparison_congcoef_dim <- list()
+
+# Loop over dimensions
+for (f in 1:4){
+  met_ord_comparison_dim[[f]] <- list()
+}
+
+# Loop over dimensions and samples
+for (f in 1:4) {
+  for (i in 1:no_missing_samples) {
+    # Perform Procrustes analysis
+    met_ord_comparison_dim[[f]][[i]] <- Procrustes(as.matrix(torg_met_dimensions_conf[[f]]),  as.matrix(missing_samples_dists_confs_dim[[f]][[i]]))
+  }
+}
+
+# Loop over dimensions and samples
+for (f in 1:4) {
+  for (i in 1:no_missing_samples) { 
+    colnames(met_ord_comparison_dim[[f]][[i]]$X) <- paste(colnames(met_ord_comparison_dim[[f]][[i]]$X),"X",sep="_")
+    colnames(met_ord_comparison_dim[[f]][[i]]$Yhat) <- paste(colnames(met_ord_comparison_dim[[f]][[i]]$Yhat),"Y",sep="_")
+  }
+}
+
+# Loop over dimensions and samples
+for (f in 1:4) {
+  for (i in 1:no_missing_samples) {
+    met_ord_comparison_dim[[f]][[i]]$pairwise_dist <- cbind(met_ord_comparison_dim[[f]][[i]]$X, met_ord_comparison_dim[[f]][[i]]$Yhat)
+  }
+}
+
+# Loop over dimensions and samples
+for (f in 1:4) {
+  for (i in 1:no_missing_samples) {
+    met_ord_comparison_dim[[f]][[i]]$pairwise_dist <- as_tibble(met_ord_comparison_dim[[f]][[i]]$pairwise_dist)
+  }
+}
+
+# Loop over samples
+for (i in 1:no_missing_samples) {
+  met_ord_comparison_dim[[1]][[i]]$pairwise_dist <- as_tibble(met_ord_comparison_dim[[1]][[i]]$pairwise_dist) %>%
+       mutate(dist_phen = sqrt((D1_X-D1_Y)^2),
+              LABID = tablemic_meta[,1])
+}
+
+# Loop over samples
+for (i in 1:no_missing_samples) {
+  met_ord_comparison_dim[[2]][[i]]$pairwise_dist <- as_tibble(met_ord_comparison_dim[[2]][[i]]$pairwise_dist) %>%
+       mutate(dist_phen = sqrt((D1_X-D1_Y)^2 + (D2_X-D2_Y)^2),
+              LABID = tablemic_meta[,1])
+}
+
+# Loop over samples
+for (i in 1:no_missing_samples) {
+  met_ord_comparison_dim[[3]][[i]]$pairwise_dist <- as_tibble(met_ord_comparison_dim[[3]][[i]]$pairwise_dist) %>%
+       mutate(dist_phen = sqrt((D1_X-D1_Y)^2 + (D2_X-D2_Y)^2 + (D3_X-D3_Y)^2),
+              LABID = tablemic_meta[,1])
+}
+
+# Loop over samples
+for (i in 1:no_missing_samples) {
+  met_ord_comparison_dim[[4]][[i]]$pairwise_dist <- as_tibble(met_ord_comparison_dim[[4]][[i]]$pairwise_dist) %>%
+       mutate(dist_phen = sqrt((D1_X-D1_Y)^2 + (D2_X-D2_Y)^2 + (D3_X-D3_Y)^2 + (D4_X-D4_Y)^2),
+              LABID = tablemic_meta[,1])
+}
+
+# Loop over dimensions
+for (f in 1:4) {
+  # Loop over samples
+  for (i in 1:no_missing_samples) {
+    missing_samples_dists_dimensions[[f]][[i]]$spp <- cbind(tablemic_meta$LABID, missing_samples_dists_dimensions[[f]][[i]]$spp)
+    colnames(missing_samples_dists_dimensions[[f]][[i]]$spp) <- c("LABID", "spp")
+    
+    met_ord_comparison_dim[[f]][[i]]$pairwise_dist <- left_join(met_ord_comparison_dim[[f]][[i]]$pairwise_dist, as_tibble(missing_samples_dists_dimensions[[f]][[i]]$spp), by = "LABID")
+  }
+}
+
+# Initialize lists for storing results
+stress_per_point_comparison <- list()
+stress_per_point_comparison_2 <- list()
+
+# Loop over dimensions
+for (f in 1:4){
+  stress_per_point_comparison[[f]] <- list()
+  stress_per_point_comparison_2[[f]] <- list()
+
+# Loop over dimensions and samples
+  for (i in 1:no_missing_samples) {
+    stress_per_point_comparison[[f]][[i]] <- left_join(as_tibble(met_ord_comparison_dim[[f]][[i]]$pairwise_dist), as_tibble(missing_samples[[i]]), by = "LABID")
+
+# Loop to calculate count of missing values for each LABID in each dimension and dataset
+    stress_per_point_comparison_2[[f]][[i]] <- stress_per_point_comparison[[f]][[i]] %>%
+      group_by(LABID) %>%
+      summarize(count_na = sum(is.na(MIC_value)))
+
+    stress_per_point_comparison[[f]][[i]] <- left_join(stress_per_point_comparison[[f]][[i]], stress_per_point_comparison_2[[f]][[i]], by = c("LABID" = "LABID")) 
+    
+    stress_per_point_comparison[[f]][[i]] <- stress_per_point_comparison[[f]][[i]] %>%
+      mutate(dimension = f, 
+             dataset = i)
+  }
+}
+
+# Combine all lists into a single dataframe
+stress_per_point_comparison <- bind_rows(stress_per_point_comparison)
+
+# Add a column indicating if there are missing values or not
+stress_per_point_comparison <- stress_per_point_comparison %>% mutate(missing_values = ifelse(count_na == "0", "No missing values", "Missing values")) 
+
+# Convert dist_phen column to numeric
+stress_per_point_comparison$dist_phen <- as.numeric(stress_per_point_comparison$dist_phen)
+
+# Convert dimension column to factor
+stress_per_point_comparison$dimension <- as.factor(stress_per_point_comparison$dimension)
+
+# Calculate mean and median for observations with missing values
+mu <- stress_per_point_comparison %>%
+  filter(missing_values == "Missing values") %>%
+  distinct(LABID, dimension, dataset, .keep_all = TRUE) %>%
+  ungroup() %>%
+  group_by(dimension, dataset) %>%
+  summarize(Mean = mean(dist_phen),
+            Median = median(dist_phen)) %>%
+  group_by(dimension) %>%
+  summarize(sd = round(sd(Mean), 3),
+            Mean = round(mean(Mean), 3),
+            Median = round(median(Median), 3))
+
+# Display summary statistics
+t(mu) 
+
+# Create a ggplot for visualization
+ggplot(mu, aes(x = dimension, y = Mean)) + 
+  geom_point(color = "#E41A1C") +
+  geom_line(color = "#E41A1C") +
+  geom_errorbar(aes(ymin = Mean - sd, ymax = Mean + sd), width = 0.2,
+                position = position_dodge(0.05), color = "#E41A1C") +
+  theme_bw() +
+  theme(axis.text = element_text(size = 18), 
+        axis.title = element_text(size = 18)) +
+  labs(x = "Dimension", y = "Mean Prediction Error (MIC units)") +
+  coord_fixed(ratio = 20) 
+
+# Save the ggplot as an image
+ggsave("S_pneumo_missing_values_cross_validation.jpg")
+
+```

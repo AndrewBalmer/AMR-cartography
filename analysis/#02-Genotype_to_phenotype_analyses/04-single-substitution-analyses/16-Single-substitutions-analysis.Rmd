@@ -1,0 +1,659 @@
+---
+title: "16-Single-substitutions-analysis"
+author: "Andrew Balmer"
+date: "2024-03-11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+remove(list = ls())
+library(tidyverse)
+library(smacof)
+library(RColorBrewer)
+library(hrbrthemes)
+library(broom)
+library(vcd)
+library(seqinr)
+library(ape)
+library(ggdendro)
+library(boot)
+
+options(dplyr.summarise.inform = FALSE)
+
+### ==== Set working directory
+setwd("/Users/ajb306/Google Drive/PhD - Andrew Balmer/Chapters/AMR cartography/MIC data/")
+
+# Read in genetic distance matrix for the full dataset
+load('/Users/ajb306/AMR-cartography/data/tablemic_pneumo_3628_meta_gen_distance_matrix.RData')
+load('/Users/ajb306/AMR-cartography/data/tablemic_pneumo_gen_3628.RData')
+
+# Read in the relevant meta data
+tablemic_meta <- read.csv("/Users/ajb306/AMR-cartography/data/meta_data_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+
+# Specify the full path to the data file
+phen_map <- "/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#03-06-Generating-phenotype-and-genotype-maps/Spneumo_3628_PCA_start_2D_METRIC.RData"
+
+load(phen_map)
+
+### ==== Rename distance matrix
+test_2 <- as.data.frame(as.matrix(pbp_dist))
+
+### ==== Rotate phenotype map for visualisation purposes 
+theta <- 326*pi/180 ## degrees to radians
+rot <- matrix(c(cos(theta), sin(theta), -sin(theta), cos(theta)), ncol = 2)
+torg_met$conf <- torg_met$conf %*% rot ## rotated configurations
+
+
+```
+
+
+```{r,echo=F}
+
+### ==== Turn map coordinates into dataframe
+map_coords <- as.data.frame(torg_met$conf)
+map_coords <- cbind(map_coords, tablemic_meta)
+
+### create a vector of isolates with PBP deletion substitutions and remove them from dataframes  
+isolates_with_PBP_deletion <- c("20156696" , "20162849" , "20151885" ,
+                                "20153985" , "20154509" , "2013224047" , "2013218247" ,
+                                "2014200662" , "5869-99" , "2513-99")
+  
+map_coords <- map_coords %>% filter(!LABID %in% isolates_with_PBP_deletion) 
+
+#mod.matrix <- cov(select(map_coords, D1, D2))/colMeans(select(map_coords, D1, D2))
+slope <- 0.1842996
+dilation <- 1/slope
+
+map_coords$V1 <- map_coords$V1 * dilation
+map_coords$V2 <- map_coords$V2 * dilation
+
+# Here I exclude position PBP2B_N656 - it is invariant except for amino acid error (marked as X)
+PBP_types_vector <- PBPseq %>% select(PBP1A_T371:PBP2X_V587, -PBP2B_N656) %>%
+            unite("PBP_type", PBP1A_T371:PBP2X_V587, remove = TRUE) %>%
+            group_by(PBP_type) %>% 
+            group_indices(PBP_type) 
+
+PBPseq <- PBPseq %>% mutate(PBP_type = PBP_types_vector) 
+
+### === Rename and calculate PBP centroids on phenotype map
+AA_matrix_phenotype <- bind_cols(map_coords, PBPseq) %>%
+  rename(D1 = V1, D2 = V2) %>%
+  group_by(PBP_type) %>%
+  mutate(x_centroid = mean(D1), 
+         y_centroid = mean(D2))
+
+### ==== Estimate genotypic distances between PBP types 
+test <- AA_matrix_phenotype %>% select(LABID, PBP_type, PBP1A_T371:PBP2X_V587) %>% 
+  #distinct(PBP_type, .keep_all = TRUE) %>%
+  ungroup() %>%
+  filter(PBP_type == "2-0-0")
+
+dist_PBPs <- AA_matrix_phenotype %>% select(PBP_type, PBP1A_T371:PBP2X_V587, -PBP2B_N656) %>% 
+  #distinct(PBP_type, .keep_all = TRUE) %>%
+  ungroup() %>%
+  select(-PBP_type)
+
+## this line generates the amino acid alignment distance matrix without the PBP2B_N656 position, but takes a long time to run. uncomment if you would like to run this.
+#dist_PBPs <- as.data.frame(as.matrix(dist.gene(dist_PBPs, method ="pairwise", pairwise.deletion = F, variance = F)))
+
+### ==== Estimate phenotypic distances between PBP types 
+phen_dist <- AA_matrix_phenotype %>% 
+            select(D1, D2, PBP_type) %>%
+           # distinct(PBP_type, .keep_all = TRUE) %>%
+            ungroup() %>%
+            select(-PBP_type)
+
+phen_dist <- as.data.frame(as.matrix(dist(phen_dist)))
+
+#saveRDS(dist_PBPs, file = "dist_PBP_single_subs_pneumo.rds")
+dist_PBPs <- readRDS(file = "dist_PBP_single_subs_pneumo.rds")
+
+
+```
+
+
+
+```{r,echo =F}
+
+# Construct a table of distances for each single sub comparison
+PBP_types <- AA_matrix_phenotype %>% 
+            select(PBP_type) 
+
+dist_PBPs <- bind_cols(PBP_types, pbp_dist)
+colnames(dist_PBPs) <- c("PBP_type", AA_matrix_phenotype$PBP_type)
+
+dist_PBPs <- dist_PBPs %>% pivot_longer(-PBP_type) 
+
+
+phen_dist  <- bind_cols(PBP_types, phen_dist)
+colnames(phen_dist) <- c("PBP_type", AA_matrix_phenotype$PBP_type)
+phen_dist <- phen_dist %>% pivot_longer(-PBP_type)
+
+
+nat_exp_rankings <- bind_cols(dist_PBPs,phen_dist[,3]) %>%
+        rename(Reference_PBP = 1, 
+               Comparison_PBP = 2,
+               Genetic_distance = 3,
+               Phenotypic_distance = 4) %>%
+          filter(Genetic_distance == 1) %>%
+          select(Reference_PBP, Comparison_PBP, Phenotypic_distance) %>%
+          unite("Relative_Comparison", Reference_PBP:Comparison_PBP, remove = FALSE)
+
+phen_dist <- NULL
+dist_PBPs <- NULL
+
+Reference <- data.frame(matrix(ncol=2,nrow=0)) 
+
+
+### the lines below sort the dataframe for substitution analysis, however it takes a long time to run and save, uncoment this line if you would like to run it.
+#for(i in 1:nrow(nat_exp_rankings)) {
+#Reference[i,] <- sort(as.numeric(nat_exp_rankings[i,2:3]))
+#}
+
+#saveRDS(Reference, file = "Reference.rds")
+Reference <- readRDS(file = "Reference.rds")
+
+Reference <- Reference %>%
+  rename(Reference_PBP = X1, Comparison_PBP = X2) %>%
+          unite("Relative_Comparison", Reference_PBP:Comparison_PBP, remove = TRUE) %>%
+  select(Relative_Comparison) %>%
+      distinct(Relative_Comparison, .keep_all = TRUE)
+
+nat_exp_rankings <- left_join(Reference, nat_exp_rankings, by = "Relative_Comparison") %>%
+  filter(Reference_PBP != Comparison_PBP)
+
+### ==== Get counts of number of isolates for reference PBP type
+  counts_of_PBPs <- AA_matrix_phenotype %>% 
+    select(PBP_type) %>% 
+    group_by(PBP_type) %>%
+    add_count(PBP_type) %>%
+    rename(Reference_PBP = PBP_type, number_of_isolates_of_reference = n) %>%
+    distinct(Reference_PBP, .keep_all = TRUE)
+  
+  nat_exp_rankings <- left_join(nat_exp_rankings, counts_of_PBPs, by = c("Reference_PBP" = "Reference_PBP"))
+  
+### ==== Get counts of number of isolates for comparison PBP type
+  counts_of_PBPs <- counts_of_PBPs %>% 
+    rename(Comparison_PBP = Reference_PBP, number_of_isolates_of_comparison_group = number_of_isolates_of_reference) 
+  
+  counts_of_PBPs$Comparison_PBP <- as.character(counts_of_PBPs$Comparison_PBP)
+  
+  nat_exp_rankings <- left_join(nat_exp_rankings, counts_of_PBPs, by = c("Comparison_PBP" = "Comparison_PBP"))
+  
+saveRDS(Reference, file = "Reference_short.rds")
+saveRDS(nat_exp_rankings, file = "nat_exp_rankings.rds")
+
+Reference <- readRDS(file = "Reference_short.rds")
+nat_exp_rankings <- readRDS(file = "nat_exp_rankings.rds")
+
+```
+
+```{r,echo=F}
+
+subs <- data.frame(matrix(ncol=4,nrow=0)) 
+
+colnames(subs) <- c("Location","AA_1","AA_2","Identity")
+
+PBP_types <- nat_exp_rankings %>%
+  distinct(Reference_PBP, Comparison_PBP, .keep_all = TRUE)
+
+for(i in 1:nrow(PBP_types)) {
+temp <- AA_matrix_phenotype %>% filter(PBP_type == PBP_types[c(i),2] | PBP_type == PBP_types[c(i),3]) %>% 
+  distinct(PBP_type, .keep_all = TRUE) %>%
+  select(PBP_type, PBP1A_T371:PBP2X_V587 , -PBP2B_N656) %>%
+  pivot_longer(PBP1A_T371:PBP2X_V587 , names_to = "Location", values_to = "AA") %>%      
+  select(c("PBP_type","Location","AA")) %>% 
+  pivot_wider(names_from = PBP_type, values_from = AA) %>%
+  rename(Location = 1, AA_1 = 2, AA_2 = 3) %>% 
+  filter(AA_1 != AA_2) %>%
+  mutate(Relative_Comparison = as.character(PBP_types[c(i),1]))
+
+  subs <- rbind(subs,temp)
+  temp <- NULL
+}
+
+nat_exp_rankings <- left_join(nat_exp_rankings, subs,by = "Relative_Comparison")
+
+nat_exp_rankings <- nat_exp_rankings %>% unite("Substitution", Location:AA_2, remove = FALSE)
+str_sub(nat_exp_rankings$Substitution, 13, 13) <- ":"
+
+```
+
+
+```{r,echo =F}
+
+nat_exp_rankings <- nat_exp_rankings %>%
+    rowwise() %>% 
+    group_by(Relative_Comparison) %>%
+    separate(Location, c("PBP", "Loci"), remove =F)
+
+
+nat_exp_rankings_summary <- nat_exp_rankings %>%
+ group_by(Relative_Comparison,
+          Reference_PBP,
+          Comparison_PBP,
+          number_of_isolates_of_reference,
+          number_of_isolates_of_comparison_group,
+          Substitution,
+          Location,
+          PBP,
+          Loci,
+          AA_1,
+          AA_2) %>%
+    summarise(median_phenotypic_distance = mean(Phenotypic_distance),
+              sd = sd(Phenotypic_distance),
+              n = n(),
+              se = sd / sqrt(n))
+
+nat_exp_rankings_summary$Loci <- str_sub(nat_exp_rankings_summary$Loci, 2, 4) 
+
+
+
+```
+
+# Identifying isolates which vary by a single AA substitution
+Here, I present one method of identifying the amino acid substitutions responsible for changes in beta-lactam resistance phenotype. This method involves identifying combinations of isolates which vary by a single AA substitution with the transpeptidase regions (TPD) of the three penicillin binding proteins (PBPs): PBP1a, PBP2b and PBP2x. I have limited the analysis to the TPD regions of these three proteins, as they are thought to be the main regions which determine variation in beta-lactam resistance phenotype. This technique is the same method used to identify causal variations underlying antigenic change in the influenza cartography maps. Here I have presented the S. pneumoniae data for 3620 (of 4309) isolates with all 6 beta-lactam drugs measured. 
+
+### Basic principle
+Here, I have identified pairs of isolates, A and B, which differ by a single substitution. In this case, isolates A and B have exactly the same genetic background, but vary by a single AA substitution at a single position in the PBPs. For example, isolate A would have amino acid X at a given position, and isolate B would have amino acid Y. The phenotypic distance between the two isolates can then be attributed to the variation this position. 
+
+Below is one example of this, where the two isolates are presented on the map, coloured by their respective amino acid at a given position. The TPD PBP background of these isolates is the same except for at this single position. The black line represents the phenotypic distance between the two isolates. The grey points represent the other isolates which are not relevant to the comparison but are present to show the distribution of phenotypes for the S. pneumoniae map. This method is useful in that it takes advantage of the natural variation present in such a large collection of isolates.
+
+
+### Plotting examples with phenotypic distance above 1 MIC unit
+
+```{r, echo = F}
+
+nat_exp_rankings_summary$Reference_PBP <- as.character(nat_exp_rankings_summary$Reference_PBP)
+
+nat_exp_rankings_summary_long <- nat_exp_rankings_summary %>% pivot_longer(Reference_PBP:Comparison_PBP, names_to ="Type", values_to = "PBP_type")
+
+large_effect_positions <- nat_exp_rankings_summary %>%
+  group_by(Substitution, Relative_Comparison, PBP, Loci) %>%
+  filter(median_phenotypic_distance >= 1) %>%
+  ungroup() 
+
+c(levels(as.factor(large_effect_positions$Location)))
+
+large_effect_positions$Comparison_PBP <- as.character(large_effect_positions$Comparison_PBP)
+large_effect_positions <- large_effect_positions %>% 
+  pivot_longer(cols = c(Reference_PBP, Comparison_PBP), names_to = "Comparison_type", values_to = "PBP_type")
+
+large_effect_positions <- large_effect_positions %>% 
+distinct(Substitution, Relative_Comparison, PBP, Loci, Comparison_type, .keep_all = TRUE) 
+
+
+
+map_coords_2 <- AA_matrix_phenotype %>% select(LABID, D1,D2, PBP_type, all_of(c(levels(as.factor(large_effect_positions$Location))))) %>% 
+  filter(PBP_type %in% c(levels(as.factor(nat_exp_rankings_summary_long$PBP_type))))
+
+large_effect_positions$PBP_type <- as.character(large_effect_positions$PBP_type)
+map_coords_2$PBP_type <- as.character(map_coords_2$PBP_type)
+
+
+individual_subs <- left_join(large_effect_positions, map_coords_2, by = c("PBP_type"= "PBP_type"))
+
+individual_subs <- individual_subs %>%
+  ungroup() %>% 
+pivot_longer(cols = c(PBP1A_G417:PBP2X_T550), names_to = "PBP_position", values_to = "AA") %>%
+  filter(Location == PBP_position)
+
+str_sub(individual_subs$Location, 7, 7) <- ""
+
+individual_subs <- individual_subs %>% unite("Substitution", Location,AA, remove = FALSE, na.rm =T, sep =":") %>%
+  group_by(Substitution, Relative_Comparison, PBP, Loci) %>%
+  add_count(Substitution) %>%
+  unite("Substitution", Substitution,n, remove = FALSE, na.rm =T, sep = ", n=")
+
+  
+individual_subs$Label <- paste(individual_subs$PBP_position, " - Dist:",  round(as.numeric(individual_subs$median_phenotypic_distance), 3),sep="") 
+
+temp <- individual_subs %>% filter(Comparison_type == "Comparison_PBP") %>% 
+  ungroup() %>%
+  select(D1,D2,Relative_Comparison, Label)
+colnames(temp) <- c("D1_1","D2_1","Relative_Comparison","Label")
+
+
+temp_2 <- individual_subs %>% filter(Comparison_type != "Comparison_PBP") %>%
+  ungroup() %>%
+  select(D1,D2,Relative_Comparison)
+colnames(temp_2) <- c("D1_2","D2_2","Relative_Comparison")
+
+ps <- left_join(temp,temp_2, by = c("Relative_Comparison")) %>%
+  select(D1_1,D2_1, D1_2,D2_2, Relative_Comparison,Label)
+
+#individual_subs$PBP_position <- str_replace_all(individual_subs$PBP_position, "_", " ")
+ps$Label <- ps$Label %>% str_replace_all(pattern = "PBP", replacement = "") %>% str_replace_all(pattern = "_", replacement = "-") 
+individual_subs$Label <- individual_subs$Label %>% str_replace_all(pattern = "PBP", replacement = "") %>% str_replace_all(pattern = "_", replacement = "-") 
+
+ ggplot(filter(individual_subs), aes(x=D1,y=D2)) +
+   geom_point(data = filter(AA_matrix_phenotype, PBP_type != c(levels(as.factor(individual_subs$PBP_type)))[1] &
+                                        PBP_type != c(levels(as.factor(individual_subs$PBP_type)))[2]),
+                                        colour = "#969696", fill = "#969696", shape = 16, size = .25, alpha = 1) +
+   geom_segment(data = ps, mapping = aes(x = D1_1, xend = D1_2, y = D2_1,yend = D2_2), alpha = 1, size = .2, colour = "#333333") +  
+  geom_point(shape = 21,
+               size = 1, 
+               alpha = 1, 
+               aes(fill = AA),
+              colour = "black") +
+    guides() +
+      theme(legend.position='none') +
+   facet_wrap(~ Label, ncol = 5)+
+      theme_linedraw() +
+  scale_x_continuous(limits = c(min(AA_matrix_phenotype$D1, na.rm = T), max(AA_matrix_phenotype$D1, na.rm = T)), breaks=seq(min(AA_matrix_phenotype$D1, na.rm = T), max(AA_matrix_phenotype$D1, na.rm = T), 1)) +
+    scale_y_continuous(limits = c(min(AA_matrix_phenotype$D2, na.rm = T), max(AA_matrix_phenotype$D2, na.rm = T)), breaks=seq(min(AA_matrix_phenotype$D2, na.rm = T), max(AA_matrix_phenotype$D2, na.rm = T), 1)) +
+    labs( x = "MDR distance", y = "MDR distance") + 	
+    theme(axis.text=element_text(size=16), 
+          axis.title=element_text(size=16), 
+          panel.grid.major = element_line(colour="grey", size = (0.3)),
+          panel.grid.minor = element_blank(),
+          axis.title.x=element_blank(),
+          axis.text.x=element_blank(),
+          axis.ticks.x=element_blank(),
+          axis.title.y=element_blank(),
+          axis.text.y=element_blank(),
+          axis.ticks.y = element_blank(),
+         strip.text = element_text(size = 7.5), 
+         legend.title = element_text(size=8), 
+         legend.text = element_text(size=8),
+         legend.key.size = unit(.75, 'cm'),
+          legend.background = element_rect(fill="white",
+                                  size=0.1, linetype="solid", 
+                                  colour ="black")) +
+  coord_fixed()  +
+   theme(strip.background =element_rect(fill="white")) + 
+  theme(strip.text = element_text(colour = 'black')) +
+   scale_fill_manual(values=c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FFFF33", "#A65628", "#F781BF", "#F781BF", "#1B9E77",  "#7570B3", "#E7298A", "#66A61E", "#E6AB02", "#A6761D", "#666666")) +
+  scale_colour_manual(values=c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "grey", "#A65628", "#F781BF", "#999999", "#1B9E77", "#D95F02", "#7570B3", "#E7298A", "#66A61E", "#E6AB02", "#A6761D", "#666666"))
+ 
+#ggsave("Spneumo_individual_subs_phenotype_map_figure.jpg")
+
+
+
+```
+
+# zoomed in example 1
+
+
+```{r, echo = F}
+
+nat_exp_rankings$Reference_PBP <- as.character(nat_exp_rankings$Reference_PBP)
+
+zoomed_example <- nat_exp_rankings %>% pivot_longer(Reference_PBP:Comparison_PBP, names_to ="Type", values_to = "PBP_type")
+
+large_effect_positions <- nat_exp_rankings %>%
+  group_by(Substitution, Relative_Comparison) %>%
+  mutate(Phenotypic_distance = median(Phenotypic_distance)) %>%
+  filter(Phenotypic_distance >= 1) %>%
+distinct(Substitution, .keep_all = TRUE) 
+
+large_effect_positions <- c(levels(as.factor(large_effect_positions$Location)))
+
+zoomed_example <- zoomed_example %>% filter(Location == large_effect_positions[5])
+
+zoomed_example <- zoomed_example %>%
+    group_by(PBP_type) %>%
+    distinct(PBP_type, .keep_all = TRUE) 
+
+AA_matrix_phenotype$PBP_type <- as.character(AA_matrix_phenotype$PBP_type)
+
+zoomed_example <- left_join(zoomed_example, AA_matrix_phenotype, by = c("PBP_type"= "PBP_type"))
+
+
+zoomed_example <- zoomed_example %>%
+  ungroup() %>% 
+  select(c(Relative_Comparison:LABID, large_effect_positions[5]))
+
+zoomed_example <- rename(zoomed_example, AA = 16)
+
+str_sub(zoomed_example$Location, 7, 7) <- ""
+
+zoomed_example <- zoomed_example %>% unite("Substitution", Location,AA, remove = FALSE, na.rm =T, sep =":") %>%
+  group_by(Substitution, Relative_Comparison) %>%
+  add_count(Substitution) %>%
+  unite("Substitution", Substitution,n, remove = FALSE, na.rm =T, sep = ", n=")
+
+
+temp <- zoomed_example %>% filter(Substitution == "PBP2B_446:A, n=1") %>% 
+  ungroup() %>%
+  select(D1,D2,Relative_Comparison)
+colnames(temp) <- c("D1_1","D2_1","Relative_Comparison")
+
+
+temp_2 <- zoomed_example %>% filter(Substitution != "PBP2B_446:A, n=1") %>%
+  ungroup() %>%
+  select(D1,D2,Relative_Comparison)
+colnames(temp_2) <- c("D1_2","D2_2","Relative_Comparison")
+
+ps <- left_join(temp,temp_2, by = c("Relative_Comparison")) %>%
+  select(D1_1,D2_1, D1_2,D2_2)
+
+
+ggplot(filter(zoomed_example), aes(x=D1,y=D2)) +
+
+   geom_segment(data = ps, mapping = aes(x = D1_1, xend = D1_2, y = D2_1,yend = D2_2), colour = "black", alpha = 0.8) +  
+     geom_point(data = filter(AA_matrix_phenotype, PBP_type != c(levels(as.factor(zoomed_example$PBP_type)))[1] &
+                                        PBP_type != c(levels(as.factor(zoomed_example$PBP_type)))[2]),
+                                        colour = "#969696", fill = "#969696", shape = 16, size = 3.5, alpha = 1) +
+  geom_point(shape = 21,
+               size = 5, 
+               alpha = 1, 
+               aes(fill = Substitution)) +
+    guides() +
+      theme(legend.position='none') +
+      theme_linedraw() +
+  scale_x_continuous(limits = c(min(AA_matrix_phenotype$D1, na.rm = T), max(AA_matrix_phenotype$D1, na.rm = T)), breaks=seq(min(AA_matrix_phenotype$D1, na.rm = T), max(AA_matrix_phenotype$D1, na.rm = T)+1, 1)) +
+    scale_y_continuous(limits = c(min(AA_matrix_phenotype$D2, na.rm = T), max(AA_matrix_phenotype$D2, na.rm = T)), breaks=seq(min(AA_matrix_phenotype$D2, na.rm = T), max(AA_matrix_phenotype$D2, na.rm = T)+1, 1)) +
+    labs( x = "MDR distance", y = "MDR distance") + 	
+    theme(axis.text=element_text(size=16), 
+          axis.title=element_text(size=16), 
+          panel.grid.major = element_line(colour="grey", size = (0.3)),
+          panel.grid.minor = element_blank(),
+          axis.title.x=element_blank(),
+          axis.text.x=element_blank(),
+          axis.ticks.x=element_blank(),
+          axis.title.y=element_blank(),
+          axis.text.y=element_blank(),
+          axis.ticks.y = element_blank(),
+          legend.position = c(0.8, 0.15),
+         legend.title = element_text(size=12), 
+         legend.text = element_text(size=12),
+         legend.key.size = unit(1, 'cm'),
+          legend.background = element_rect(fill="white",
+                                  size=0.35, linetype="solid", 
+                                  colour ="black")) +
+  coord_fixed() +    
+  scale_fill_manual(values=c( "#E41A1C", "#377EB8","purple"))+
+  scale_colour_manual(values=c( "#E41A1C", "#377EB8","purple" ))
+
+ggsave("Spneumoniae_2b446_individual_subs_figure.jpg")
+
+```
+# zoomed in example 2
+
+```{r, echo = F}
+
+nat_exp_rankings$Reference_PBP <- as.character(nat_exp_rankings$Reference_PBP)
+
+zoomed_example <- nat_exp_rankings %>% pivot_longer(Reference_PBP:Comparison_PBP, names_to ="Type", values_to = "PBP_type")
+
+large_effect_positions <- nat_exp_rankings %>%
+  group_by(Substitution) %>%
+  mutate(Phenotypic_distance = median(Phenotypic_distance)) %>%
+  filter(Phenotypic_distance >= 1) %>%
+distinct(Substitution, .keep_all = TRUE) 
+
+large_effect_positions <- c(levels(as.factor(large_effect_positions$Location)))
+
+zoomed_example <- zoomed_example %>% filter(Location == large_effect_positions[9])
+
+zoomed_example <- zoomed_example %>%
+    group_by(PBP_type) %>%
+    distinct(PBP_type, .keep_all = TRUE) 
+
+AA_matrix_phenotype$PBP_type <- as.character(AA_matrix_phenotype$PBP_type)
+
+zoomed_example <- left_join(zoomed_example, AA_matrix_phenotype, by = c("PBP_type"= "PBP_type"))
+
+
+zoomed_example <- zoomed_example %>%
+  ungroup() %>% 
+  select(c(Relative_Comparison:LABID, large_effect_positions[9]))
+
+zoomed_example <- rename(zoomed_example, AA = 16)
+
+str_sub(zoomed_example$Location, 7, 7) <- ""
+
+zoomed_example <- zoomed_example %>% unite("Substitution", Location,AA, remove = FALSE, na.rm =T, sep =":") %>%
+  group_by(Substitution, Relative_Comparison) %>%
+  add_count(Substitution) %>%
+  unite("Substitution", Substitution,n, remove = FALSE, na.rm =T, sep = ", n=")
+
+
+
+
+temp <- zoomed_example %>% filter(Substitution == "PBP2X_371:T, n=136") %>% 
+  ungroup() %>%
+  select(D1,D2,Relative_Comparison)
+colnames(temp) <- c("D1_1","D2_1","Relative_Comparison")
+
+
+temp_2 <- zoomed_example %>% filter(Substitution != "PBP2X_371:T, n=136") %>%
+  ungroup() %>%
+  select(D1,D2,Relative_Comparison)
+colnames(temp_2) <- c("D1_2","D2_2","Relative_Comparison")
+
+ps <- left_join(temp,temp_2, by = c("Relative_Comparison")) %>%
+  select(D1_1,D2_1, D1_2,D2_2)
+
+
+ggplot(filter(zoomed_example), aes(x=D1,y=D2)) +
+   geom_segment(data = ps, mapping = aes(x = D1_1, xend = D1_2, y = D2_1,yend = D2_2), colour = "grey", alpha = 0.8) +  
+     geom_point(data = filter(AA_matrix_phenotype, PBP_type != c(levels(as.factor(zoomed_example$PBP_type)))[1] &
+                                        PBP_type != c(levels(as.factor(zoomed_example$PBP_type)))[2]),
+                                        colour = "#969696", fill = "#969696", shape = 16, size = 3.5, alpha = 1) +
+  geom_point(shape = 21,
+               size = 5, 
+               alpha = 1, 
+               aes(fill = Substitution)) +
+    guides() +
+      theme(legend.position='none') +
+      theme_linedraw() +
+  scale_x_continuous(limits = c(min(AA_matrix_phenotype$D1, na.rm = T), max(AA_matrix_phenotype$D1, na.rm = T)), breaks=seq(min(AA_matrix_phenotype$D1, na.rm = T), max(AA_matrix_phenotype$D1, na.rm = T), 1)) +
+    scale_y_continuous(limits = c(min(AA_matrix_phenotype$D2, na.rm = T), max(AA_matrix_phenotype$D2, na.rm = T)), breaks=seq(min(AA_matrix_phenotype$D2, na.rm = T), max(AA_matrix_phenotype$D2, na.rm = T), 1)) +
+    labs( x = "MDR distance", y = "MDR distance") + 	
+    theme(axis.text=element_text(size=16), 
+          axis.title=element_text(size=16), 
+          panel.grid.major = element_line(colour="grey", size = (0.3)),
+          panel.grid.minor = element_blank(),
+          axis.title.x=element_blank(),
+          axis.text.x=element_blank(),
+          axis.ticks.x=element_blank(),
+          axis.title.y=element_blank(),
+          axis.text.y=element_blank(),
+          axis.ticks.y = element_blank(),
+          legend.position = c(0.8, 0.15),
+         legend.title = element_text(size=12), 
+         legend.text = element_text(size=12),
+         legend.key.size = unit(1, 'cm'),
+          legend.background = element_rect(fill="white",
+                                  size=0.35, linetype="solid", 
+                                  colour ="black")) +
+  coord_fixed() +    
+  scale_fill_manual(values=c( "#E41A1C", "#377EB8","purple"))+
+  scale_colour_manual(values=c( "#E41A1C", "#377EB8","purple" ))
+
+ggsave("Spneumoniae_2x371_individual_subs_figure.jpg")
+
+```
+
+
+# Overview of all identified comparisons 
+In total, there were 194 examples of such comparisons in the data of 3620 isolates with all 6 drugs measured.
+
+Below, I have presented the loci across the three PBPs which had examples of these single AA difference comparisons. I have calculated the phenotypic distance generated by the substitutions at these positions. Here, The orange points represent the maximum distance caused by a substitution at a given position. In cases where there is more than one example for a given position, there are two points, which represent the maximum and minimum phenotypic distances caused by a substitution at this position. The minimum distances are shown as green points. 
+
+The majority of these comparisons did not produce a phenotypic effect above 1 log2 MIC dilution, however in several cases, this may simply be because they had MICs below the dilution range measured for all drugs, and so it is not possible to estimate effect sizes. This comparison is useful, not only in identifying PBP positions which do cause a phenotype change, but also in identifying the positions which do not. This information will be informative when applying subsequent statistical methods, as in some cases it may be possible to exclude positions which do not appear to generate phenotypic effects. 
+
+
+```{r,echo =F}
+
+library(tidytext)
+
+nat_exp_rankings_summary <- nat_exp_rankings_summary %>% unite("Substitution_of_interest", c(AA_1, Loci, AA_2), sep = "", remove = F) 
+  
+nat_exp_rankings_summary <- nat_exp_rankings_summary %>% group_by(Substitution_of_interest) %>% mutate(count = row_number(Substitution_of_interest))
+
+nat_exp_rankings_summary$count <- paste("(", nat_exp_rankings_summary$count, ")",sep="") 
+nat_exp_rankings_summary$count <- ifelse(nat_exp_rankings_summary$count == "(1)", "", nat_exp_rankings_summary$count)
+
+counts <- nat_exp_rankings_summary %>%
+  filter(count == "(2)") %>%
+  distinct(PBP, Loci, .keep_all = TRUE)
+
+nat_exp_rankings_summary <- nat_exp_rankings_summary %>%
+    unite("Substitution_of_interest", c("Substitution_of_interest", "count"), sep = " ", remove = TRUE) 
+
+
+nat_exp_rankings_summary %>% filter(median_phenotypic_distance >0.5) %>% group_by(PBP) %>% arrange(Loci) %>% ungroup() %>%
+  mutate(Substitution_of_interest=factor(Substitution_of_interest, levels=Substitution_of_interest)) %>%  # This trick will update the factor levels
+
+ggplot(aes(x =  Substitution_of_interest, y = median_phenotypic_distance)) + 
+    geom_errorbar(aes(ymin=median_phenotypic_distance-se, ymax=median_phenotypic_distance+se), size = .75, width=0, colour = "black") +
+       geom_point(size = 3, shape = 21, color='#E41A1C', fill ="#E41A1C", alpha = 0.7) +
+        coord_flip()+
+      facet_wrap(~PBP, scales ="free_y") +
+  theme_bw() +
+  scale_y_continuous(limits = c(0, 5),breaks=seq(0, 5, 1)) +
+    theme(axis.text=element_text(size=8), 
+          axis.title=element_text(size=10), 
+          panel.grid.major = element_line(colour="grey", size = (0.3)),
+          panel.grid.minor = element_blank()) +
+        geom_hline(yintercept = 1) + 
+      theme(legend.position = "none") +
+  xlab("Loci (PBP TPD region)") +
+  ylab("Median phenotypic distance (log2 MIC titres)") +
+  theme(aspect.ratio=2)
+
+ggsave("Spneumoniae_individual_subs_figure.jpg")
+
+setwd("/Users/ajb306/Google Drive/PhD - Andrew Balmer/Chapters/AMR cartography/MIC data/Streptococcus pneumoniae analysis/")
+
+write.csv(nat_exp_rankings_summary, file = "Single_subs_all_S.pneumo.csv", row.names=FALSE)
+
+counts <- nat_exp_rankings_summary %>%
+  distinct(PBP, Loci, .keep_all = TRUE)
+
+counts <- nat_exp_rankings_summary %>%
+filter(median_phenotypic_distance >= 1)
+
+counts <- nat_exp_rankings_summary %>%
+  distinct(PBP, Loci, .keep_all = TRUE)%>%
+filter(median_phenotypic_distance >= 1)
+
+
+
+All_pos <- nat_exp_rankings_summary %>% 
+        select(PBP,
+               Substitution_of_interest, 
+               median_phenotypic_distance,
+               sd, 
+               se, 
+               number_of_isolates_of_reference, 
+               number_of_isolates_of_comparison_group)
+
+All_pos <- All_pos %>% 
+  group_by(PBP) %>%
+  arrange(median_phenotypic_distance)
+
+All_pos$median_phenotypic_distance <- round(All_pos$median_phenotypic_distance, digits = 3)
+All_pos$sd <- round(All_pos$sd, digits = 3)
+All_pos$se <- round(All_pos$se, digits = 3)
+
+colnames(All_pos) <- c("PBP", "Substitution", "Median phenotypic distance", "SD", "SE", "No. isolates of group 1", "No. isolates of group 2")
+
+All_pos <- All_pos %>% mutate_at("PBP", str_replace_all, "PBP", "") 
+
+  
+```

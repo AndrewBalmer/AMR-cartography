@@ -1,0 +1,488 @@
+---
+title: "Chapter 3 - S. pneumoniae - Clustering and informative isolates (choice of clustering for genotype map)"
+author: "Andrew Balmer"
+date: "2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+# Clear the workspace
+remove(list = ls())
+
+# Load required packages
+library(RColorBrewer)  # For color palettes
+library(matrixStats)   
+library(ggExtra)       # For marginal histograms
+library(tidyverse)     # For data manipulation and visualization
+library(cluster)
+library(FactoMineR)
+library(ggpubr)
+library(factoextra)
+library(NbClust)
+library(proxy)
+
+  options(dplyr.summarise.inform = FALSE)
+  knitr::opts_chunk$set(message = FALSE)
+  
+# Set working directory
+setwd("/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#03-06-Generating-phenotype-and-genotype-maps")
+
+# Read the MIC table data
+tablemic <- read.csv("/Users/ajb306/AMR-cartography/data/MIC_table_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+
+# Read in the relevant meta data
+tablemic_meta <- read.csv("/Users/ajb306/AMR-cartography/data/meta_data_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+
+
+# Specify the full path to the data file
+phen_map <- "/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#03-06-Generating-phenotype-and-genotype-maps/Spneumo_3628_PCA_start_2D_METRIC.RData"
+
+# Load the pre-computed PCA start 2D metric data
+load(phen_map)
+
+# Transform the data so that it is easier to work with noise added values later - the relative euclidean distances between the points will remain the same
+for (i in 1:ncol(tablemic)) {
+  tablemic[,i] <- (tablemic[,i] + (-(min(tablemic[,i], na.rm = TRUE))))+1
+}
+
+  phen_map <- torg_met
+  theta <- 326*pi/180 ## degrees to radians
+  rot <- matrix(c(cos(theta), sin(theta), -sin(theta), cos(theta)), ncol = 2)
+  phen_map$conf <- phen_map$conf %*% rot ## rotated configurations
+  
+  
+  ### create a vector of isolates with PBP deletion substitutions and remove them from dataframes  
+  isolates_with_PBP_deletion <- c("20156696" , "20162849", "20151885" ,
+                           "20153985", "20154509", "2013224047", "2013218247",
+                           "2014200662", "5869-99", "2513-99")
+
+  # Specify the full path to the data file
+  gen_map <- "/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#03-06-Generating-phenotype-and-genotype-maps/Spneumo_3628_PCA_start_2D_METRIC_genetic.RData"
+  
+  # Load the pre-computed PCA start 2D metric data
+  load(gen_map)
+
+  # Set working directory
+  setwd("/Users/ajb306/AMR-cartography/analysis/#02-Genotype_to_phenotype_analyses/01-defining-number-of-gen-clusters")
+  
+  genotype_mds <- as.data.frame(torg_met$conf)
+  
+  colnames(genotype_mds) <- c("G1","G2")
+  
+  ### create main dataframe of map coordinates and PBP metadata
+  ## rotate phenotype map
+  AA_matrix_phenotype <- bind_cols(as.data.frame(phen_map$conf), tablemic_meta) %>%
+                         rename(PBP_type = PT, D1 = V1, D2 = V2) %>%
+                         group_by(PBP_type) %>%
+                         mutate(x_centroid = median(D1), 
+                         y_centroid = median(D2)) %>%
+                         filter(!LABID %in% isolates_with_PBP_deletion) %>%
+                         bind_cols(genotype_mds)
+
+
+## import MDS transformations for phenotype and genotype maps
+slope <- 0.1843009
+gen_slope <- 0.01814108
+
+## set up ggplot theme for rest of markdown visualisations
+theme_MDR_cartography <- function(){ 
+    theme(panel.grid.major = element_line(colour="grey", size = (0.3)),
+        panel.grid.minor = element_blank(),
+        axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.title.y=element_blank(), 
+        axis.text.y=element_blank(),
+        axis.ticks.y = element_blank()
+
+    )
+}
+
+### As I only want to cluster on distinct PBP types, I remove duplicates of the same PBPtype
+gen_clustering <- cbind(select(AA_matrix_phenotype, G1,G2, PBP_type)) %>%
+                  distinct(PBP_type, .keep_all = TRUE) %>% 
+                  ungroup()
+
+
+gen_clustering_choice <- gen_clustering %>%
+  ungroup() %>%
+  select(G1,G2)
+
+```
+
+
+## Clustering on genotype map
+
+In total, there were 305 PBP types in the collection of 3620 isolates (those with all 6 drugs measured). 
+
+I used the hierarchical clustering algorithm on the genotype map to pick out regions (or 'clusters') which capture the diversity in PBP types, while creating a large enough number of clusters where it is possible to make meaningful comparisons. Although there were multiple isolates of most PBP types, I only used a single representative of each PBP type to create the clustering. 
+
+### Choosing the optimal number of clusters 
+
+Although there are a number of methods to chose the optimal number of clusters, choosing the number of clusters is ultimately somewhat subjective and depends on the data and the rationale of the study. Ideally, we want to choose a high enough number of clusters which partitions the PBP types into groups with relevant differences between them, but not too high where they no longer represent useful classifications. 
+Here, I have tried to base the number of clusters for the entire genotype map on several criteria:
+
+1. Choosing a partition on the dendrogram which splits the centroids into roughly equal sized groups, with large distances between them
+
+2. Choosing the 'elbow' on the scree plot - Typically, after a certain point, adding additional clusters does not add much additional information to the clustering.   
+
+3. 30 published indices for determining the number of clusters. These indices have been proposed in the literature as methods of choosing the correct cluster partitioning. Many of these methods use similar methods to those above for example choosing the 'elbow' on a plot, but consider different measures of similarity within clusters rather than the sum of squares. This is implemented automatically using the 'NbClust' package.
+
+4. Interpretability of the clusters - Ultimately, the number of clusters will be decided on whether they capture biologically useful information. This means that the groups should have a high enough number of isolates to make useful comparisons, and should be distinct enough (i.e. far enough away from each other) to make comparisons. The clusters need to have a reasonable degree of genetic diversity in PBP types, but not so much that it makes it too difficult to make comparisons. This last criteria was particularly important. For example, while 2-4 clusters captured the majority of the variation in PBP types, the groups were still too large to make meaningful comparisons, which is why it was necessary to use more clusters. 
+
+For the genotype map, I chose 12 clusters. This was based on the criteria above. 11 clusters also worked well and gave almost the same solution (see below). For now I have used 12 clusters for the analysis in the other documents, however it may be more useful to use 11 depending on the interpretability of the clustering in later documents.
+
+### Dendrogram method
+
+Below, I have shown four plots representing the output of the hierarchical clustering algorithm. 
+
+1. The first plot shows a dendrogram of the PBP types and the distances between them. 
+
+2. The second plot shows the same dendrogram as a third dimension over the genotype map, with the isolates coloured by the clusters.
+
+3. The third plot shows the 2D genotype map, with isolates coloured by their cluster. The points have been rotated to show the main directions of variability. 
+
+
+```{r, echo = F}
+res.hcpc <- HCPC(select(gen_clustering, G1,G2), nb.clust = 12, consol = T, iter.max = 500, graph = T, order = T)
+
+
+
+dd <- dist(select(gen_clustering, G1,G2), method = "euclidean")
+hc <- hclust(dd, method = "ward.D2")
+require(factoextra)
+#fviz_dend(x = hc, cex = 0.7, lwd = 0.7) 
+hcd <- as.dendrogram(hc)
+
+
+fviz_dend(x = hc, cex = 0.8, lwd = 0.6, k = 12,
+          k_colors = c("black"),
+          rect = TRUE, 
+          rect_border = "Reds", 
+          rect_fill = TRUE,
+          horiz = TRUE,
+          show_labels = F,
+          ylab = "Distance (AA)")
+          
+#ggsave("Spneumo_gen_clustering_dendrogram.jpg")
+
+```
+
+### Elbow method
+
+The next plots show the within group decrease in inertia when moving between different numbers of clusters. The first plot shows the results using between 1- 20 clusters. The plot shows there is a elbow at 3/4 clusters. 
+
+```{r, echo = F}
+x <- seq(1:20)
+y <- res.hcpc$call$t$inert.gain[c(1:20)]
+
+scree <- as.data.frame(cbind(x,y))
+
+ggplot(filter(scree), aes(x=x,y=y)) +
+  geom_point(shape = 16,size = 4, alpha = .6) +
+  geom_vline(xintercept = 3) +
+    theme_linedraw() +
+   scale_x_continuous(limits = c(1, 20), breaks = c(seq(1,20))) +
+  xlab("Number of clusters") +
+  ylab("Within class inertia") 
+  
+
+```
+
+However, as mentioned above, 4 clusters was not interpretable, as there were too many isolates and too much genetic diversity within each group. The second plot shows between 4 - 20 clusters, zooming in shows that there is still diversity among the isolates that could potentially be captured using an increased number of clusters. One potential inflection point is 12 (or 11) clusters, as beyond this, additional clusters does not capture the data much better that that 
+
+```{r, echo = F}
+
+ggplot(filter(scree), aes(x=x,y=y)) +
+  
+   geom_path()+
+  geom_point(shape = 16,size = 4, colour = "#999999") +
+    theme_linedraw() +
+   geom_vline(xintercept = 12) +
+   scale_y_continuous(limits = c(0, 0.025)) +
+ scale_x_continuous(limits = c(2, 20), breaks = c(seq(2,20))) +
+  xlab("Number of clusters") +
+  ylab("Within class inertia") 
+
+#ggsave("screen_plot_12_clusters_genotype_map_pneumo.jpg")
+
+```
+
+```{r, echo =F}
+### bind the genetic clusters to the genetic map data
+gen_clustering$gen_cluster <- res.hcpc[[1]]$clust
+
+AA_matrix_phenotype <- left_join(AA_matrix_phenotype, select(gen_clustering, PBP_type, gen_cluster), by = "PBP_type")
+
+genotype_mds <- NULL
+tablemic <- NULL
+torg_met <- NULL
+
+all_isolates <- AA_matrix_phenotype
+
+
+my_colours <- c("#4DAF4A", "#377EB8", "#E41A1C", "#984EA3", "#FF7F00", "black",
+                             "white", "#7570B3", "#E7298A", "#FFFF33", "#A65628", "cyan",
+                             "#999999", "red","magenta", "purple", "brown","green")
+
+    
+limits_phen_map_x <- c(min(AA_matrix_phenotype$D1, na.rm = T), 
+                       max(AA_matrix_phenotype$D1, na.rm = T))
+limits_phen_map_y <- c(min(AA_matrix_phenotype$D2, na.rm = T), 
+                       max(AA_matrix_phenotype$D2, na.rm = T))
+
+breaks_phen_map_x <- seq(min(AA_matrix_phenotype$D1, na.rm = T) - (slope), 
+                         max(AA_matrix_phenotype$D1, na.rm = T) + (slope), slope)
+breaks_phen_map_y <- seq(min(AA_matrix_phenotype$D2, na.rm = T) - (slope), 
+                         max(AA_matrix_phenotype$D2, na.rm = T) + (slope), slope)
+
+
+limits_gen_map_x <- c(min(AA_matrix_phenotype$G1, na.rm = T) - (gen_slope * 5), 
+                      max(AA_matrix_phenotype$G1, na.rm = T) + (gen_slope * 5))
+limits_gen_map_y <- c(min(AA_matrix_phenotype$G2, na.rm = T) - (gen_slope * 5), 
+                      max(AA_matrix_phenotype$G2, na.rm = T) + (gen_slope * 5))
+
+breaks_gen_map_x <- seq(min(AA_matrix_phenotype$G1, na.rm = T) - (gen_slope * 10), 
+                        max(AA_matrix_phenotype$G1, na.rm = T) + (gen_slope * 10), gen_slope * 10)
+breaks_gen_map_y <- seq(min(AA_matrix_phenotype$G2, na.rm = T) - (gen_slope * 10), 
+                        max(AA_matrix_phenotype$G2, na.rm = T) + (gen_slope * 10), gen_slope * 10)
+
+
+
+A <- ggplot(filter(AA_matrix_phenotype), aes(x=G1,y=G2, fill = gen_cluster)) +
+  geom_point(shape = 21,size = 4.5, alpha = 1) +
+    theme_linedraw() +
+  scale_x_continuous(limits = limits_gen_map_x, breaks=breaks_gen_map_x) +
+  scale_y_continuous(limits = limits_gen_map_y, breaks=breaks_gen_map_y) +
+  theme_MDR_cartography() +
+    geom_segment(aes(x = min(G1, na.rm = T) + gen_slope * 120, y = min(G2, na.rm = T), xend = min(G1, na.rm = T) + gen_slope * 130, yend = min(G2, na.rm = T)), size = 1, colour = "black") +  
+    annotate(geom="text", x=min(AA_matrix_phenotype$G1, na.rm = T) + gen_slope *125, y=min(AA_matrix_phenotype$G2, na.rm = T) + gen_slope *5, label="10 AA", color="black", size = 5)+
+  guides(fill = "none",colour="none") +
+  coord_fixed() +    
+  scale_fill_manual(values=my_colours)
+
+
+
+A <- ggMarginal(A, size=10, fill = "#E41A1C", alpha = 0.9, type="histogram") 
+A
+
+#ggsave("spneumo_gen_clust_12_clusters_phenotype_map.jpg")
+
+
+
+
+ggplot(filter(AA_matrix_phenotype), aes(x=D1,y=D2, fill = gen_cluster)) +
+     geom_point(data = select(AA_matrix_phenotype, -gen_cluster), aes(x=D1,y=D2), colour = "#999999", fill = "#999999", shape = 16, size = 1.5, alpha = .8)+
+  geom_point(shape = 21,size = 3, alpha = .9, colour = "black") +
+    theme_linedraw() +
+  scale_x_continuous(limits = limits_phen_map_x, breaks=breaks_phen_map_x) +
+  scale_y_continuous(limits = limits_phen_map_y, breaks=breaks_phen_map_y) +
+  facet_wrap(.~ gen_cluster) +
+  theme_MDR_cartography() +
+    guides(fill="none") +
+  theme(strip.background = element_blank(),
+  strip.text.x = element_blank())+
+  coord_fixed() +    
+  scale_fill_manual(values=my_colours)
+
+#ggsave("gen_clust_12_clusters_phenotype_map_pneumo_panel.jpg")
+
+distinct_AA_matrix_phenotype <- AA_matrix_phenotype %>%
+  distinct(PBP_type, .keep_all = T)
+
+ggplot(filter(distinct_AA_matrix_phenotype), aes(x=D1,y=D2, fill = gen_cluster)) +
+     geom_point(data = select(AA_matrix_phenotype, -gen_cluster), aes(x=D1,y=D2), colour = "#999999", fill = "#999999", shape = 16, size = 1.5, alpha = .8)+
+  geom_point(shape = 21,size = 3, alpha = .9, colour = "black") +
+    theme_linedraw() +
+  scale_x_continuous(limits = limits_phen_map_x, breaks=breaks_phen_map_x) +
+  scale_y_continuous(limits = limits_phen_map_y, breaks=breaks_phen_map_y) +
+  facet_wrap(.~ gen_cluster) +
+  theme_MDR_cartography() +
+  #guides(fill=guide_legend(title="Genetic cluster")) +
+    guides(fill="none") +
+  theme(strip.background = element_blank(),
+  strip.text.x = element_blank())+
+  coord_fixed() +    
+  scale_fill_manual(values=my_colours)
+
+#ggsave("gen_clust_12_clusters_phenotype_map_pneumo_panel_pbp_type.jpg")
+
+
+my_data <- distinct_AA_matrix_phenotype %>% select(c("D1","D2","gen_cluster","PBP_type"))
+
+dilation <- 1/slope
+
+for (f in 1:2) {
+  my_data[,f] <- my_data[,f] * dilation
+}
+
+
+
+# Function to calculate pairwise Euclidean distances between "PBP-type" within each gen_cluster
+calculate_intra_group_distances <- function(cluster_data) {
+  dist_matrix <- dist(cluster_data[, c("D1", "D2")])
+  as.vector(dist_matrix)
+}
+
+# Calculate pairwise Euclidean distances between "PBP-type" within each gen_cluster
+intra_group_distances <- my_data %>%
+  group_by(gen_cluster) %>%
+  group_map(~ calculate_intra_group_distances(.))
+
+# Function to calculate pairwise Euclidean distances between "PBP-type" between gen_clusters
+calculate_inter_group_distances <- function(cluster1_data, cluster2_data) {
+  dist_matrix <- proxy::dist(cluster1_data[, c("D1", "D2")], cluster2_data[, c("D1", "D2")])
+  as.vector(dist_matrix)
+}
+
+# Calculate pairwise Euclidean distances between "PBP-type" between gen_clusters
+inter_group_distances <- my_data %>%
+  group_split(gen_cluster) %>%
+  combn(2, simplify = FALSE) %>%
+  lapply(function(clusters) calculate_inter_group_distances(clusters[[1]], clusters[[2]])) %>%
+  unlist()
+
+# Calculate the median and mean intra-group distance
+median_intra_distance <- median(unlist(intra_group_distances))
+mean_intra_distance <- mean(unlist(intra_group_distances))
+
+# Calculate the median and mean inter-group distance
+median_inter_distance <- median(inter_group_distances)
+mean_inter_distance <- mean(inter_group_distances)
+
+# Create a histogram comparing inter and intra distances
+hist_data <- data.frame(
+  DistanceType = rep(c("Intra-Group", "Inter-Group"), times = c(length(unlist(intra_group_distances)), length(inter_group_distances))),
+  Distance = c(unlist(intra_group_distances), inter_group_distances)
+) %>%
+  add_count(DistanceType) 
+
+# Plot the histogram
+ggplot(hist_data, aes(x = Distance, fill = DistanceType)) +
+  geom_histogram(binwidth = 1, position = "identity", alpha = 0.6) +
+  labs(x = "Pairwise Distance", y = "Count") +
+  scale_fill_manual(values = c("blue", "red")) 
+
+# Output the summary statistics and histogram plot
+cat("Summary Statistics:\n")
+cat("Median Intra-Group Distance:", median_intra_distance, "\n")
+cat("Mean Intra-Group Distance:", mean_intra_distance, "\n")
+cat("Median Inter-Group Distance:", median_inter_distance, "\n")
+cat("Mean Inter-Group Distance:", mean_inter_distance, "\n")
+
+#summarise this dataframe
+summary_df <- hist_data %>%
+  group_by(DistanceType) %>%
+  summarise(mean_distance = round(mean(Distance),3),
+            median_distance = round(median(Distance),3))
+summary_df
+
+```
+
+### Using 11 clusters
+
+I therefore re-ran the hierarchical clustering algorithm and output using 11 clusters to compare results. Below, I output the genotype map, split into 11 clusters using the hierarchical clustering algorithm. 
+
+```{r, echo =F}
+
+res.hcpc <- HCPC(select(gen_clustering, G1,G2), nb.clust = 11, consol = T, iter.max = 500, graph = T, order = T)
+
+### bind the genetic clusters to the genetic map data
+gen_clustering$gen_cluster_11 <- res.hcpc[[1]]$clust
+
+AA_matrix_phenotype <- left_join(AA_matrix_phenotype, select(gen_clustering, PBP_type, gen_cluster_11), by = "PBP_type")
+
+genotype_mds <- NULL
+tablemic <- NULL
+torg_met <- NULL
+
+all_isolates <- AA_matrix_phenotype
+
+
+my_colours <- c("#4DAF4A", "#377EB8", "#E41A1C", "#984EA3", "#FF7F00", "black",
+                             "white", "#7570B3", "#E7298A", "#FFFF33", "#A65628", "cyan",
+                             "#999999", "red","magenta", "purple", "brown","green")
+
+    
+limits_phen_map_x <- c(min(AA_matrix_phenotype$D1, na.rm = T), 
+                       max(AA_matrix_phenotype$D1, na.rm = T))
+limits_phen_map_y <- c(min(AA_matrix_phenotype$D2, na.rm = T), 
+                       max(AA_matrix_phenotype$D2, na.rm = T))
+
+breaks_phen_map_x <- seq(min(AA_matrix_phenotype$D1, na.rm = T) - (slope), 
+                         max(AA_matrix_phenotype$D1, na.rm = T) + (slope), slope)
+breaks_phen_map_y <- seq(min(AA_matrix_phenotype$D2, na.rm = T) - (slope), 
+                         max(AA_matrix_phenotype$D2, na.rm = T) + (slope), slope)
+
+
+limits_gen_map_x <- c(min(AA_matrix_phenotype$G1, na.rm = T) - (gen_slope * 5), 
+                      max(AA_matrix_phenotype$G1, na.rm = T) + (gen_slope * 5))
+limits_gen_map_y <- c(min(AA_matrix_phenotype$G2, na.rm = T) - (gen_slope * 5), 
+                      max(AA_matrix_phenotype$G2, na.rm = T) + (gen_slope * 5))
+
+breaks_gen_map_x <- seq(min(AA_matrix_phenotype$G1, na.rm = T)- (gen_slope * 10), 
+                        max(AA_matrix_phenotype$G1, na.rm = T) + (gen_slope * 10), gen_slope * 10)
+breaks_gen_map_y <- seq(min(AA_matrix_phenotype$G2, na.rm = T)- (gen_slope * 10), 
+                        max(AA_matrix_phenotype$G2, na.rm = T) + (gen_slope * 10), gen_slope * 10)
+
+
+
+B <- ggplot(filter(AA_matrix_phenotype), aes(x=G1,y=G2, fill = gen_cluster_11)) +
+  geom_point(shape = 21,size = 4, alpha = .6) +
+    theme_linedraw() +
+  scale_x_continuous(limits = limits_gen_map_x, breaks=breaks_gen_map_x) +
+  scale_y_continuous(limits = limits_gen_map_y, breaks=breaks_gen_map_y) +
+  theme_MDR_cartography() +
+  guides(fill=guide_legend(title="Genetic cluster")) +
+  coord_fixed() +    
+  scale_fill_manual(values=my_colours)
+B
+
+ggsave("gen_clust_12_clusters_phenotype_map.jpg")
+
+```
+
+### Comparison of 11/12 clusters 
+
+Comparing 11 v 12 clusters shows that the solutions are very similar. Most of the clusters are the same across either cluster number. The main difference is that at the top left of the plot, 12 clusters splits isolates into two groups - 1 and 4 (green and purple), whereas 11 clusters does not. The membership of most other clusters is the same or very similar. I have tried downstream analysis on some of the clusters for both numbers and found they show the same results in terms of picking out causal substitutions. As there were a large number of samples in the analysis, I found using 12 clusters was more interpretable in the clustering analyses.
+
+```{r, echo =F}
+A
+B
+```
+
+
+### Comparison with K-medoids clustering algorithm
+
+I had previously used the K-medoids clustering algorithm to split the genotype map into clusters. However, this algorithm had difficulty in separating the clusters into meaningful groups. This was because of the high density of sensitive PBP types on the left of the map. The K-medoids (and K-means) algorithms can be biased by densly sampled groups like this. In this case it resulted in the algorithm splitting the sensitive isolates on the left into multiple clusters, as can be seen below. This splitting makes less sense from a perspective of interpreting important differences between clusters. Furthermore, because of this choice to split the sensitive isolates, this meant that there was a larger group of isolates at the bottom of the map (orange) which was more diverse than most of the others. Choosing any number of clusters between 10-14 clusters did not resolve this issue.
+
+The hierarchical clustering algorithm is less biased by the density of points in particular areas of the map, and is primarily based on just the distances between isolates For this reason, I used the hierarchical clustering algorithm in subsequent analysis. 
+
+```{r, echo = F}
+
+test <- gen_clustering %>%
+  ungroup() %>%
+  select(G1,G2)
+
+kmed <- pam(test, metric = "euclidean", k = 11)
+pam_clustering <- cbind(test, kmed$clustering)
+
+ggplot(filter(test), aes(x=G1,y=G2, fill = as.factor(kmed$clustering))) +
+    geom_point(shape = 21,size = 4.5, alpha = .6) +
+  theme(legend.position='none') +
+  theme_linedraw() +
+  #facet_wrap(.~gen_cluster) +
+  #geom_point(filter(AA_matrix_phenotype), mapping = aes(x_centroid, y_centroid, colour = "black"),
+  #           shape = 4, size = 2, stroke = 2, show.legend =F) +
+  scale_x_continuous(limits = limits_gen_map_x, breaks=breaks_gen_map_x) +
+  scale_y_continuous(limits = limits_gen_map_y, breaks=breaks_gen_map_y) +
+    theme(legend.position='none') +
+  theme_MDR_cartography() +
+  guides(fill=guide_legend(title="Genetic cluster")) +
+  coord_fixed() +    
+  scale_fill_manual(values=my_colours)
+
+
+```
+

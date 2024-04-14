@@ -1,0 +1,543 @@
+---
+title: "10-Testing-effect-of-threshold-values"
+author: "Andrew Balmer"
+date: "2024-01-28"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+# Clear the workspace
+remove(list = ls())
+
+# Load required packages
+library(smacof)        # For multidimensional scaling
+library(RColorBrewer)  # For color palettes
+library(calibrate)     # For calibration
+library(matrixStats)   
+library(ggExtra)       # For marginal histograms
+library(ggdensity)     # For density distrbutions
+library(foreach)
+library(doParallel)
+library(tidyverse)     # For data manipulation and visualization
+
+# Set the working directory
+setwd("/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#13-19-Cross-validation-analyses/")
+
+# Read the MIC table data
+tablemic <- read.csv("/Users/ajb306/AMR-cartography/data/MIC_table_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+
+# Read in the relevant meta data
+tablemic_meta <- read.csv("/Users/ajb306/AMR-cartography/data/meta_data_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+
+# Specify the full path to the data file
+phen_map <- "/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#03-06-Generating-phenotype-and-genotype-maps/Spneumo_3628_PCA_start_2D_METRIC.RData"
+
+# Load the pre-computed PCA start 2D metric data
+load(phen_map)
+
+
+# Transform the data so that it is easier to work with noise added values later - the relative euclidean distances between the points will remain the same
+for (i in 1:ncol(tablemic)) {
+  tablemic[,i] <- (tablemic[,i] + (-(min(tablemic[,i], na.rm = TRUE))))+1
+}
+
+
+```
+
+
+### ==== Background
+
+Measuring resistance phenotypes using MIC dilution series can be challenging to analysis. 
+
+For example, when measuring MIC dilutions, the resistance phenotypes series present among the isolates being tested can be beyond the sensitivity of the assay. For example, drug concentrations are measured down to a certain dilution, beyond which isolates are simply marked as below a threshold (e.g. <=0.03 ug/ml). This means that using MIC to measure phenotypes is actually a combination of metric and non-metric information. From an analysis perspective, this makes interpreting these values difficult, as isolates which may vary in their phenotypes are simply marked as the same value. Statistical methods used to compare genotype and phenotype are therefore likely to be affected by the fact that many isolates are 'squashed' into having the same value on the scale, when they may actually differ from this value, and isolates marked as having the same MIC value may differ from each other. 
+
+Below I have plotted a example of this for the S. pneumoniae dataset for the Penicillin MIC values. Here, the dilution range was only measured to a lower limit of 0.03ug/ml. Any isolates below that level were therefore marked as <= 0.03. This includes around 75% of the isolates in the dataset, and is common, particularly for large surveillance datasets such as this. 
+
+MIC scales can have both lower and upper threshold values. For example, the MIC dilution range for Cefuroxime included isolates which were marked as having an upper dilution level (>= 4ug/ml), and a lower level (<= 0.5  ug/ml).
+
+## Aims and objectives 
+Therefore in this document, I have used a range of tools to ensure MDS is robust to this combination of metric and non-metric information in making maps. In other words, I have tried to ensure that map positions are not overly sensitive to presence of these thresholded values. 
+
+I therefore used several methods to test whether these measurements were having a large effect on isolate positions on the map. Firstly, I tried simply excluding different combinations of the thresholded values and remaking the maps to see how strong of an effect they are having. Secondly, I tried using non-metric MDS, which only use the ordinal (rank value) of the measurements when representing the distances. Lastly, I also tried weighting isolate points less strongly when they had several thresholded MIC values. 
+
+
+### Excluding isolates with thresholded values for all drugs
+
+Firstly, I tried simply excluding isolates which did not have at least one numerical titre across their MIC measurements for the 6 drugs. I excluded those isolates and remade the map with the remaining isolates. I then made the map including those isolates and compared their relative position on the maps. 
+
+```{r, echo = FALSE}
+
+tablemic_thresh <- tablemic %>%
+    mutate(sum = Penicillin + Amoxicillin + Meropenem + Cefotaxime + Ceftriaxone + Cefuroxime,
+           LABID = tablemic_meta$LABID) %>%
+    filter(sum != 6)  
+
+LABID <- tablemic_thresh %>%
+ dplyr::select(LABID)
+
+tablemic_thresh <- tablemic_thresh %>%
+ dplyr::select(-sum, -LABID)
+
+
+dist_thresh <- dist(tablemic_thresh  %>%
+                    dplyr::select(Penicillin:Cefuroxime))
+
+torg_thresh <- mds(dist_thresh, ndim = 2, type = c("ratio") , init = "torgerson", modulus = 1, itmax = 1000, eps = 1e-06)
+
+torg_thresh$stress
+
+```
+
+
+### Plotting different solutions
+On the left are the maps produced by the different methods, the plots on the right show the 'shepard' plot for each map. The top plot shows the map without the isolates with all thresholded values. The next map shows the map made with all the isolates including those with all thresholded values. On this map, although I made the map with all the isolates, I excluded those with all thresholded values from the visualisation.
+
+The maps appear broadly the same regardless of the transformation used, suggesting the thresholded values are not having a strong effect on the way the isolates are being positioned.
+
+The shepard plots show the real distances between isolates on the x axis and the distances between isolates on the map on the y axis. An r2 of 1 would equal an ideal fit and mean the data are represented perfectly. Each map represents the data very well, regardless of inclusion of the isolates with thresholded values.
+
+```{r, echo =F}
+
+torg_thresh <- as_tibble(torg_thresh$conf)
+torg_thresh <- bind_cols(torg_thresh, tablemic_thresh$LABID) 
+
+theta <- 326*pi/180 ## degrees to radians
+rot <- matrix(c(cos(theta), sin(theta), -sin(theta), cos(theta)), ncol = 2)
+
+table_distances <- as_tibble(as.matrix(torg_met[[1]]))
+map_distances <- as_tibble(as.matrix(torg_met[[3]]))
+
+colnames(map_distances) <- colnames(table_distances)
+table_distances <- gather(table_distances,"antibiotic","table_distance", 1:nrow(tablemic)) 
+map_distances <- gather(map_distances,"antibiotic","map_distance", 1:nrow(tablemic))
+
+distances <- bind_cols(table_distances, map_distances)
+
+distances$table_distance <- as.numeric(distances$table_distance)
+distances$map_distance <- as.numeric(distances$map_distance)
+mapvtable <- lm(map_distance ~ table_distance, data = distances)
+
+slope <- as.numeric(coef(mapvtable)[2])
+dilation <- 1/slope
+colnames(torg_met$conf) <- c("D1","D2")
+
+
+for (i in 1:ncol(torg_met$conf)) {
+  torg_met$conf[,i] <- torg_met$conf[,i] * dilation
+}
+
+
+
+torg_met <- torg_met$conf %>% 
+  as_tibble(.) %>%
+  mutate(LABID = tablemic_meta$LABID)
+
+class(torg_met$LABID)
+class(torg_thresh$LABID)
+
+torg_met <- left_join(LABID, torg_met, by = "LABID") %>%
+  dplyr::select(-LABID)
+
+
+
+```
+
+
+### Quantitatively comparing the two maps
+
+To more quantitatively compare the maps, I then used procrustes to rotate and dilate the maps into the same rotation. I visualised these below. I also calculated the congruence coefficient between the sets of maps which can be used too compare the similarity of two solutions (https://en.wikipedia.org/wiki/Congruence_coefficient#:~:text=In%20multivariate%20statistics%2C%20the%20congruence,derived%20in%20a%20factor%20analysis.&text=It%20can%20be%20used%20to,have%20taken%20the%20same%20test.)
+
+Below, each plot shows that the full map (including the isolates with 6 thresholded values) is essentially the same as the one made without these isolates. This suggests the thresholded values are not having a strong effect on how the maps are positioning the isolates with numerical values. The congruence coefficient results also shows this. Generally, a congruence coefficient aboove 0.95 is considered near identical. For each transformation here, the estimate is >0.99, suggesting the solutions are essentially the same for the remaining isolates, regardless of whether the isolates with no numeric titres are included.
+
+```{r, echo = F}
+
+met_ord_comparison <- Procrustes(as.matrix(torg_met), as.matrix(torg_thresh))
+round(met_ord_comparison$congcoef, 3)
+
+plot(met_ord_comparison, legend = list(labels = c("Map made with thresholded values", "Map made without")))
+
+colnames(torg_met) <- c("D1_X", "D2_X")
+colnames(torg_met) <- c("D1_Y", "D2_Y")
+
+comparison_PCA_random_start <- as_tibble(cbind(torg_met, torg_thresh))
+
+met_ord_comparison$pairwise_dist <- cbind(met_ord_comparison$X, met_ord_comparison$Yhat)
+
+colnames(met_ord_comparison$pairwise_dist) <- c("D1_X", "D2_X","D1_Y","D2_Y")
+
+met_ord_comparison$pairwise_dist <- as_tibble(met_ord_comparison$pairwise_dist) %>% 
+     mutate(dist_phen = sqrt((D1_X-D1_Y)^2 + (D2_X-D2_Y)^2))
+hist(met_ord_comparison$pairwise_dist$dist_phen)
+
+comparison_PCA_random_start <- met_ord_comparison$pairwise_dist
+colnames(comparison_PCA_random_start) <- c("PCA_D1","PCA_D2","RS_D1","RS_D2", "dist_phen")
+
+
+hist_pair_dist <- as_tibble(met_ord_comparison$pairdist)
+colnames(hist_pair_dist)
+
+
+mu <- comparison_PCA_random_start %>%
+     summarize(sd = round(sd(dist_phen),3),
+               Mean = round(mean(dist_phen),3),
+               Median = round(median(dist_phen),3))
+
+
+ggplot(hist_pair_dist, aes(x=value)) + 
+  geom_histogram(fill = "#E41A1C", colour = "black", alpha = 0.8) +
+  geom_vline(xintercept=1, linetype="dashed", color = "black", size=.5) +
+  theme_bw() +
+  labs( x = "Pairwise distance (MIC units)", y = "Frequency") 
+
+ggsave("S_pneumo_PCA_RS_comparison_pairwise_distance.jpg")
+
+
+nrow(filter(comparison_PCA_random_start, dist_phen <= 1))
+
+A <- ggplot(filter(comparison_PCA_random_start), aes(x=PCA_D1, y=PCA_D2)) + 
+    geom_segment(data = filter(comparison_PCA_random_start), aes(x = PCA_D1, y = PCA_D2, xend = RS_D1, yend = RS_D2), size = .5, colour = "grey") + 
+  geom_point(data = filter(comparison_PCA_random_start), aes(x=RS_D1, y=RS_D2), shape = 21,  size = 2, fill = "black",colour = "white") +
+     geom_point(data = filter(comparison_PCA_random_start), shape = 21, fill = "#E41A1C", size = 2, colour = "white") + 
+  theme_bw() +   
+ scale_x_continuous(limits = c(min(comparison_PCA_random_start$RS_D1, na.rm = T), max(comparison_PCA_random_start$RS_D1, na.rm = T)+ .5), breaks=seq(min(comparison_PCA_random_start$RS_D1, na.rm = T), max(comparison_PCA_random_start$RS_D1, na.rm = T) + 1,  1))   +
+  scale_y_continuous(limits = c(min(comparison_PCA_random_start$PCA_D2, na.rm = T), max(comparison_PCA_random_start$PCA_D2, na.rm = T)+ .5), breaks=seq(min(comparison_PCA_random_start$PCA_D2, na.rm = T), max(comparison_PCA_random_start$PCA_D2, na.rm = T) + 1,  1)) +
+  labs(title ="") +
+  labs( x = "MDR distance", y = "MDR distance") + 	
+  theme(axis.text=element_text(size=16), 
+        axis.title=element_text(size=16), 
+        panel.grid.major = element_line(colour="grey", size = (0.3)),
+        panel.grid.minor = element_blank(),
+        axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y = element_blank(),
+        strip.text.x = element_text(size = 14)) +
+  coord_fixed() 
+A
+
+```
+
+
+### Excluding isolates without at least 2 numerical titres
+
+I then tried excluding isolates which did not have at least two numerical titres across their MIC measurements for the 6 drugs. Again, I excluded those isolates and remade the map with the remaining isolates. I then made the map including those isolates and compared their relative position on the maps. 
+
+```{r, echo = FALSE}
+
+tablemic_thresh <- tablemic %>%
+    mutate(sum = Penicillin + Amoxicillin + Meropenem + Cefotaxime + Ceftriaxone + Cefuroxime,
+           LABID = tablemic_meta$LABID) %>%
+    filter(sum != 6 & sum != 7)  
+
+LABID <- tablemic_thresh %>%
+ dplyr::select(LABID)
+
+tablemic_thresh <- tablemic_thresh %>%
+ dplyr::select(-sum, -LABID)
+
+
+dist_thresh <- dist(tablemic_thresh)
+
+torg_thresh <- mds(dist_thresh, ndim = 2, type = c("ratio") , init = "torgerson", modulus = 1, itmax = 1000, eps = 1e-06)
+
+
+
+```
+
+
+### Plotting different solutions
+On the left are the maps produced by the different methods, the plots on the right show the 'shepard' plot for each map. the maps appear broadly the same regardless of the transformation used, suggesting the thresholded values are not having a strong effect on the way the isolates are being positioned, or the overall quality of the representation.
+
+
+```{r, echo =F}
+
+load(phen_map)
+
+table_distances <- as_tibble(as.matrix(torg_met[[1]]))
+map_distances <- as_tibble(as.matrix(torg_met[[3]]))
+
+colnames(map_distances) <- colnames(table_distances)
+table_distances <- gather(table_distances,"antibiotic","table_distance", 1:nrow(tablemic)) 
+map_distances <- gather(map_distances,"antibiotic","map_distance", 1:nrow(tablemic))
+
+distances <- bind_cols(table_distances, map_distances)
+
+distances$table_distance <- as.numeric(distances$table_distance)
+distances$map_distance <- as.numeric(distances$map_distance)
+mapvtable <- lm(map_distance ~ table_distance, data = distances)
+
+slope <- as.numeric(coef(mapvtable)[2])
+dilation <- 1/slope
+colnames(torg_met$conf) <- c("D1","D2")
+
+
+for (i in 1:ncol(torg_met$conf)) {
+  torg_met$conf[,i] <- torg_met$conf[,i] * dilation
+}
+
+torg_met <- torg_met$conf %>% 
+  as_tibble(.) %>%
+  mutate(LABID = tablemic_meta$LABID)
+
+class(torg_met$LABID)
+class(torg_thresh$LABID)
+
+torg_met <- left_join(LABID, torg_met, by = "LABID") %>%
+  dplyr::select(-LABID)
+
+
+torg_thresh <- as_tibble(torg_thresh$conf)
+torg_thresh <- bind_cols(torg_thresh, tablemic_thresh$LABID) 
+
+```
+
+
+### Quantitatively comparing the two maps
+
+To more quantitatively compare the maps, I again used procrustes to rotate and dilate the maps into the same rotation. I visualised these below. 
+
+Below, each plot shows that the full map (including the isolates with 6 thresholded values) is essentially the same as the one made without these isolates. This suggests the thresholded values are not having a strong effect on how the maps are positioning the isolates with numerical values. The congruence coefficient results also shows this.  For each the maps here, the estimate is >0.99, suggesting the solutions are essentially the same and the exclusion of isolates without at least two numerical titres is having little effect.
+
+```{r, echo = F}
+
+met_ord_comparison <- Procrustes(as.matrix(torg_met), as.matrix(torg_thresh))
+met_ord_comparison$congcoef
+
+plot(met_ord_comparison, legend = list(labels = c("Map made with thresholded values", "Map made without")))
+
+
+met_ord_comparison$pairwise_dist <- cbind(met_ord_comparison$X, met_ord_comparison$Yhat)
+
+colnames(met_ord_comparison$pairwise_dist) <- c("D1_X", "D2_X","D1_Y","D2_Y")
+
+met_ord_comparison$pairwise_dist <- as_tibble(met_ord_comparison$pairwise_dist) %>% 
+     mutate(dist_phen = sqrt((D1_X-D1_Y)^2 + (D2_X-D2_Y)^2))
+hist(met_ord_comparison$pairwise_dist$dist_phen)
+
+comparison_PCA_random_start <- met_ord_comparison$pairwise_dist
+colnames(comparison_PCA_random_start) <- c("PCA_D1","PCA_D2","RS_D1","RS_D2", "dist_phen")
+
+
+
+hist_pair_dist <- as_tibble(met_ord_comparison$pairdist)
+colnames(hist_pair_dist)
+
+
+ggplot(hist_pair_dist, aes(x=value)) + 
+  geom_histogram(fill = "#E41A1C", colour = "black", alpha = 0.8) +
+  geom_vline(xintercept=1, linetype="dashed", color = "black", size=.5) +
+  theme_bw() +
+  labs( x = "Pairwise distance (MIC units)", y = "Frequency") 
+
+
+```
+
+
+## Testing MDS with different transformation assumptions
+The SMACOF algorithm offers the potential to use linear transformation of the metric distances, as i have been using, or use rank of measurements so the metric values do not translate directly into distances. Ideally, the metric distances is better, as it means the distances between isolates in the assay are represented on the map in a linear transformation. Using a non-metric transformation may reduce interpretability of the map, depending on how it is fit. 
+However one advantage of an ordinal transformation is that it relaxes the metric assumption of the map. In other words, ordinal MDS only preserves the rank values on the map, rather than the true metric values. This means that the algorithm has more freedom in where to position isolates with thresholded values, as they only need to be further away from the the isolates with numeric values. This is useful for the thresholded values, as the algorithm can position them further away from the other isolates if needed. 
+
+If the thresholded values are having a large effect on the way the map positions the isolates, one method of identifying this would be to make the maps with both the metric and ordinal method, and compare them to see how similar they are. If the maps are very similar regardless of relaxing this assumption, then it would suggest that the thresholded values are having a minimal effect on where the isolates are being positioned.
+
+The SMACOF MDS algorithm also has other options, such as a spline transformation, although these are not included here
+
+
+```{r, echo = FALSE}
+
+load(phen_map)
+
+dilation <- 1/slope
+colnames(torg_met$conf) <- c("D1","D2")
+
+for (i in 1:ncol(torg_met$conf)) {
+  torg_met$conf[,i] <- torg_met$conf[,i] * dilation
+}
+
+torg_ord <- mds(dist(tablemic), ndim = 2, type = c("ordinal") , ties = "secondary", init = "torgerson", modulus = 1, itmax = 1000, eps = 1e-06)
+
+
+```
+
+
+### Fit of the MDS solution
+
+The Linear model of the map vs table distances show the real distances between isolates on the x axis and the distances between isolates on the map on the y axis. An r2 of 1 would equal an ideal fit and mean the data are represented perfectly. Each transformation represents the data very well. If the thresholded values were having a strong effect on the map, we may expect an 'elbow' or bend on the shepard plot. This would be where the distances which had thresholded values are being positioned further away from the rest of the isolates, resulting in a non-linear relationship between the table and map distances.
+
+
+### Quantitatively comparing the metric/ordinal maps
+
+To more quantitatively compare the maps, I then used procrustes to rotate and dilate the maps into the same rotation. I visualised these below. I also calculated the congruence coefficient between the sets of maps which can be used too compare the similarity of two solutions (https://en.wikipedia.org/wiki/Congruence_coefficient#:~:text=In%20multivariate%20statistics%2C%20the%20congruence,derived%20in%20a%20factor%20analysis.&text=It%20can%20be%20used%20to,have%20taken%20the%20same%20test.)
+
+Below, each plot shows that each alternative transformation is essentially the same as the metric transformation. This again suggests the thresholded values are not having a strong effect on how the maps are positioning the isolates with numerical values. The congruence coefficient results also shows this. Generally, a congruence coefficient aboove 0.95 is considered near identical. For each transformation here, the estimate is >0.99, suggesting the solutions are essentially the same and the different transformations having little effect.
+
+### Metric - Ordinal comparison
+
+```{r, echo = F}
+
+met_ord_comparison <- Procrustes(torg_met$conf,torg_ord$conf)
+round(met_ord_comparison$congcoef,3)
+
+met_ord_comparison$pairwise_dist <- cbind(met_ord_comparison$X, met_ord_comparison$Yhat)
+
+colnames(met_ord_comparison$pairwise_dist) <- c("D1_X", "D2_X","D1_Y","D2_Y")
+
+met_ord_comparison$pairwise_dist <- as_tibble(met_ord_comparison$pairwise_dist) %>% 
+     mutate(dist_phen = sqrt((D1_X-D1_Y)^2 + (D2_X-D2_Y)^2),
+            LABID = tablemic_meta$LABID)
+
+comparison_PCA_random_start <- met_ord_comparison$pairwise_dist
+colnames(comparison_PCA_random_start) <- c("PCA_D1","PCA_D2","RS_D1","RS_D2", "dist_phen","LABID")
+
+
+
+hist_pair_dist <- as_tibble(met_ord_comparison$pairdist)
+colnames(hist_pair_dist)
+
+
+mu <- comparison_PCA_random_start %>%
+     summarize(sd = round(sd(dist_phen),3),
+               Mean = round(mean(dist_phen),3),
+               Median = round(median(dist_phen),3))
+
+ggplot(hist_pair_dist, aes(x=value)) + 
+  geom_histogram(fill = "#E41A1C", colour = "black", alpha = 0.8) +
+  geom_vline(xintercept=1, linetype="dashed", color = "black", size=.5) +
+  theme_bw() +
+  labs( x = "Pairwise distance (MIC units)", y = "Frequency") 
+
+ggsave("S_pneumo_metric_ordinal_comparison_pairwise_distance_hist.jpg")
+
+
+
+A <- ggplot(filter(comparison_PCA_random_start), aes(x=PCA_D1, y=PCA_D2)) + 
+    geom_segment(data = filter(comparison_PCA_random_start), aes(x = PCA_D1, y = PCA_D2, xend = RS_D1, yend = RS_D2), size = .5, colour = "grey") + 
+  geom_point(data = filter(comparison_PCA_random_start), aes(x=RS_D1, y=RS_D2), shape = 21,  size = 2, fill = "black",colour = "white") +
+     geom_point(data = filter(comparison_PCA_random_start), shape = 21, fill = "#E41A1C", size = 2, colour = "white") + 
+  theme_bw() +   
+  #facet_wrap(~ dataset)+
+ scale_x_continuous(limits = c(min(comparison_PCA_random_start$PCA_D1, na.rm = T), max(comparison_PCA_random_start$PCA_D1, na.rm = T)+ .5), breaks=seq(min(comparison_PCA_random_start$PCA_D1, na.rm = T), max(comparison_PCA_random_start$PCA_D1, na.rm = T) + 1,  1))   +
+  scale_y_continuous(limits = c(min(comparison_PCA_random_start$PCA_D2, na.rm = T), max(comparison_PCA_random_start$PCA_D2, na.rm = T)+ .5), breaks=seq(min(comparison_PCA_random_start$PCA_D2, na.rm = T), max(comparison_PCA_random_start$PCA_D2, na.rm = T) + 1,  1)) +
+  labs(title ="") +
+  labs( x = "MDR distance", y = "MDR distance") + 	
+  theme(axis.text=element_text(size=16), 
+        axis.title=element_text(size=16), 
+        panel.grid.major = element_line(colour="grey", size = (0.3)),
+        panel.grid.minor = element_blank(),
+        axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y = element_blank(),
+        strip.text.x = element_text(size = 14)) +
+ # annotate("label", x = 9.5, y = .3, label = "Cong. coef = ") +
+  coord_fixed() 
+A
+ggsave("S_pneumo_metric_ordinal_comparison.jpg")
+mu 
+```
+
+
+
+
+## Weighting of thresholded isolate points
+Isolate points can be weighted more or less strongly depending on confidence in their relative position. For example, if a small subset of points are affecting the overall representation, and we have reason to believe they were incorrectly measured, we can weight those points less strongly so it does not affect the representation of other points on the map. This is analagous to fitting a linear model and weighting an outlier point less strongly. 
+
+Another potential use of weighting is to weight isolates with thresholded values less strongly in the final representation on the map. This means that the isolates with numerical titres measured for each drug will be 'fit' more strongly before positioning other isolates with thresholded values. The isolates with thresholded values is restricted by those with numerical titres, meaning those with higher confidence in their relative position are most accurately placed. 
+
+Unfortunately, there is no set rule or clear guidelines on how to specify a weighting structure, and can mainly only be done through trial and error.
+
+Here, I calculated how many numerical titres each isolate had plus 1. I then calculated the pairwise distances between each isolate. I then weighted the pairwise distances by multiplying the number of numerical titres between the two isolates. 
+
+The variance of the weighting is the main characteristic of the weighting structure, and should be in a range roughly equal to that of the MIC scales being used. I tried several different weighting structures and found they generated essentially the same results as shown below. 
+
+
+```{r, echo = F}
+
+
+tablemic_weights <- rowCounts(as.matrix(tablemic), value = "1", na.rm = FALSE)
+
+tablemic_weights <- (tablemic_weights * -1)
+tablemic_weights <- tablemic_weights + -min(tablemic_weights, na.rm = T) +1
+
+weight_mat <- matrix(1, nrow(tablemic),nrow(tablemic))
+
+for (i in 1:ncol(weight_mat)) {
+weight_mat[,i] <- tablemic_weights * weight_mat[,i] 
+}
+
+weight_mat <- t(weight_mat)
+
+
+for (i in 1:ncol(weight_mat)) {
+weight_mat[,i] <- tablemic_weights * weight_mat[,i] 
+}
+
+diag(weight_mat)=0
+
+#### Standard weighting - uniform weighting - common values are weighted less strongly
+### Comparison of optimisation methods 
+### multiple random starts
+set.seed(123)
+optimised_unif <- NULL  
+for(i in 1:10) optimised_unif[[i]] <- mds(dist_pne, type = "ratio", ndim = 2, modulus = 1, itmax = 10000, eps = 1e-06,weightmat = weight_mat, init = "torgerson") 
+ind <- which.min(sapply(optimised_unif, function(x) x$stress))
+optimised_unif <- optimised_unif[[ind]]
+sppwen <- sort(optimised_unif$spp, decreasing = TRUE)
+
+```
+
+
+### Plotting different solutions
+On the left are the maps produced by the different methods, the plots on the right show the 'shepard' plot for each map. The maps appear broadly the same regardless of the weighting structure, suggesting the thresholded values are not having a strong effect on the way the isolates are being positioned.
+
+
+```{r, echo = F}
+### Plot results of comparison
+op <- par(mfrow = c(2,2))
+plot(torg_met, main = "Equal weighting map", label.conf = list(label = FALSE))
+plot(torg_met, "Shepard")
+plot(optimised_unif, main = "Weighted map", label.conf = list(label = FALSE))
+plot(optimised_unif, "Shepard")
+par(op)
+
+
+#detach("package:psych", unload=TRUE)
+met_ord_comparison <- Procrustes(torg_met$conf,optimised_unif$conf)
+met_ord_comparison$congcoef
+  
+plot(met_ord_comparison, legend = list(labels = c("Non-weighted metric MDS", "Weighted metric MDS")))
+
+
+```
+
+
+### Quantitatively comparing the weighted/nonweighted maps
+
+To more quantitatively compare the maps, I then used procrustes to rotate and dilate the maps into the same rotation. I visualised these below. 
+
+Again, each plot shows that the maps produced using different weighting strucutres are essentially the same as the equally weighted map transformation. This again suggests the thresholded values are not having a strong effect on how the maps are positioning the isolates with numerical values. The congruence coefficient results also shows this. For each transformation here, the estimate is >0.99, suggesting the solutions are essentially the same.
+
+
+```{r, echo = F}
+
+set.seed(123)
+optimised_unif_ord <- NULL  
+for(i in 1:10) optimised_unif_ord[[i]] <- mds(dist_pne, type = "ordinal", ndim = 2, modulus = 1, itmax = 10000, eps = 1e-06,weightmat = weight_mat, ties = "secondary", init = "torgerson") 
+ind <- which.min(sapply(optimised_unif_ord, function(x) x$stress))
+optimised_unif_ord <- optimised_unif_ord[[ind]]
+sppwen <- sort(optimised_unif_ord$spp, decreasing = TRUE)
+
+
+met_ord_comparison <- Procrustes(torg_ord$conf,optimised_unif_ord$conf)
+met_ord_comparison$congcoef
+
+plot(met_ord_comparison, legend = list(labels = c("Non-weighted map", "Weighted map")))
+
+```
+
+
+

@@ -1,0 +1,215 @@
+---
+title: "06 Estimating goodness of fit - genetic map"
+author: "Andrew Balmer"
+date: "19/12/2023"
+output: html_document
+---
+
+### ==== Aims and objectives of this Rmarkdown
+
+It is important to ensure MDS solutions represent the data accurately. There are several methods to estimate the goodness-of-fit of an MDS solution (https://doi.org/10.1080/00273171.2016.1235966). Here, I have used several methods to estimate the stability of the map for the S. pneumoniae genetic map. 
+
+```{r setup, include=FALSE}
+
+# Clear the workspace
+remove(list = ls())
+
+# Load required packages
+library(tidyverse)     # For data manipulation and visualization
+library(smacof)        # For multidimensional scaling
+library(RColorBrewer)  # For color palettes
+
+# Set the working directory
+setwd("/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#07-10-Estimating-goodness-of-fit")
+
+# Read the MIC table data
+tablemic <- read.csv("/Users/ajb306/AMR-cartography/data/MIC_table_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+
+# Specify the full path to the data file
+gen_map <- "/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#03-06-Generating-phenotype-and-genotype-maps/Spneumo_3628_PCA_start_2D_METRIC_genetic.RData"
+
+# Load the precomputed PCA start 2D metric data
+load(gen_map)
+
+```
+
+### ========= Stress output of isolate points
+Firtly, I have visualised the isolate point error in different ways, this first plot shows the percentage of stress contributed by each isolate point. Ideally isolate points should contribute to stress more or less equally. For most MDS solutions there are outliers, as seen here. However, generally, the mean and standard deviation of stress contributions per point is low.
+
+```{r, echo=FALSE}
+
+# Calculate and display mean and standard deviation of stress values
+mu <- as_tibble(torg_met$spp) %>%
+  ungroup() %>%
+  summarize(Mean = mean(value),
+            sd = sd(value)) %>%
+  round(3)
+
+# Histogram of stress per point (%)
+x <- as_tibble(torg_met$spp)
+B <- ggplot(x, aes(x=value)) + 
+  geom_histogram(position="identity", alpha = 0.5, color = "black", fill = "#E41A1C", bins = 30) +
+  geom_vline(aes(xintercept=mean(value)),
+            color="#E41A1C", linetype="dashed", size=1) + 
+  theme_bw() +
+  scale_x_continuous(breaks=seq(0,.5, .1)) +
+  labs(x = "Per point stress contribution (%)", y = "Count") +
+  # Add mean and sd labels at the top of the plot
+  annotate("text", x = 0.25, y = 2500,
+           label = paste("Mean:", mu$Mean, "\nSD:", mu$sd),
+           vjust = 1, hjust = 0.5, color = "black", size = 3) 
+
+# Display the histogram
+B
+
+
+```
+
+
+### ========= Comparing table v map distances using a linear model
+
+Next, we test the accuracy of the map using a linear model of the measured distances (table distances), against distances on the map (map distances). Ideally, a R-squared of 1 would mean the true values as measured are perfectly represented on the map. Here, you can see R-squared and Pearsons correlation coefficient for the genotype map is high (>0.999), and the intercept is near 1. 
+
+However, one complication is that to estimate error in fitting the points, the map transformation needs to be scaled to be interpretable (i.e. 1 unit on the map should equal 10 Amino acids difference). To make the map and the table distances comparable, we use the slope of the linear model to dilate the map to the correct scale. Lastly, we then rotate the map for plotting later in the markdown.
+
+```{r, echo = F}
+
+# Convert torg_met[[1]] and torg_met[[3]] to tibbles and set column names
+table_distances <- as_tibble(as.matrix(torg_met[[1]]))
+map_distances <- as_tibble(as.matrix(torg_met[[3]]))
+colnames(map_distances) <- colnames(table_distances)
+
+# Reshape data using gather function
+table_distances <- gather(table_distances, "antibiotic", "table_distance", 1:nrow(x)) 
+map_distances <- gather(map_distances, "antibiotic", "map_distance", 1:nrow(x))
+
+# Combine table_distances and map_distances into a single tibble
+distances <- bind_cols(table_distances, map_distances)
+
+# Convert distances to numeric
+distances$table_distance <- as.numeric(distances$table_distance)
+distances$map_distance <- as.numeric(distances$map_distance)
+
+# Fit linear model and display summary
+mapvtable <- lm(map_distance ~ table_distance, data = distances)
+summary(mapvtable)
+
+# Perform Pearson correlation test
+cor.test(distances$table_distance, distances$map_distance, method = "pearson")
+
+# Extract slope and calculate dilation factor
+slope <- as.numeric(coef(mapvtable)[2])
+dilation <- 1 / slope
+slope
+colnames(torg_met$conf) <- c("D1", "D2")
+
+# Apply dilation to each column in torg_met$conf
+for (i in 1:ncol(torg_met$conf)) {
+  torg_met$conf[, i] <- torg_met$conf[, i] * dilation
+}
+
+# Modify distances tibble by scaling map_distance and calculating residuals
+distances <- distances %>%
+  mutate(map_distance = map_distance * dilation, 
+         residuals = table_distance - map_distance)
+
+```
+
+
+### ========= Estimating Goodness-of-fit statistics
+
+Next we estimate goodness of fit statistics for the genetic map. The goodness-of-fit of an MDS plot can be investigated by calculating the proportion of errors above certain thresholds and investigating the distribution of stress-per-point (as a % of total stress). 
+
+A Shepard plot can be used to show the relationship between measured pairwise table distances against the pairwise map distances. This plots the measured distances (table distances) between isolates on the x axis against the distances between isolates on the map. The stronger this relationship, the better the map fits the data. This relationship can be assessed quantitatively using a linear model (see above). Overall, the phenotype map fits the data accurately, with the slope and R2 of the Shepard plot linear model close to 1, and intercept close to 0. There are relatively few points more than 1 MIC unit away from their target distances.
+
+```{r, echo = F}
+
+# Create a tibble containing distinct values of residuals and their counts
+distances_distinct_res <- distances %>%
+  add_count(abs(residuals)) %>%
+  distinct(abs(residuals), .keep_all=TRUE)
+
+# Calculate the percentage of residuals greater than 1 and 2
+percentage_above_1 <- sum(distances$residuals > 10) / nrow(distances) * 100
+percentage_above_2 <- sum(distances$residuals > 20) / nrow(distances) * 100
+
+# Calculate and display mean and standard deviation of residuals
+mu <- distances %>%
+  ungroup() %>%
+  summarize(Mean = mean(residuals),
+            sd = sd(residuals)) %>%
+  round(3)
+
+# Print mean and sd of errors
+mu
+
+# Create a histogram of absolute errors with mean line
+ggplot(distances_distinct_res, aes(x = abs(residuals))) + 
+  geom_histogram(position = "identity", alpha = 0.5, color = "black", fill = "#E41A1C", bins = 30) +
+  geom_vline(aes(xintercept = mean(abs(residuals))),
+             color = "#E41A1C", linetype = "dashed", size = 1) + 
+  theme_bw() +
+  labs(x = "Absolute error (MIC units)", y = "Count") 
+
+
+
+# Create a scatter plot of table_distance vs map_distance with diagonal reference lines 
+C <- ggplot(distances_distinct_res, aes(x = table_distance, y = map_distance)) +
+  geom_point(shape = 16, alpha = 0.1, colour = "#E41A1C", size = 0.75) +
+  geom_abline(intercept = -10, slope = 1, linetype = "dashed", size = 0.5) +
+  geom_abline(intercept = 0, slope = 1, linetype = "solid", size = 0.5) +
+  geom_abline(intercept = 10, slope = 1, linetype = "dashed", size = 0.5) +
+  geom_abline(intercept = as.numeric(coef(mapvtable)[1]), slope = as.numeric(coef(mapvtable)[2]) * dilation,
+              linetype = "solid",  colour = "blue", size = 0.5) +
+  theme_bw() +
+  theme(panel.grid.major = element_line(colour = "grey", size = (0.1)),
+        panel.grid.minor = element_blank()) +
+  coord_fixed() +
+  labs(x = "Table distance (Amino acids difference)", y = "Map distance (Amino acids difference)") +
+  scale_x_continuous(breaks = seq(min(distances$table_distance), max(distances$table_distance) + 10, 10)) +
+  scale_y_continuous(breaks = seq(min(distances$map_distance), max(distances$map_distance + 10), 10))
+
+# Display the scatter plot (may take a while to load given the number of pairwise points)
+C
+
+```
+
+### ==== Bubbleplot
+The next plot is a 'bubblepot' where the size and colour of each isolate point is determined by their stress contribution as a percentage of total stress. The larger points represent points which contribute more stress. Ideally, the points across the map should have relatively similar stress contributions i.e. be the same size.
+
+One thing to note here is that points which contributing the most stress may be suggestive of error in the assay for that point. One method would be to re-measure isolates above a certain stress threshold to ensure their MIC values are indeed repeatable. If this stress genuinely represents a unique phenotype that isnt due to error, and that it is not captured in two dimensions, this can be further examined in the genotype-phenotype comparison.
+
+```{r, echo = F}
+
+# Extract stress per point from MDS object and plot bubbleplot
+bubbleplot <- as.data.frame(cbind(torg_met$conf))
+
+#Extract stress values
+bubbleplot$stress_per_point_as_percent <- torg_met$spp
+colnames(bubbleplot) <- c("D1","D2","stress_per_point_as_percent")
+         
+# Create a bubble plot
+A <- ggplot(bubbleplot, aes(x = D1, y = D2, fill = as.numeric(stress_per_point_as_percent), size = stress_per_point_as_percent)) +
+  geom_point(shape = 21, alpha = 0.9, colour = "black") +
+  scale_fill_gradient(low = "yellow", high = "red") + 
+  theme_linedraw() +
+  scale_x_continuous(limits = c(min(bubbleplot$D1), max(bubbleplot$D1) + 5), breaks = seq(min(bubbleplot$D1), max(bubbleplot$D1) + 10, 10)) +
+  scale_y_continuous(limits = c(min(bubbleplot$D2), max(bubbleplot$D2) + 5), breaks = seq(min(bubbleplot$D2), max(bubbleplot$D2 + 10), 10)) +
+  theme(panel.grid.major = element_line(colour = "grey", size = 0.3),
+        panel.grid.minor = element_blank(),
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        legend.background = element_rect(fill = "white", size = 0.25, linetype = "solid", colour = "black")) + 
+  scale_size_continuous(range = c(2, 8)) +
+  guides(size = "none", fill = guide_legend(title = "Stress (%)", override.aes = list(size = 5))) +
+  theme(legend.position = c(0.85, 0.2)) +
+  coord_fixed()
+
+# Display the bubble plot
+A
+
+```

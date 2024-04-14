@@ -1,0 +1,565 @@
+---
+title: "30-Final-table-of-subs-spneumo"
+author: "Andrew Balmer"
+date: "2024-04-08"
+output: html_document
+---
+
+```{r setup, include = F}
+
+remove(list = ls())
+library(tidyverse)
+library(RColorBrewer)
+library(stringr)
+library(seqinr)
+library(igraph)
+library(eulerr)
+library(FactoMineR)
+
+setwd("/Users/ajb306/Google Drive/PhD - Andrew Balmer/Chapters/AMR cartography/MIC data/Streptococcus pneumoniae analysis/")
+
+#cluster_1 <- read_csv("../Streptococcus pneumoniae analysis/Sig_AA_subs_Cluster_gen1_S.pneumo.csv")
+cluster_2 <- read_csv("../Streptococcus pneumoniae analysis/Sig_AA_subs_Cluster_gen2_S.pneumo.csv")
+cluster_3 <- read_csv("../Streptococcus pneumoniae analysis/Sig_AA_subs_Cluster_gen3_S.pneumo.csv")
+cluster_4 <- read_csv("../Streptococcus pneumoniae analysis/Sig_AA_subs_Cluster_gen4_S.pneumo.csv")
+cluster_5 <- read_csv("../Streptococcus pneumoniae analysis/Sig_AA_subs_Cluster_gen5_S.pneumo.csv")
+#cluster_6 <- read_csv("../Streptococcus pneumoniae analysis/Sig_AA_subs_Cluster_gen6_S.pneumo.csv")
+cluster_7 <- read_csv("../Streptococcus pneumoniae analysis/Sig_AA_subs_Cluster_gen7_S.pneumo.csv")
+cluster_8 <- read_csv("../Streptococcus pneumoniae analysis/Sig_AA_subs_Cluster_gen8_S.pneumo.csv")
+#cluster_9 <- read_csv("../Streptococcus pneumoniae analysis/Sig_AA_subs_Cluster_gen9_S.pneumo.csv")
+cluster_10 <- read_csv("../Streptococcus pneumoniae analysis/Sig_AA_subs_Cluster_gen10_S.pneumo.csv")
+#cluster_11 <- read_csv("../Streptococcus pneumoniae analysis/Sig_AA_subs_Cluster_gen11_S.pneumo.csv")
+cluster_12 <- read_csv("../Streptococcus pneumoniae analysis/Sig_AA_subs_Cluster_gen12_S.pneumo.csv")
+
+#read in data file
+single_subs <- read_csv("../Streptococcus pneumoniae analysis/Single_subs_all_S.pneumo.csv")
+mv_lmm <- read_csv("../Streptococcus pneumoniae analysis/Sub_effect_sizes_mv_pneumo.csv")
+mv_lmm_epi_all <- read_csv("../Streptococcus pneumoniae analysis/Sig_AA_subs_all_epistatic_interactions_incl_nonsig_S.pneumo.csv")
+mv_lmm_epi <- read_csv("../Streptococcus pneumoniae analysis/Sig_AA_subs_all_epistatic_interactions_S.pneumo.csv")
+
+
+```
+
+
+
+```{r,echo = F}
+
+mv_lmm_effsizes <- mv_lmm %>% select(PBP_AA_location, effsize_V1, effsize_V2, effsize_se_V1, effsize_se_V2, pv20_adj_galwey, Joint_effsize) %>% mutate(LMM = "mvLMM")
+
+mv_lmm_effsizes_epi <- mv_lmm_epi_all %>% select(PBP_AA_location, effsize_env1_V1, effsize_env1_V2, effsize_se_env1_V1, effsize_se_env1_V2, pv20_adj_galwey, joint_effect_size) %>% mutate(LMM = "Epistatic")
+
+mv_lmm_effsizes_epi <- mv_lmm_effsizes_epi %>% rename(effsize_V1 = effsize_env1_V1,
+                               effsize_V2 = effsize_env1_V2,
+                               effsize_se_V1 = effsize_se_env1_V1,
+                               effsize_se_V2 = effsize_se_env1_V2,
+                               Joint_effsize = joint_effect_size)
+
+mv_lmm_effsizes <- filter(mv_lmm_effsizes, pv20_adj_galwey <= 0.001 )
+mv_lmm_effsizes_epi <- filter(mv_lmm_effsizes_epi, pv20_adj_galwey <= 9.72e-06 )
+
+effect_sizes <- bind_rows(mv_lmm_effsizes, mv_lmm_effsizes_epi)
+
+
+test <- effect_sizes %>%
+  mutate(category_V1 = case_when((effsize_V1 < -1) ~ "-",
+         (effsize_V1 < 1 & effsize_V1 > -1 ) ~ "/",
+         (effsize_V1 > 1 ) ~ "+")) %>% 
+   mutate(category_V2 = case_when((effsize_V2 < -1) ~ "-",
+         (effsize_V2 < 1 & effsize_V2 > -1 ) ~ "/",
+         (effsize_V2 > 1 ) ~ "+"))
+
+test_n <- as.data.frame(t(as.data.frame.matrix(table(test$category_V1, test$category_V2))))
+test_prop <- as.data.frame(t(as.data.frame.matrix(prop.table(table(test$category_V1, test$category_V2))*100)))
+test_prop <- round(test_prop, 2)
+
+ggplot(filter(effect_sizes, LMM == "mvLMM"), aes(x=effsize_V1, y = effsize_V2)) + 
+    geom_vline(xintercept=1, size = .2) +
+    geom_vline(xintercept=-1, size = .2) +
+    geom_hline(yintercept=1, size = .2) +
+    geom_hline(yintercept=-1, size = .2) +
+   geom_point( data = filter(effect_sizes, LMM != "mvLMM"),shape = 16,alpha = 0.25, colour = "#E41A1C", size = 1.5 ) +
+   geom_point(shape = 21,
+               size = 2.5, 
+               alpha = .8, 
+               colour = "black",
+              fill = "#E41A1C") +
+  guides() +
+  theme(legend.position='none') +
+  theme_linedraw() +
+  scale_x_continuous(limits = c( -4,5), breaks=seq( -4,5, 1)) +
+  scale_y_continuous(limits = c( -4,3), breaks=seq( -4,3, 1)) +
+  labs(title ="") +
+  theme_bw() +
+  coord_fixed() + 
+  labs( x = "Effect size (Map axis 1 - Cephalosporins)", y = "Effect size (Map axis 2 - Penicillin)") + 	
+  theme(axis.text =element_text(size=12), 
+        axis.title=element_text(size=12)) +
+  scale_colour_manual(values=c( "#E41A1C" )) +
+  scale_shape_manual(values=c( 16 , 21))+
+  
+  geom_label(inherit.aes=FALSE, size = 2.5, aes(x = -3.5, y = -4,label=paste(test_n[c(1),1]," - ",test_prop[c(1),1], "%"))) +
+  geom_label(inherit.aes=FALSE, size = 2.5, aes(x = -3.5, y = -.75,label=paste(test_n[c(2),1]," - ",test_prop[c(2),1], "%"))) +
+  geom_label(inherit.aes=FALSE, size = 2.5, aes(x = -3.5, y = 3,label=paste(test_n[c(3),1]," - ",test_prop[c(3),1], "%"))) +
+  
+  geom_label(inherit.aes=FALSE, size = 2.5, aes(x = -0, y = -4,label=paste(test_n[c(1),2]," - ",test_prop[c(1),2], "%"))) +
+  geom_label(inherit.aes=FALSE, size = 2.5, aes(x = -0, y = -.75,label=paste(test_n[c(2),2]," - ",test_prop[c(2),2], "%"))) +
+  geom_label(inherit.aes=FALSE, size = 2.5, aes(x = -0, y = 3,label=paste(test_n[c(3),2]," - ",test_prop[c(3),2], "%"))) +
+  
+  geom_label(inherit.aes=FALSE, size = 2.5, aes(x = 4.5, y = -4,label=paste(test_n[c(1),3]," - ",test_prop[c(1),3], "%"))) +
+  geom_label(inherit.aes=FALSE, size = 2.5, aes(x = 4.5, y = -.75,label=paste(test_n[c(2),3]," - ",test_prop[c(2),3], "%"))) +
+  geom_label(inherit.aes=FALSE, size = 2.5, aes(x = 4.5, y = 3,label=paste(test_n[c(3),3]," - ",test_prop[c(3),3], "%"))) 
+
+#ggsave("effect_sizes_S.pneumo.jpg")
+
+
+mv_lmm_effsizes_epi_table <- mv_lmm_effsizes_epi %>%
+  mutate(category_V1 = case_when((effsize_V1 < -1) ~ "-",
+         (effsize_V1 < 1 & effsize_V1 > -1 ) ~ "0",
+         (effsize_V1 > 1 ) ~ "+")) %>% 
+   mutate(category_V2 = case_when((effsize_V2 < -1) ~ "-",
+         (effsize_V2 < 1 & effsize_V2 > -1 ) ~ "0",
+         (effsize_V2 > 1 ) ~ "+"))
+
+table(mv_lmm_effsizes_epi_table$category_V1, mv_lmm_effsizes_epi_table$category_V2)
+prop.table(table(mv_lmm_effsizes_epi_table$category_V1, mv_lmm_effsizes_epi_table$category_V2))*100
+
+mv_lmm_effect_size_table <- mv_lmm_effsizes %>%
+  mutate(category = case_when((effsize_V1 < -1 & effsize_V2 < -1) ~ "-/-",
+         (effsize_V1 < -1 & effsize_V2 < 1 & effsize_V2 > -1 ) ~ "-/0",
+         (effsize_V1 < -1 & effsize_V2 > 1 ) ~ "-/+",
+
+         (effsize_V1 < 1 & effsize_V1 > -1 & effsize_V2 < -1) ~ "0/-",
+         (effsize_V1 < 1 & effsize_V1 > -1 & effsize_V1 < 1 & effsize_V1 > -1 ) ~ "0/0",
+         (effsize_V1 < 1 & effsize_V1 > -1 & effsize_V2 > 1) ~ "0/+",
+                              
+         (effsize_V1 > 1 & effsize_V2 < -1 ) ~ "+/-",
+         (effsize_V1 > 1 & effsize_V2 < 1 & effsize_V2 > -1 ) ~ "+/0",
+         (effsize_V1 > 1 & effsize_V2 > 1 ) ~ "+/+"))
+       
+table(mv_lmm_effect_size_table$category)
+prop.table(table(mv_lmm_effect_size_table$category))*100
+
+
+```
+
+
+
+```{r, echo = F}
+
+  options(dplyr.summarise.inform = FALSE)
+  
+  # Set working directory
+  setwd("/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#03-06-Generating-phenotype-and-genotype-maps")
+  
+  # Specify the full path to the data file
+  phen_map <- "/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#03-06-Generating-phenotype-and-genotype-maps/Spneumo_3628_PCA_start_2D_METRIC.RData"
+  
+ 
+# Read in the relevant meta data
+tablemic_meta <- read.csv("/Users/ajb306/AMR-cartography/data/meta_data_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+
+  
+  # Read in phenotype map data and rotate to make it more readable
+  load(phen_map)
+  res_samp <- torg_met
+  theta <- 326*pi/180 ## degrees to radians
+  rot <- matrix(c(cos(theta), sin(theta), -sin(theta), cos(theta)), ncol = 2)
+  res_samp$conf <- res_samp$conf %*% rot ## rotated configurations
+  plot(res_samp)
+  
+  
+  ### create a vector of isolates with PBP deletion substitutions and remove them from dataframes  
+  isolates_with_PBP_deletion <- c("20156696" , "20162849" , "20151885" ,
+                           "20153985" , "20154509" , "2013224047" , "2013218247" ,
+                           "2014200662" , "5869-99" , "2513-99")
+  # Specify the full path to the data file
+  gen_map <- "/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#03-06-Generating-phenotype-and-genotype-maps/Spneumo_3628_PCA_start_2D_METRIC_genetic.RData"
+  load('/Users/ajb306/AMR-cartography/data/tablemic_pneumo_gen_3628.RData')
+  
+  # Load the precomputed PCA start 2D metric data
+  load(gen_map)
+  
+  genotype_mds <- as.data.frame(torg_met$conf)
+
+colnames(genotype_mds) <- c("G1","G2")
+  
+  
+slope <- 0.1842996
+dilation <- 1/slope
+slope
+map_coords <- as.data.frame(res_samp$conf)
+
+map_coords$V1 <- map_coords$V1 * dilation
+map_coords$V2 <- map_coords$V2 * dilation
+
+### create main dataframe of map coordinates and PBP metadata
+AA_matrix_phenotype <- bind_cols(map_coords, tablemic_meta) %>%
+                         rename(PBP_type = PT, D1 = V1, D2 = V2) %>%
+                         group_by(PBP_type) %>%
+                         mutate(x_centroid = median(D1), 
+                         y_centroid = median(D2)) %>%
+                         filter(!LABID %in% isolates_with_PBP_deletion) %>%
+                         bind_cols(genotype_mds)
+
+## import MDS transformations for phenoptype and genotype maps
+gen_slope <- 0.01814108
+
+### As I only want to cluster on distinct PBP types, I 
+gen_clustering <- cbind(dplyr::select(AA_matrix_phenotype, G1,G2, PBP_type)) %>%
+                  distinct(PBP_type, .keep_all = TRUE) %>% 
+                  ungroup()
+
+
+res.hcpc <- HCPC(select(gen_clustering, G1,G2), nb.clust = 12, consol = T, iter.max = 500, graph = T, order = T)
+
+### scree plot of clustering 
+plot(log(res.hcpc$call$t$inert.gain[c(1:30)]))
+
+### bind the genetic clusters to the genetic map data
+gen_clustering$gen_cluster <- res.hcpc[[1]]$clust
+
+AA_matrix_phenotype <- left_join(AA_matrix_phenotype, select(gen_clustering, PBP_type, gen_cluster), by = "PBP_type") %>% bind_cols(PBPseq)%>% ungroup 
+
+
+
+genotype_mds <- NULL
+tablemic <- NULL
+torg_met <- NULL
+gen_clustering <- NULL
+
+
+#AA_matrix_phenotype$gen_cluster <- genotype_mds$gen_cluster
+all_isolates <- AA_matrix_phenotype
+
+
+theme_MDR_cartography <- function(){ 
+    theme(panel.grid.major = element_line(colour="grey", size = (0.3)),
+        panel.grid.minor = element_blank(),
+        axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.title.y=element_blank(), 
+        axis.text.y=element_blank(),
+        axis.ticks.y = element_blank()
+
+    )
+}
+
+my_colours <- c("#4DAF4A", "#377EB8", "#E41A1C", "#984EA3", "#FF7F00", "black",
+                             "white", "#7570B3", "#E7298A", "#FFFF33", "#A65628", "cyan",
+                             "#999999", "red","magenta", "purple", "brown","green")
+    
+limits_phen_map_x <- c(min(AA_matrix_phenotype$D1, na.rm = T), 
+                       max(AA_matrix_phenotype$D1, na.rm = T))
+limits_phen_map_y <- c(min(AA_matrix_phenotype$D2, na.rm = T), 
+                       max(AA_matrix_phenotype$D2, na.rm = T))
+
+breaks_phen_map_x <- seq(min(AA_matrix_phenotype$D1, na.rm = T) - (1), 
+                         max(AA_matrix_phenotype$D1, na.rm = T) + (1), 1)
+breaks_phen_map_y <- seq(min(AA_matrix_phenotype$D2, na.rm = T) - (1), 
+                         max(AA_matrix_phenotype$D2, na.rm = T) + (1), 1)
+
+
+```
+
+
+
+```{r, echo = F}
+
+clustering <- bind_rows(cluster_2,
+                        cluster_3,
+                        cluster_4,
+                        cluster_5,
+                        cluster_7,
+                        cluster_8,
+                        cluster_10,
+                        cluster_12) %>%
+   arrange(Confidence, .by_group = TRUE)  %>%
+  distinct(Location, .keep_all = TRUE)
+strong_clustering <- filter(clustering, Confidence == "Strong")
+
+
+top_cluster_hits <- AA_matrix_phenotype %>% 
+  ungroup() %>% 
+  select(D1, D2, all_of(c(strong_clustering$Location))) %>%
+  pivot_longer(cols = starts_with("PBP"), names_to = "Location", values_to = "AA")
+
+top_cluster_hits$Location <- str_replace_all(top_cluster_hits$Location, "_", " ")
+
+
+ggplot(filter(top_cluster_hits), aes(x=D1,y=D2, fill = AA)) +
+    geom_point(shape = 21,size = 1.75, alpha = 1, colour = "white") +
+  facet_wrap(~ Location) + 
+  theme_linedraw() +
+scale_x_continuous(limits = limits_phen_map_x, breaks=breaks_phen_map_x) +
+  scale_y_continuous(limits = limits_phen_map_y, breaks=breaks_phen_map_y) +
+theme_MDR_cartography() +
+  coord_fixed() +   
+  theme(strip.background =element_rect(fill="white")) + 
+  theme(strip.text = element_text(colour = 'black')) +
+  scale_fill_manual(values=c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "grey", "#A65628", "#F781BF", "#999999",
+                             "#1B9E77", "#D95F02", "#7570B3", "#E7298A", "#66A61E", "#E6AB02", "#A6761D", "#666666")) +
+  scale_colour_manual(values=c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "grey", "#A65628", "#F781BF", "#999999",
+                             "#1B9E77", "#D95F02", "#7570B3", "#E7298A", "#66A61E", "#E6AB02", "#A6761D", "#666666"))
+
+ggsave("specific_effect_sizes_S.pneumo.jpg")
+
+```
+
+
+```{r, echo =F}
+
+weak_clustering <- filter(clustering, Confidence == "Weak")
+
+clustering <- clustering %>%
+        separate(Location, c("PBP","Loci"))
+
+strong_clustering <- strong_clustering %>%
+        separate(Location, c("PBP","Loci"))
+
+weak_clustering <- weak_clustering %>%
+        separate(Location, c("PBP","Loci"))
+
+strong_clustering$PBP <- str_replace_all(strong_clustering$PBP, "PBP", "")
+weak_clustering$PBP <- str_replace_all(weak_clustering$PBP, "PBP", "")
+
+
+single_subs <- single_subs %>% mutate(Single_subs = TRUE)
+mv_lmm <- mv_lmm %>% mutate(LMM = TRUE)
+mv_lmm_epi <- mv_lmm_epi %>% mutate(LMM_epi = TRUE)
+
+
+single_subs <- single_subs %>% unite("Location", c(AA_1, Loci, AA_2), sep = "", remove = F) 
+
+mv_lmm_epi$Location <- str_replace_all(mv_lmm_epi$Location, "_PBP1A_|_PBP2B_|_PBP2X_", "/")
+mv_lmm_epi$Location <- str_remove_all(mv_lmm_epi$Location, ("PBP1A_|PBP2B_|PBP2X_|_"))
+
+mv_lmm <- mv_lmm %>% rename( Location = PBP_AA_location ) 
+mv_lmm <- mv_lmm %>%
+    rename_at(vars(-PBP, -Location, -LMM),function(x) paste0(x,"_mv_LMM"))
+
+table_of_subs <- full_join(single_subs, mv_lmm, by = c("Location" = "Location", "PBP" = "PBP"))
+
+table_of_subs <- table_of_subs %>%  separate_rows(Location, sep ="/",convert = TRUE)
+table_of_subs$Loci <- substr(table_of_subs$Location,1,nchar(table_of_subs$Location)-1)
+
+table_of_subs <- full_join(clustering, table_of_subs, by = c("Loci" = "Loci", "PBP" = "PBP"))
+
+mv_lmm_epi_2 <- mv_lmm_epi %>%  separate_rows(Location, sep ="/",convert = TRUE)
+
+mv_lmm_epi_2 <- mv_lmm_epi_2 %>%
+    rename_at(vars(-PBP, -Location, -LMM_epi),function(x) paste0(x,"_mv_LMM_epistatic"))
+
+table_of_subs <- full_join(mv_lmm_epi_2, table_of_subs, by = c("Location" = "Location", "PBP" = "PBP")) %>%
+      select(PBP,
+             Location,
+             Loci,
+             median_phenotypic_distance,
+             se,
+             number_of_isolates_of_reference,
+             number_of_isolates_of_comparison_group,
+             Confidence,
+             pv20_adj_galwey_mv_LMM,
+             Joint_effsize_mv_LMM,
+             PBP_AA_location_mv_LMM_epistatic, 
+             PBP_count_mv_LMM_epistatic,
+             pv20_adj_galwey_mv_LMM_epistatic,
+             joint_effect_size_mv_LMM_epistatic)
+
+
+
+
+
+table_of_subs <- table_of_subs %>% 
+  mutate(LMM_Significant = case_when((pv20_adj_galwey_mv_LMM <= 0.001)    ~ "Significant at <0.001",
+                (pv20_adj_galwey_mv_LMM > 0.001)    ~ "Not Significant")) %>%
+  mutate(LMM_epi_Significant = case_when((pv20_adj_galwey_mv_LMM_epistatic <= 9.72e-06) ~ "Significant below permutation cutoff",
+                (pv20_adj_galwey_mv_LMM_epistatic >= 9.72e-06) & (pv20_adj_galwey_mv_LMM_epistatic <= 0.001) ~ "Significant at <0.001",
+                (pv20_adj_galwey_mv_LMM_epistatic > 0.001)    ~ "Not Significant"))
+
+
+table_of_subs$Single_subs_evidence <- as.numeric(ifelse(table_of_subs$median_phenotypic_distance >= 1, 1, 0))
+table_of_subs$Clustering_evidence <- as.numeric(ifelse(table_of_subs$Confidence == "Strong", 1, 0))
+table_of_subs$LMM_evidence <- as.numeric(ifelse(table_of_subs$pv20_adj_galwey_mv_LMM <= 0.001 & table_of_subs$Joint_effsize_mv_LMM >= 1, 1, 0))
+table_of_subs$LMM_epi_evidence <- as.numeric(ifelse(table_of_subs$PBP_count_mv_LMM_epistatic >= 1, 1, 0))
+
+
+
+table_of_subs <- table_of_subs %>% 
+ replace_na(list(Single_subs_evidence = 0, Clustering_evidence = 0, LMM_evidence = 0, LMM_epi_evidence = 0)) %>%   
+  mutate(total = Single_subs_evidence + Clustering_evidence + LMM_evidence + LMM_epi_evidence) %>%
+  select(-Loci, -Single_subs_evidence, -Clustering_evidence, -LMM_evidence, -LMM_epi_evidence, -PBP_AA_location_mv_LMM_epistatic,
+         -pv20_adj_galwey_mv_LMM_epistatic, -joint_effect_size_mv_LMM_epistatic, -LMM_epi_Significant) %>%
+  mutate(number_of_isolates_of_reference = as.character(number_of_isolates_of_reference),
+         number_of_isolates_of_reference = replace_na(as.character(number_of_isolates_of_reference), "-"),
+         number_of_isolates_of_comparison_group = as.character(number_of_isolates_of_comparison_group),
+         number_of_isolates_of_comparison_group = replace_na(as.character(number_of_isolates_of_comparison_group), "-")) %>%
+  unite("No_isolates_in_comp", c(number_of_isolates_of_reference, number_of_isolates_of_comparison_group), sep = "/", remove = T) 
+
+table_of_subs$pv20_adj_galwey_mv_LMM <- as.numeric(ifelse(table_of_subs$pv20_adj_galwey_mv_LMM > 1, 1, table_of_subs$pv20_adj_galwey_mv_LMM))
+colnames(table_of_subs)
+
+table_of_subs$median_phenotypic_distance <- round(as.numeric(table_of_subs$median_phenotypic_distance), 3)
+table_of_subs$se <- round(as.numeric(table_of_subs$se), 3)
+table_of_subs$Joint_effsize_mv_LMM <- round(as.numeric(table_of_subs$Joint_effsize_mv_LMM), 3)
+table_of_subs$pv20_adj_galwey_mv_LMM <- formatC(as.numeric(table_of_subs$pv20_adj_galwey_mv_LMM), format = "e")
+
+
+# Define the columns to be modified
+columns_to_modify <- c("median_phenotypic_distance", "se", "Confidence", "pv20_adj_galwey_mv_LMM", "Joint_effsize_mv_LMM", "PBP_count_mv_LMM_epistatic")
+
+# Apply the modifications to the specified columns
+table_of_subs <- table_of_subs %>%
+  mutate(across(all_of(columns_to_modify), ~if_else(is.na(.), "-", as.character(.))))
+
+top_cluster_hits <- table_of_subs %>% 
+  filter(total != 0 ) #%>%
+  #mutate(Evidence = "Weak/No Evidence") %>%
+    #select(-total)
+
+
+table_of_subs_no_evidence <- table_of_subs %>% 
+  filter(total == 0 ) %>%
+  mutate(Evidence = "Weak/No Evidence") #%>%
+    #select(-total)
+  
+table_of_subs_weak <- table_of_subs %>% 
+  filter(total == 1 & LMM_Significant != "Significant at <0.001" & Joint_effsize_mv_LMM < 1) %>%
+  mutate(Evidence = "Weak") #%>%
+   # select(-total)
+  
+table_of_subs_moderate <- table_of_subs %>% 
+  filter(total == 1 & LMM_Significant == "Significant at <0.001" & Joint_effsize_mv_LMM > 1 |
+         total == 1 & PBP_count_mv_LMM_epistatic > 1 |
+         total == 2) %>%
+  mutate(Evidence = "Moderate") #%>%
+   # select(-total)
+  
+table_of_subs_strong <- table_of_subs %>% 
+  filter(total == 3) %>%
+  mutate(Evidence = "Strong") #%>%
+    #select(-total)
+
+  
+table_of_subs_very_strong <- table_of_subs %>% 
+  filter(total == 4) %>%
+  mutate(Evidence = "Very Strong")# %>%
+    #select(-total)
+
+  
+#  mutate(Evidence = case_when((total == 0) ~ "Weak/No evidence",
+ #               total == 1 ~ "Weak",
+  #              total == 1 & LMM_Significant == "Significant at <0.001" & Joint_effsize_mv_LMM > 1 ~ "Moderate",
+   #             total == 1 & PBP_count_mv_LMM_epistatic > 1 ~ "Moderate",
+    #            total == 2 ~ "Moderate",
+#                total == 3 ~ "Strong",
+ #               total == 4 ~ "Very Strong")) %>%
+  #              select(-total) 
+
+table_of_subs <- bind_rows(#table_of_subs_no_evidence,  
+                           table_of_subs_weak,
+                           table_of_subs_moderate,
+                           table_of_subs_strong,
+                           table_of_subs_very_strong)
+
+saveRDS(table_of_subs, "table_of_sig_subs_pneumo.rds")
+
+
+table_of_subs$PBP <- recode(table_of_subs$PBP, "PBP1A" = "1A", "PBP2B" = "2B", "PBP2X" = "2X")
+table_of_subs <- table_of_subs %>% relocate(Joint_effsize_mv_LMM, .after = Confidence)
+table_of_subs <- table_of_subs %>% relocate(LMM_Significant, .after = pv20_adj_galwey_mv_LMM)
+
+
+table_of_subs <- table_of_subs %>% rename("Phenotypic Distance" = median_phenotypic_distance, "SE" = se,
+                                          "No. isolates" = No_isolates_in_comp, "Adj. p-value" = pv20_adj_galwey_mv_LMM,
+                                          "No. Sig. interactions" = PBP_count_mv_LMM_epistatic) %>%
+  relocate(Evidence) %>%
+  select(-LMM_Significant)
+
+table_of_subs_evidence <- table_of_subs %>%
+  filter(Evidence == "Very Strong" | Evidence == "Strong"| Evidence == "Moderate" )
+
+write.csv(table_of_subs_evidence, file = "Table_of_subs_Spneumoniae.csv", row.names=FALSE)
+
+
+test <- table_of_subs_evidence %>% 
+  distinct(PBP, Location,  .keep_all = T) %>%
+  filter(`Adj. p-value` != "NA")
+
+test <- test %>% mutate(Loci = substr(Location,2,4)) 
+
+test <- test %>% 
+  distinct(PBP, Loci,  .keep_all = T) 
+
+
+table_of_subs_location <- table_of_subs_evidence %>% mutate(Loci = substr(Location,2,4)) 
+table_of_subs_location <- table_of_subs_location %>%
+  distinct(PBP, Loci,  .keep_all = T) 
+
+PBP1a <- table_of_subs_location %>%
+  filter(PBP == "1A")
+PBP2b <- table_of_subs_location %>%
+  filter(PBP == "2B")
+PBP2x <- table_of_subs_location %>%
+  filter(PBP == "2X")
+
+```
+
+
+```{r, echo = F}
+
+### euler plot of overlap
+setwd("/Users/ajb306/Google Drive/PhD - Andrew Balmer/Chapters/AMR cartography/MIC data/Streptococcus pneumoniae analysis/")
+
+
+CDC_GWAS_overlap <- read.csv(file = "CDC_GWAS_overlap_TPD.csv")
+
+CDC_GWAS_overlap$CDC <- recode(CDC_GWAS_overlap$CDC, Yes = TRUE, No = FALSE) 
+CDC_GWAS_overlap$GWAS <- recode(CDC_GWAS_overlap$GWAS, Yes = TRUE, No = FALSE) 
+CDC_GWAS_overlap$Laboratory <- recode(CDC_GWAS_overlap$Laboratory, Yes = TRUE, No = FALSE) 
+
+
+### euler plot of overlap
+CDC_GWAS_overlap$PBP <- recode(CDC_GWAS_overlap$PBP, "1a" = "1A", 
+            "2b" = "2B",
+            "2x" = "2X")
+CDC_GWAS_overlap$Location <- as.factor(CDC_GWAS_overlap$Position)
+table_of_subs_evidence$Location <- str_sub(table_of_subs_evidence$Location, 2, 4)
+table_of_subs_evidence$Location <- as.factor(table_of_subs_evidence$Location)
+
+table_of_subs_evidence$Cartography <- TRUE
+
+
+euler_plot <- full_join(filter(table_of_subs_evidence, Evidence != "Weak/No evidence"), CDC_GWAS_overlap, by = c("PBP" = "PBP", "Location" = "Location"))
+
+euler_plot <- euler_plot %>% replace_na(list(Cartography = FALSE, CDC = FALSE, GWAS = FALSE, Laboratory = FALSE))
+  
+euler_plot <- euler_plot %>% unite("PBP_position", c(PBP,Location), remove = FALSE) %>%
+distinct(PBP, Location,  .keep_all = T) 
+
+
+library(eulerr)
+library(Rcpp)
+
+euler_plot$Cartography <- as.logical(euler_plot$Cartography)
+euler_plot$GWAS <- as.logical(euler_plot$GWAS)
+euler_plot$CDC <- as.logical(euler_plot$CDC)
+euler_plot$Laboratory <- as.logical(euler_plot$Laboratory)
+
+cartography_methods <- subset(euler_plot, Cartography == "TRUE")$PBP_position
+gwas <- subset(euler_plot, GWAS == "TRUE")$PBP_position
+cdc <- subset(euler_plot, CDC == "TRUE")$PBP_position
+laboratory <- subset(euler_plot, Laboratory == "TRUE")$PBP_position
+
+
+```
+
+# for some reason the venn disgram code wont work within a markdown chunk.
+myV <- plotVenn(list(GWAS=gwas, CDC = cdc, Laboratory = laboratory), nCycles = 10000, showPlot = T)
+
+myV <- plotVenn(list(Cartography=cartography_methods, GWAS=gwas, CDC = cdc, Laboratory = laboratory), nCycles = 70000, showPlot = T, opacity = .4, borderWidth = 2, labelRegions = F, fontScale = 2)
+
+jpeg("Spneumo_method_overlap.jpg")
+myV <- plotVenn(list(Cartography=cartography_methods, GWAS=gwas, CDC = cdc, Laboratory = laboratory), nCycles = 70000, showPlot = T, opacity = .4, borderWidth = 2, labelRegions = F, fontScale = 2, setColors = c("#E41A1C",  "#4DAF4A", "#FFFF33", "#377EB8"))
+dev.off()
+

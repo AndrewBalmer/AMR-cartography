@@ -1,0 +1,913 @@
+---
+title: "08-Noise-added-value-analysis"
+author: "Andrew Balmer"
+date: "2024-01-13"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+# Clear the workspace
+remove(list = ls())
+
+# Load required packages
+library(tidyverse)     # For data manipulation and visualization
+library(smacof)        # For multidimensional scaling
+library(RColorBrewer)  # For color palettes
+library(calibrate)     # For calibration
+library(matrixStats)   
+library(ggExtra)       # For marginal histograms
+library(ggdensity)     # For density distrbutions
+library(foreach)
+library(doParallel)
+
+# Set the working directory
+setwd("/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#13-19-Cross-validation-analyses/")
+
+# Read the MIC table data
+tablemic <- read.csv("/Users/ajb306/AMR-cartography/data/MIC_table_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+
+# Read in the relevant meta data
+tablemic_meta <- read.csv("/Users/ajb306/AMR-cartography/data/meta_data_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+
+# Specify the full path to the data file
+phen_map <- "/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#03-06-Generating-phenotype-and-genotype-maps/Spneumo_3628_PCA_start_2D_METRIC.RData"
+
+# Load the pre-computed PCA start 2D metric data
+load(phen_map)
+
+# Transform the data so that it is easier to work with noise added values later - the relative euclidean distances between the points will remain the same
+for (i in 1:ncol(tablemic)) {
+  tablemic[,i] <- (tablemic[,i] + (-(min(tablemic[,i], na.rm = TRUE))))+1
+}
+
+
+```
+
+
+
+### ==== Background
+
+Measurements of resistance phenotypes using MIC dilution series can be challenging to analyse. An important limitation of the MIC assay and of AST methods in general is experimental noise in their measurement. 
+
+As the MIC assay works on an interval scale, an MIC value of 4ug/ml could be anywhere between 2ug/ml and 4ug/ml. Depending on the imprecision inherent in MICs assay experiment and experimental error in dilutions, this can result in a MIC of either value. This, coupled with differences in testing between labs can result in a high degree of experimental error. Typically, it is expected that 10% of measured MIC values will be 1 log2 fold dilution either side of its true value. While larger errors can occur, it is typically possible to measure most values within this range of error. This is usually cross-referenced against an isolate of known MIC value, which is run in parallel with the isolates of interest. If the reference is within 1 log MIC of its known value, then that is taken as a sign the assay is operating correctly for the isolates of interest. However, there remains imprecision and error in the assay data. Particularly when multiple drugs are measured for many isolates, this error could have important implications in analysing the data, for example in making genotype-phenotype cmoparisons.
+
+One advantage of the MDS framework is its ability to take relatively imprecise data and generate a more accurate representation of that data. In theory, because isolates are positioned using several MIC correlated values, error is averaged out in the final representation, making the final representation more accurate than any value taken individually. I tested the ability of MDS to mitigate experimental error. I did this by computationally adding noise to the dataset, and testing whether 
+
+
+## Aims and objectives 
+In this markdown, I have used a range of tools to ensure MDS is robust to different levels of noise in the underlying assay data. I used a series of methods to test whether computationally added error would have a large effect on isolate positions on the map. 
+
+Firstly, I tried making maps with additional error and comparing them to the original maps made with the observed values. I did this using Procrustes analysis to rotate and dilate the the two maps into the same positions. I then compared the two maps using the correlation of values on the two maps. Secondly, I measured the euclidean distance between the true value on the map and its noise added value. I compared these distances for the two dimensional maps, but also completed a cross-validation analysis, comparing error for maps made in other dimensions. I also calculated the levels of stress for the noise-added maps, as well as stress-per-point for the isolates with and without noise added. 
+
+
+### Technical challenges in adding noise to MIC data
+I encountered some challenges when adding additional noise, this was mainly due to presence of the threshold MMIC values e.g. <=0.03ug/ml. My original intention was to add +1/-1 log fold dilutions to 10% of the raw MIC values. In other words, 10% of the values in the table should be adjusted to be increased or decreased by a single log-fold dilution. This would ideally match the levels of error observed in comparative analyses of in vitro data. 
+
+Unfortunately an issue I encountered was it is difficult to simply add noise to the threshold values. This for two reasons. One minor issue is that as the threshold is the lowest dilution in the range, noise should not be added so that it is lower than this value. Avoiding decreasing an MIC value below a threshold is not too difficult to code into R. However the larger issue was that a threshold value of 1ug/ml is not necessarily at that value. It could be 1ug/ml, or 0.5ug/ml, 0.25ug/ml or lower. Adding an additional +1 noise to a log MIC value of 1ug/ml (to make a value of 2ug/ml), would be incorrect, as if the isolates true value is 0.25ug/ml then actually 3 log-fold dilutions have been added rather than 1. As the maps work using information for all drugs simultaneously and try to position the isolates given their combination MIC values for all drugs, adding such large amounts of noise would cause large amounts of error to the map, beyond what would be a reasonable test of their ability to handle noise. 
+
+For this reason I did not add noise to the threshold values, only to numeric titres. However, since a high percentage (around 70%) of the isolates had threshold values for all drugs, randomly selecting 10% of the values means that only around 3% of those values are going to be numeric titres. This means that despite adding 10% error, after excluded the threshold values only around 3% of the values have been changed in total. More error could be added (e.g. 20-30 %), but then this is also an issue, as isolates are only measured incorrectly 10% of the time. For this test and the test in the manuscript, 10% was used. However, trial experiments adding additional error suggest the maps can also handle larger proportions of noise added values with an acceptable degree of error. 
+
+
+
+# Generate Missing Sample Datasets
+In this first chunk, I generate the 100 datasets needed to run the analysis. I generated 100 'noise added' datasets with +1/-1 log fold dilutions for all samples. I then remove 90% of these to give a set of dataframes of -1 or +1 for 10% of values. I then add this error to each of 100 log transformed MIC datasets respectively, but exclude error being added to threshold values. Lastly, I compute the distance matrices for both the original dataset, and the 100 'noise-added' sample datasets.
+
+
+```{r, echo = F}
+
+
+# Set seed for reproducibility
+set.seed(1234)
+
+# Number of missing sample datasets to be run
+no_noise_samples <- 1
+
+# List to store missing sample datasets
+noise_added_samples <- list()
+
+# Initialize list with identical datasets
+for (i in 1:no_noise_samples) {
+  noise_added_samples[[i]] <- tablemic
+}
+
+# Initialize variables
+noise <- list()
+sample <- NULL
+
+# Generate random noise matrix
+for (i in 1:no_noise_samples) {
+  for (f in 1:ncol(tablemic)) {
+    sample <- cbind(sample, sample(c(-1, 1), nrow(tablemic), replace = TRUE))
+    sample <- as.data.frame(sample)
+  }
+  noise[[i]] <- sample
+  sample <- NULL
+}
+
+
+# Randomly delete 90% of data from each dataset
+for (i in 1:no_noise_samples) {
+  while (sum(is.na(noise[[i]]) == TRUE) < (nrow(noise[[i]]) * ncol(noise[[i]]) * 90/100)) {
+    noise[[i]][sample(nrow(noise[[i]]), 1), sample(ncol(noise[[i]]), 1)] <- NA
+  }
+}
+
+# Check percentage of missing values for first of these datasets
+(sum(is.na(noise[[1]])) / (nrow(tablemic) * ncol(tablemic))) * 100
+
+# Replace 1s with NA in the original datasets so as to not add any error in the next step
+for (i in 1:no_noise_samples) {
+  noise_added_samples[[i]] <- noise_added_samples[[i]] %>% dplyr::na_if(1)
+}
+
+# Add the noise to the datasets
+test <- list()
+for (i in 1:no_noise_samples) {
+  test[[i]] <- noise_added_samples[[i]] + noise[[i]]
+}
+
+
+# Check percentage of missing values in the original and modified datasets
+(sum(is.na(noise_added_samples[[1]])) / (nrow(tablemic) * ncol(tablemic))) * 100
+(sum(is.na(test[[1]])) / (nrow(tablemic) * ncol(tablemic))) * 100
+
+(sum(is.na(noise_added_samples[[1]]))/(nrow(tablemic)*ncol(tablemic))) * 100
+(sum(is.na(test[[1]]))/(nrow(tablemic)*ncol(tablemic))) * 100
+
+# Replace NAs with 0 in the noise matrices
+for (i in 1:no_noise_samples) {
+  noise[[i]][is.na(noise[[i]])] <- 0
+}
+
+# Replace NAs with -1 in the modified datasets so they can be adjusted later
+for (i in 1:no_noise_samples) {
+  noise_added_samples[[i]][is.na(noise_added_samples[[i]])] <- -1
+}
+
+# Add noise matrices to the modified datasets
+for (i in 1:no_noise_samples) {
+  noise_added_samples[[i]] <- noise[[i]] + noise_added_samples[[i]]
+}
+
+# Replace 0s, -1s, and -2s with NAs in the modified datasets
+library(naniar)
+for (i in 1:no_noise_samples) {
+  noise_added_samples[[i]] <- noise_added_samples[[i]] %>% dplyr::na_if(0)
+  noise_added_samples[[i]] <- noise_added_samples[[i]] %>% dplyr::na_if(-1)
+  noise_added_samples[[i]] <- noise_added_samples[[i]] %>% dplyr::na_if(-2)
+  noise_added_samples[[i]][is.na(noise_added_samples[[i]])] <- 1
+}
+
+
+# Rename columns in the modified datasets
+for (i in 1:no_noise_samples) {
+  colnames(noise_added_samples[[i]]) <- colnames(tablemic)
+}
+
+# Calculate distances for each modified dataset
+noise_added_samples_dists <- list()
+for (i in 1:no_noise_samples) {
+  noise_added_samples_dists[[i]] <- dist(noise_added_samples[[i]])
+}
+
+# Check the number of rows in the distance matrix of the first modified dataset
+nrow(noise_added_samples_dists[[1]])
+
+# Rename columns in the noise matrices
+for (i in 1:no_noise_samples) {
+  colnames(noise[[i]]) <- colnames(tablemic)
+}
+
+# Combine metadata with noise matrices
+for (i in 1:no_noise_samples) {
+  noise[[i]] <- cbind(tablemic_meta[, 1], noise[[i]])
+  noise[[i]] <- noise[[i]] %>% 
+    na_if(0) %>%
+    rename(LABID = 1)
+  noise[[i]] <- noise[[i]] %>% pivot_longer(!LABID, names_to = "drug", values_to = "error_added")
+  noise[[i]] <- na.omit(noise[[i]])
+}
+
+# Combine real values with the modified datasets
+tablemic_real_values <- cbind(tablemic_meta[, 1], tablemic)
+tablemic_real_values <- tablemic_real_values %>% 
+  rename(LABID = 1)
+tablemic_real_values <- tablemic_real_values %>% pivot_longer(!LABID, names_to = "drug", values_to = "true_value")
+
+# Merge modified datasets with real values  
+for (i in 1:no_noise_samples) {
+  noise[[i]] <- left_join(noise[[i]], tablemic_real_values, by = c("LABID" = "LABID", "drug" = "drug")) %>%
+    mutate(noise_added_value = true_value + error_added,
+           dataset = i) %>%
+    na_if(0) 
+  noise[[i]][is.na(noise[[i]])] <- 1
+}
+
+# Combine metadata with modified datasets
+for (i in 1:no_noise_samples) {
+noise_added_samples[[i]] <- cbind(tablemic_meta[, 1], noise_added_samples[[i]]) 
+noise_added_samples[[i]] <- noise_added_samples[[i]] %>%
+    rename(LABID = 1)
+}
+
+# Filter noise datasets based on condition
+for (i in 1:no_noise_samples) {
+  noise[[i]] <- noise[[i]] %>% filter(true_value != 1)
+}
+
+# Calculate distance matrix for the original dataset
+dist_pne <- dist(tablemic)
+
+
+
+```
+
+# Run MDS on each of the 100 datasets with noise-added values
+
+Next we run MDS on each of the 100 datasets with noise-added values. In this case, the 100 datasets are split into four batches and processed in parallel to speed up computation. 
+
+```{r, echo = F}
+
+noise_samples_mds_objects <- NULL
+
+# Set the number of cores to use
+num_cores <- 4  # Change this to the desired number of cores
+
+# Register parallel backend
+registerDoParallel(cores = num_cores)
+
+# Define ranges for each core
+core_ranges <- rep(ceiling(no_noise_samples / num_cores), num_cores)
+
+# Define a function to perform MDS on a chunk of datasets
+run_mds <- function(indices) {
+  noise_values_test <- list()
+  
+  for (i in 1:no_noise_samples) {
+    temp_MDS <- mds(noise_added_samples_dists[[i]], ndim = 2, type = c("ratio"), 
+                    init = "torgerson", 
+                    modulus = 1, itmax = 1000, eps = 1e-06)
+    
+    noise_values_test[[i]] <- list(conf = temp_MDS$conf, stress = temp_MDS$stress, spp = temp_MDS$spp)
+    temp_MDS <- NULL
+  }
+  
+  return(noise_values_test)
+}
+
+# Run MDS in parallel
+noise_samples_mds_objects <- foreach(indices = core_ranges, .combine = "c") %dopar% {
+  run_mds(1:no_noise_samples)
+}
+
+# Stop parallel processing
+registerDoSEQ()
+
+
+# Save and restore the MDS results
+saveRDS(noise_samples_mds_objects, file = "noise_samples_mds_objects.rds")
+noise_samples_mds_objects <- readRDS(file = "noise_samples_mds_objects.rds")
+
+
+```
+
+# Saving the generated objects
+As the objects generated by the previous processes are quite large, I have also included code to save each of these. 
+
+```{r, echo = F}
+
+# Define a list of objects to save
+objects_to_save <- list(
+  noise = noise,
+  noise_added_samples = noise_added_samples,
+  noise_added_samples_dists = noise_added_samples_dists
+)
+
+# Loop to save each object
+for (obj_name in names(objects_to_save)) {
+  saveRDS(objects_to_save[[obj_name]], file = paste0(obj_name, ".rds"))
+}
+
+# Loop to restore each object
+for (obj_name in names(objects_to_save)) {
+  assign(obj_name, readRDS(file = paste0(obj_name, ".rds")))
+}
+
+
+```
+
+
+# Load the original S. pneumoniae phenotype map
+
+Next, I load in the S. pneumoniae phenotype map object and rotate/dilate it to an interpretable scale. 
+
+```{r, echo =F}
+# Set the rotation angle in radians
+theta <- 326 * pi / 180
+
+# Create a rotation matrix
+rot <- matrix(c(cos(theta), sin(theta), -sin(theta), cos(theta)), ncol = 2)
+
+# Apply rotation to the configuration data
+torg_met$conf <- torg_met$conf %*% rot
+
+# Initialize a list to store rotated configurations of noise samples
+noise_samples_dists_confs <- list()
+
+# Extract rotated configurations from each noise sample MDS result
+for (i in 1:no_noise_samples) {
+  noise_samples_dists_confs[[i]] <- as_tibble(noise_samples_mds_objects[[i]]$conf)
+}
+
+# Initialize a vector to store stress values of noise samples
+noise_samples_stress <- vector()
+
+# Extract stress values from each noise sample MDS result
+for (i in 1:no_noise_samples) {
+  noise_samples_stress[i] <- noise_samples_mds_objects[[i]]$stress
+}
+
+# Convert the stress vector to a tibble
+noise_samples_stress <- as_tibble(noise_samples_stress)
+
+# Extract original configurations from the "torg_met" object
+torg_met_conf <- as.data.frame(torg_met$conf)
+
+# Extract distance matrices from "torg_met"
+table_distances <- as_tibble(as.matrix(torg_met[[1]]))
+map_distances <- as_tibble(as.matrix(torg_met[[3]]))
+
+# Rename columns of map_distances to match table_distances
+colnames(map_distances) <- colnames(table_distances)
+
+# Reshape distance matrices into long format using pivot_longer
+table_distances <- pivot_longer(table_distances, cols = 1:nrow(tablemic), names_to = "antibiotic", values_to = "table_distance")
+map_distances <- pivot_longer(map_distances, cols = 1:nrow(tablemic), names_to = "antibiotic", values_to = "map_distance")
+
+# Combine distance values into a single data frame
+distances <- bind_cols(table_distances, map_distances)
+
+# Convert distance values to numeric
+distances$table_distance <- as.numeric(distances$table_distance)
+distances$map_distance <- as.numeric(distances$map_distance)
+
+# Fit a linear model to relate map_distance to table_distance
+mapvtable <- lm(map_distance ~ table_distance, data = distances)
+
+# Extract slope from the linear model
+slope <- as.numeric(coef(mapvtable)[2])
+
+# Calculate the dilation factor based on the slope
+dilation <- 1 / slope
+
+# Rename columns of the original configuration data
+colnames(torg_met_conf) <- c("D1", "D2")
+
+# Apply dilation to each column of the original configuration data
+for (i in 1:ncol(torg_met_conf)) {
+  torg_met_conf[, i] <- torg_met_conf[, i] * dilation
+}
+
+
+```
+
+
+### Congruence coefficient.
+
+To more quantitatively compare the maps, I used procrustes to rotate and dilate the maps into the same rotation. I first calculated the congruence coefficient between the sets of maps which can be used too compare the similarity of two solutions (https://en.wikipedia.org/wiki/Congruence_coefficient#:~:text=In%20multivariate%20statistics%2C%20the%20congruence,derived%20in%20a%20factor%20analysis.&text=It%20can%20be%20used%20to,have%20taken%20the%20same%20test.)
+
+Below, the plot shows that the maps with additional error are essentially the same as the one made without added error. This suggests the noise added values are not having a strong effect on how the maps are positioning the isolates with numerical values. Generally, a congruence coefficient above 0.95 is considered very similar, and above .99 is near identical. For each transformation here, the estimate is >0.998, suggesting the solutions are essentially the same. While there are more fine-grain measures to measure error for the isolates with noise - added values (see below), this parameter provides a good estimate of the overall similarity of the maps.
+
+```{r, echo = F}
+
+# Initialize variables to store intermediate results
+mapvtable <- NULL
+map_distances <- NULL
+table_distances <- NULL
+distances <- NULL
+
+# Initialize lists to store Procrustes analysis results
+met_ord_comparison <- list()
+met_ord_comparison_congcoef <- vector()
+met_ord_comparison_aliencoef <- vector()
+
+# Perform Procrustes analysis for each noise added sample sample
+for (i in 1:no_noise_samples) {
+  met_ord_comparison[[i]] <- Procrustes(as.matrix(torg_met_conf), as.matrix(noise_samples_dists_confs[[i]]))
+  met_ord_comparison_congcoef[i] <- met_ord_comparison[[i]]$congcoef
+  met_ord_comparison_aliencoef[i] <- met_ord_comparison[[i]]$aliencoef
+}
+
+# Convert alignment coefficients to a tibble
+met_ord_comparison_congcoef <- as_tibble(met_ord_comparison_congcoef)
+
+# Calculate and print the mean of congruence coefficients
+mean_congcoef <- round(mean(met_ord_comparison_congcoef$value), 3)
+cat("Mean Congruence Coefficient:", mean_congcoef, "\n")
+
+# Plot histogram of congruence coefficients
+B <- ggplot(met_ord_comparison_congcoef, aes(x = value)) + 
+  geom_histogram(position = "identity", alpha = 0.5, color = "black", fill = "#E41A1C", bins = 30) + 
+  geom_vline(aes(xintercept = mean(value)),
+             color = "#E41A1C", linetype = "dashed", size = 1) + 
+  geom_vline(aes(xintercept = 0.99),
+             color = "black", linetype = "solid", size = 1) +
+  theme_bw() +
+  labs(x = "Congruence Coefficient", y = "Count") #+
+  #coord_fixed(ratio = 0.000075) 
+B
+# Save the plot as a JPEG file
+ggsave("S_pneumoniae_noise_cong_conf.jpg", B)
+
+
+```
+
+### Testing whether datasets with additional error have higher stress
+
+In MDS, stress is the sum of the squared distances between the points on the plot and their distances in the original data table. This is the parameter MDS tries to minimise when making the map. Theoretically, given there strong correlations between MICs to the different drugs, adding noise should increase the stress on the map. This is because the noise has the effect of weakening those correlations, and meaning the distances can not be as well represented in 2 dimensions. 
+
+I estimated stress for each of the maps with added noise (histogram) and compared them to the stress for the original map (black line). As expected, all of the noise added maps had higher stress than the original map. Moreover, the isolates which had noise added tended to have a higher level of stress-per-point (as a % of total stress). Below is the histogram of stress per point for the noise added values compared to those for the other points (red) compared to the other isolates on the map (grey). The stress for the noise added points is much larger than those without. Many of the isolates which contributed the least to stress has threshold values for all drugs, however, even after excluding these isolates, the noise-added isolates still had higher stress. Notably, some isolates had error added to more than one of their MIC values (up to a maximum of 6 MIC values), below I have aggregated this error in this plot. 
+
+Isolates contribution to stress was higher when they had more error added to multiple values. This is promising, as it suggests the maps could be informative in picking out isolates which have incorrectly measured MIC values. For example, when building future maps, if an individual isolate or subset of isolates have very high stress, this might suggest they have been measured incorrectly, and researchers can go back into the lab to confirm results. Alternatively, if an isolate has a higher level of stress on the map due to a unique combination of MIC values, and this is due to a genuine biological difference, this can be investigated further. 
+
+
+```{r, echo = F}
+
+# Initialize variables to store intermediate results
+noise_samples_stress <- vector()
+noise_samples_stress_torg <- vector()
+
+# Extract pairwise distances and additional information for each noise added sample
+for (i in 1:no_noise_samples) {
+met_ord_comparison[[i]]$pairwise_dist <- cbind(met_ord_comparison[[i]]$X, met_ord_comparison[[i]]$Yhat)
+
+colnames(met_ord_comparison[[i]]$pairwise_dist) <- c("D1_X", "D2_X","D1_Y","D2_Y")
+
+met_ord_comparison[[i]]$pairwise_dist <- as_tibble(met_ord_comparison[[i]]$pairwise_dist) %>% 
+     mutate(dist_phen = sqrt((D1_X-D1_Y)^2 + (D2_X-D2_Y)^2),
+            LABID = tablemic_meta[,1])
+
+noise_samples_mds_objects[[i]]$spp <- cbind(tablemic_meta$LABID, noise_samples_mds_objects[[i]]$spp)
+colnames(noise_samples_mds_objects[[i]]$spp) <- c("LABID", "spp")
+
+met_ord_comparison[[i]]$pairwise_dist <- left_join(met_ord_comparison[[i]]$pairwise_dist, as_tibble(noise_samples_mds_objects[[i]]$spp), by = "LABID")
+
+}
+
+# Combine pairwise distances and additional information
+torg_met_conf <- cbind(torg_met_conf, tablemic_meta$LABID, torg_met$spp)
+colnames(torg_met_conf) <- c("D1","D2","LABID", "stress_per_point_real")
+
+# Initialize a list to store stress per point comparison results
+stress_per_point_comparison <- list()
+
+# Perform additional data manipulations and comparisons
+for (i in 1:no_noise_samples) {
+stress_per_point_comparison[[i]] <- left_join(met_ord_comparison[[i]]$pairwise_dist, noise[[i]], by = "LABID")
+stress_per_point_comparison[[i]]$spp <- as.numeric(stress_per_point_comparison[[i]]$spp)
+
+stress_per_point_comparison[[i]] <- stress_per_point_comparison[[i]] %>% 
+  mutate(abs_error_added= abs(error_added))
+
+
+stress_per_point_comparison[[i]] <- stress_per_point_comparison[[i]] %>% unite("comb", error_added:true_value, remove = FALSE)
+
+stress_per_point_comparison[[i]] <- stress_per_point_comparison[[i]] %>% mutate(comb = ifelse(comb == "-1_1", 1,0),
+                                                                                abs_error_added = abs_error_added - comb) 
+
+
+
+
+
+############################################################################################################
+### double check this is working correctly - as in it is not summing error across datasets
+############################################################################################################
+
+
+
+
+
+
+stress_per_point_comparison[[i]] <- left_join(stress_per_point_comparison[[i]], torg_met_conf, by = "LABID") %>%
+ group_by(LABID, dataset) %>%
+ mutate(n = sum(abs_error_added)) %>%
+ distinct(LABID, dataset, .keep_all = T) 
+
+ 
+
+stress_per_point_comparison[[i]]$n[is.na( stress_per_point_comparison[[i]]$n)] <- 0
+stress_per_point_comparison[[i]]$spp <- as.numeric(stress_per_point_comparison[[i]]$spp)
+
+stress_per_point_comparison[[i]]<- stress_per_point_comparison[[i]] %>%
+  mutate(dataset = i)
+}
+
+# Combine results into a single data frame and add a column 'missing_values' based on the count of missing values
+stress_per_point_comparison <- bind_rows(stress_per_point_comparison)
+stress_per_point_comparison <- stress_per_point_comparison %>% replace_na(list(abs_error_added = 0))
+stress_per_point_comparison <- stress_per_point_comparison %>% mutate(abs_error_added = ifelse(abs_error_added == "1", "Additional error","No additional error")) 
+
+# Calculate and print the difference in means of spp values
+mu <- stress_per_point_comparison %>%
+group_by(abs_error_added) %>%
+    summarize(Mean = mean(spp, na.rm=TRUE),
+              Median = median(spp, na.rm=TRUE))
+
+
+# Plot histogram and density plot of stress per point
+E <- ggplot(stress_per_point_comparison, aes(spp, y = stat(density), colour = abs_error_added, fill = abs_error_added)) + 
+  geom_histogram(position="identity", alpha = 0.45, color = "black") + 
+  geom_freqpoly(bins = 30 , stat = "bin") + 
+  theme_bw() + 
+  geom_vline(data=mu, aes(xintercept=Mean, color=abs_error_added),
+             linetype="dashed", size = .75) +
+   scale_x_continuous(breaks=seq(0, max(abs(stress_per_point_comparison$spp), na.rm = T) + .2, .2)) +
+   scale_y_continuous(breaks=seq(0, 60, 10))   +
+  labs(x = "Stress per point (%)", y = "Density") +
+  theme(legend.position = "none") + 
+  guides(colour = "none")  +
+  guides(fill=guide_legend(title="Error added")) +
+  scale_colour_manual(values=c(  "#E41A1C","darkgrey")) +
+  scale_fill_manual(values=c(   "#E41A1C","darkgrey"))
+E
+
+# Save the plot as a JPEG file
+
+ggsave("S_pneumo_noise_spp.jpg")
+
+
+```
+
+### Euclidean distance between true values and predicted values
+
+After reorientation of the noise added maps to compare to the real map, I then estimated the euclidean distance between each isolates true value and their noise added value. Below is a histogram of those values for the isolates with noise added (Red) and the distances for those without noise added (grey). Typically the values were less than 1 MIC unit away from their true values. Again here, despite some isolates having error added to multiple of their MIC values (up to a maximum of 6 MIC values), I have aggregated this error in this plot. Generally the distances tended to be slightly higher when error was added to multiple MICs. This is positive as it suggests that the points are not being strongly affected by the increase in error. Given the values are closer to their true values than their noise added values this suggests the maps offer a small increase in precision over using the raw MIC values. 
+
+Notably however, some points were very far away from their true values. These was typically those which had error added for several drugs or high very high contribution to stress on the map generally.
+
+```{r, echo = F}
+
+# Convert 'n' column to a factor
+stress_per_point_comparison$n <- as.factor(stress_per_point_comparison$n)
+
+# Replace NA values in 'abs_error_added' column with 0
+stress_per_point_comparison$abs_error_added[is.na(stress_per_point_comparison$abs_error_added)] <- 0
+
+# Convert 'abs_error_added' column to a factor
+stress_per_point_comparison$abs_error_added <- as.factor(stress_per_point_comparison$abs_error_added)
+
+# Create a new column 'abs_error_added' based on a condition
+stress_per_point_comparison_2 <- stress_per_point_comparison %>% 
+  mutate(abs_error_added = ifelse(abs_error_added == "1", "Additional error", "No additional error"))
+
+# Calculate the mean of 'dist_phen'
+mean(stress_per_point_comparison_2$dist_phen)
+
+# Group by 'abs_error_added' and calculate mean and median of 'dist_phen'
+mu <- stress_per_point_comparison_2 %>%
+  dplyr::group_by(abs_error_added) %>%
+  dplyr::summarize(Mean = mean(dist_phen, na.rm = TRUE),
+            Median = median(dist_phen, na.rm = TRUE))
+
+# printed the rounded mean value
+round(mu$Mean[1], 3)
+
+# Create a ggplot for visualizing the distribution of 'dist_phen'
+C <- ggplot(stress_per_point_comparison_2, aes(dist_phen, y = stat(density), colour = abs_error_added, fill = abs_error_added)) + 
+  geom_histogram(position="identity", alpha = 0.45, color = "black") + 
+  geom_freqpoly(bins = 40, stat = "bin") + 
+  theme_bw() + 
+  geom_vline(data = mu, aes(xintercept = Mean, color = abs_error_added),
+             linetype = "dashed", size = 0.75) +
+  geom_vline(aes(xintercept = 1), color = "black",
+             linetype = "solid", size = 0.5) +
+  labs(x = "Distance from true value (MIC units)", y = "Density") +
+  theme(legend.justification = c(0.95, 0.725), legend.position = c(0.95, 0.8)) + 
+  guides(colour = "none") +
+  guides(fill = guide_legend(title = "Error added")) +
+  scale_colour_manual(values = c("#E41A1C", "darkgrey")) +
+  scale_fill_manual(values = c("#E41A1C", "darkgrey")) +
+  theme(legend.position = "none") 
+C
+
+# Save the ggplot as an image
+ggsave("S_pneumo_noise_euc_phen_dist.jpg")
+
+
+```
+
+### Visually comparing a noise-added map to true values
+
+I then plotted a noise-added map and the true map on the same plot after reorienting them to the same scale/rotation. Here, the black points are the true values, while the red points are the noise added values. The black crosses indicate points which did not have error added. Although it is a little difficult to see because of the number of points, most values are within 1-log fold of their true value (see above).
+
+```{r, echo = F}
+
+# Keep distinct rows based on 'LABID', 'dataset', and 'n', and calculate mean for each group
+stress_per_point_comparison_2 <- stress_per_point_comparison %>%
+  distinct(LABID, dataset, .keep_all = TRUE) %>%
+  ungroup() %>%
+  group_by(n) %>%
+  mutate(Mean = mean(spp, na.rm = TRUE))
+
+
+# Create a scatter plot using ggplot2
+ggplot(filter(stress_per_point_comparison, n != 0 &  dataset == 1 ), aes(x=D1_X, y=D2_X)) + 
+  geom_point(data = filter(stress_per_point_comparison, n == 0 & dataset == 1), aes(x=D1_X, y=D2_X), shape = 4, fill = "grey", size = 1.5, alpha = 0.6)+
+    geom_segment(data = filter(stress_per_point_comparison, n != 0 & dataset == 1), aes(x = D1_X, y = D2_X, xend = D1_Y, yend = D2_Y), size = .5, colour = "grey") + 
+  geom_point(data = filter(stress_per_point_comparison, n != 0 & dataset == 1), shape= 21, fill = "black", size = 2, colour = "white") + 
+  geom_point(data = filter(stress_per_point_comparison,n != 0 & dataset == 1), aes(x=D1_Y, y=D2_Y), shape = 21, fill = "#E41A1C", size = 2, colour = "white") +
+  theme_bw() +   
+  #facet_wrap(~ dataset)+
+ scale_x_continuous(limits = c(min(stress_per_point_comparison$D1_X, na.rm = T), max(stress_per_point_comparison$D1_X, na.rm = T)+ .5), breaks=seq(min(stress_per_point_comparison$D1_X, na.rm = T), max(stress_per_point_comparison$D1_X, na.rm = T) + 1,  1))   +
+  scale_y_continuous(limits = c(min(stress_per_point_comparison$D2_X, na.rm = T), max(stress_per_point_comparison$D2_X, na.rm = T)+ .5), breaks=seq(min(stress_per_point_comparison$D2_X, na.rm = T), max(stress_per_point_comparison$D2_X, na.rm = T) + 1,  1)) +
+  labs(title ="") +
+  labs( x = "MDR distance", y = "MDR distance") + 	
+  theme(axis.text=element_text(size=16), 
+        axis.title=element_text(size=16), 
+        panel.grid.major = element_line(colour="grey", size = (0.3)),
+        panel.grid.minor = element_blank(),
+        axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y = element_blank(),
+        strip.text.x = element_text(size = 14)) +
+  coord_fixed() 
+
+
+# Save the ggplot as an image
+ggsave("S_pneumo_noise_pred_error_map.jpg")
+
+```
+
+
+### Cross-validation analysis - multiple dimensions
+
+Lastly, I made maps in several different dimensions using the same noise added datasets as before. I also made maps using the true values for each dimension to compare them to. Here, I again calculated the euclidean distance between the 'true' map position and the noise added map position, after reorientation of the maps to overlap. I found that prediction error was lowest at 1 dimension, but that there were marginal increases in error when using more than 2 dimensions. This suggests that using more than two dimensions may overfit the data. Although 1 dimension offered the lowest prediction error here, it was clear from the stress and goodness of fit analyses (see previous markdowns) that a minimum of two dimensions was needed to accurately represent the data. 
+
+Here, I plotted each dimension on the x axis, and the mean prediction error for each noise added dataset on the y axis. The points and error bars show the standard error for the mean of the means for each dataset.
+
+```{r, echo = FALSE}
+
+# Initialize a list to store results for each dimension
+noise_added_samples_dists_dimensions <- list()
+
+# Create nested lists for each dimension
+for (f in 1:4){
+noise_added_samples_dists_dimensions[[f]] <- list()
+}
+
+
+for (i in 1:no_noise_samples) {
+  for (f in 1:4){
+
+temp_MDS <- mds(noise_added_samples_dists[[i]], ndim = f, type = c("ratio"), init = "torgerson", modulus = 1, itmax = 1000, eps = 1e-06)
+
+noise_added_samples_dists_dimensions[[f]][[i]] <- list()
+
+noise_added_samples_dists_dimensions[[f]][[i]]$conf <- temp_MDS$conf
+noise_added_samples_dists_dimensions[[f]][[i]]$stress <- temp_MDS$stress
+noise_added_samples_dists_dimensions[[f]][[i]]$spp <- temp_MDS$spp
+temp_MDS <- NULL
+
+}
+}
+
+
+# Save and restore the MDS results
+saveRDS(noise_samples_dists_dimensions, file = "noise_samples_dists_dimensionality_test.rds")
+#noise_samples_dists_dimensions <- readRDS(file = "noise_samples_dists_dimensionality_test.rds")
+
+
+# Lastly, we can reuse the dimensionality test from a previous markdown rather than generating the same results. This is essentially the full map created in several different dimensions
+torg_met_dimensions <- readRDS(file = "/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#03-06-Generating-phenotype-and-genotype-maps/torg_met_dimensions_missing_values.rds")
+
+```
+
+
+
+
+```{r,echo = F}
+
+# Initialize a list to store results for each dimension
+noise_added_samples_dists_confs_dim <- list()
+noise_added_samples_stress_dim <- list()
+torg_met_dimensions_conf <- list()
+torg_met_dimensions_stress <- vector()
+
+# Loop over dimensions
+for (f in 1:4){
+noise_added_samples_dists_confs_dim[[f]] <- list()
+noise_added_samples_stress_dim[[f]] <- vector()
+}
+
+# Loop over samples
+for (f in 1:4) {
+  for (i in 1:no_noise_samples) {
+noise_added_samples_dists_confs_dim[[f]][[i]] <- as_tibble(noise_added_samples_dists_dimensions[[f]][[i]]$conf)
+noise_added_samples_stress_dim[[f]][i] <- noise_added_samples_dists_dimensions[[f]][[i]]$stress
+  }
+}
+
+# Process each noise-added sample for stress dimensions
+for (f in 1:4) {
+  noise_added_samples_stress_dim[[f]] <- as_tibble(noise_added_samples_stress_dim[[f]])
+}
+
+# Extract stress information from torg_met_dimensions for each dimension
+for (i in 1:4) {
+  torg_met_dimensions_conf[[i]] <- as_tibble(torg_met_dimensions[[i]]$conf)
+  torg_met_dimensions_stress[i] <- torg_met_dimensions[[i]]$stress
+}
+
+# Convert the vector of stress values to a tibble
+torg_met_dimensions_stress <- as_tibble(torg_met_dimensions_stress)
+
+# Initialize vectors for storing results
+slope_dim <- vector()
+dilation_dim <- vector()
+
+# Loop over dimensions
+for (f in 1:4) {
+  # Process distances
+  table_distances <- as_tibble(as.matrix(torg_met_dimensions[[f]][[1]]))
+  map_distances <- as_tibble(as.matrix(torg_met_dimensions[[f]][[3]]))
+
+  colnames(map_distances) <- colnames(table_distances)
+  table_distances <- gather(table_distances, "antibiotic", "table_distance", 1:nrow(tablemic)) 
+  map_distances <- gather(map_distances, "antibiotic", "map_distance", 1:nrow(tablemic))
+
+  distances <- bind_cols(table_distances, map_distances)
+
+  distances$table_distance <- as.numeric(distances$table_distance)
+  distances$map_distance <- as.numeric(distances$map_distance)
+
+  # Fit linear model
+  mapvtable <- lm(map_distance ~ table_distance, data = distances)
+  summary(mapvtable)
+  mapvtable
+  coef(mapvtable)
+
+  # Store results
+  slope_dim[f] <- as.numeric(coef(mapvtable)[2])
+  dilation_dim[f] <- 1/slope_dim[f]
+}
+
+# Apply dilation to each dimension separately
+for (f in 1:4){
+  for (i in 1:ncol(torg_met_dimensions_conf[[f]])){
+    torg_met_dimensions_conf[[f]][,i] <- torg_met_dimensions_conf[[f]][,i] * dilation_dim[f]
+  }
+}
+
+# Initialize lists for storing results
+met_ord_comparison_dim <- list()
+met_ord_comparison_congcoef_dim <- list()
+
+# Loop over dimensions
+for (f in 1:4){
+  met_ord_comparison_dim[[f]] <- list()
+}
+
+# Loop over dimensions and samples
+for (f in 1:4) {
+  for (i in 1:no_noise_added_samples) {
+    # Perform Procrustes analysis
+    met_ord_comparison_dim[[f]][[i]] <- Procrustes(as.matrix(torg_met_dimensions_conf[[f]]), as.matrix(noise_added_samples_dists_confs_dim[[f]][[i]]))
+  }
+}
+
+# Loop over dimensions and samples for different dimensionalities
+for (f in 1:4) {
+  for (i in 1:no_noise_added_samples) { 
+    colnames(met_ord_comparison_dim[[f]][[i]]$X) <- paste(colnames(met_ord_comparison_dim[[f]][[i]]$X), "X", sep = "_")
+    colnames(met_ord_comparison_dim[[f]][[i]]$Yhat) <- paste(colnames(met_ord_comparison_dim[[f]][[i]]$Yhat), "Y", sep = "_")
+  }
+}
+
+# Combine X and Yhat into pairwise_dist for each sample
+for (f in 1:4) {
+  for (i in 1:no_noise_added_samples) {
+    met_ord_comparison_dim[[f]][[i]]$pairwise_dist <- cbind(met_ord_comparison_dim[[f]][[i]]$X, met_ord_comparison_dim[[f]][[i]]$Yhat)
+  }
+}
+
+# Convert pairwise_dist to tibble for each sample
+for (f in 1:4) {
+  for (i in 1:no_noise_added_samples) {
+    met_ord_comparison_dim[[f]][[i]]$pairwise_dist <- as_tibble(met_ord_comparison_dim[[f]][[i]]$pairwise_dist)
+  }
+}
+
+# Calculate pairwise distances for each dimension
+for (i in 1:no_noise_added_samples) {
+  met_ord_comparison_dim[[1]][[i]]$pairwise_dist <- as_tibble(met_ord_comparison_dim[[1]][[i]]$pairwise_dist) %>%
+     mutate(dist_phen = sqrt((D1_X-D1_Y)^2),
+            LABID = tablemic_meta[,1])
+}
+
+for (i in 1:no_noise_added_samples) {
+  met_ord_comparison_dim[[2]][[i]]$pairwise_dist <- as_tibble(met_ord_comparison_dim[[2]][[i]]$pairwise_dist) %>%
+     mutate(dist_phen = sqrt((D1_X-D1_Y)^2 + (D2_X-D2_Y)^2),
+            LABID = tablemic_meta[,1])
+}
+
+for (i in 1:no_noise_added_samples) {
+  met_ord_comparison_dim[[3]][[i]]$pairwise_dist <- as_tibble(met_ord_comparison_dim[[3]][[i]]$pairwise_dist) %>%
+     mutate(dist_phen = sqrt((D1_X-D1_Y)^2 + (D2_X-D2_Y)^2 + (D3_X-D3_Y)^2),
+            LABID = tablemic_meta[,1])
+}
+
+for (i in 1:no_noise_added_samples) {
+  met_ord_comparison_dim[[4]][[i]]$pairwise_dist <- as_tibble(met_ord_comparison_dim[[4]][[i]]$pairwise_dist) %>%
+     mutate(dist_phen = sqrt((D1_X-D1_Y)^2 + (D2_X-D2_Y)^2 + (D3_X-D3_Y)^2 + (D4_X-D4_Y)^2),
+            LABID = tablemic_meta[,1])
+}
+
+# Combine LABID and spp columns for each dimension and sample
+for (f in 1:4) {
+  for (i in 1:no_noise_added_samples) {
+    noise_added_samples_dists_dimensions[[f]][[i]]$spp <- cbind(tablemic_meta$LABID, noise_added_samples_dists_dimensions[[f]][[i]]$spp)
+    colnames(noise_added_samples_dists_dimensions[[f]][[i]]$spp) <- c("LABID", "spp")
+    colnames(as_tibble(noise_added_samples_dists_dimensions[[f]][[i]]$spp))
+    colnames(as_tibble(met_ord_comparison_dim[[f]][[i]]$pairwise_dist))
+
+    met_ord_comparison_dim[[f]][[i]]$pairwise_dist <- left_join(met_ord_comparison_dim[[f]][[i]]$pairwise_dist, as_tibble(noise_added_samples_dists_dimensions[[f]][[i]]$spp), by = "LABID")
+  }
+}
+
+# Initialize lists for storing results
+stress_per_point_comparison <- list()
+
+for (f in 1:4){
+  stress_per_point_comparison[[f]] <- list()
+}
+
+# Loop over dimensions and samples
+for (f in 1:4) {
+  for (i in 1:no_noise_added_samples) {
+    stress_per_point_comparison[[f]][[i]] <- left_join(as_tibble(met_ord_comparison_dim[[f]][[i]]$pairwise_dist), as_tibble(noise[[i]]), by = "LABID")
+
+    stress_per_point_comparison[[f]][[i]]$spp <- as.numeric(stress_per_point_comparison[[f]][[i]]$spp)
+
+    stress_per_point_comparison[[f]][[i]] <- stress_per_point_comparison[[f]][[i]] %>% 
+      mutate(abs_error_added= abs(error_added))
+
+    stress_per_point_comparison[[f]][[i]] <- stress_per_point_comparison[[f]][[i]] %>% unite("comb", error_added:true_value, remove = FALSE)
+
+    stress_per_point_comparison[[f]][[i]] <- stress_per_point_comparison[[f]][[i]] %>% mutate(comb = ifelse(comb == "-1_1", 1,0),
+                                                                      abs_error_added = abs_error_added - comb) 
+
+    stress_per_point_comparison[[f]][[i]]$spp <- as.numeric(stress_per_point_comparison[[f]][[i]]$spp)
+
+    stress_per_point_comparison[[f]][[i]] <- stress_per_point_comparison[[f]][[i]] %>%
+      mutate(dimension = f, 
+             dataset = i)
+  }
+}
+
+# Combine results into a single tibble
+stress_per_point_comparison <- bind_rows(stress_per_point_comparison)
+
+# Convert factors to numeric
+stress_per_point_comparison$abs_error_added <- as.factor(stress_per_point_comparison$abs_error_added)
+stress_per_point_comparison$abs_error_added[is.na(stress_per_point_comparison$abs_error_added)] <- 0
+
+# Convert dist_phen to numeric
+stress_per_point_comparison$dist_phen <- as.numeric(stress_per_point_comparison$dist_phen)
+stress_per_point_comparison$dimension <- as.factor(stress_per_point_comparison$dimension)
+
+# Recode abs_error_added to "Additional error" or "No additional error"
+stress_per_point_comparison <- stress_per_point_comparison %>% mutate(abs_error_added = ifelse(abs_error_added == "1", "Additional error", "No additional error")) 
+
+# Calculate mean, median, and standard deviation for each dimension
+mu <- stress_per_point_comparison %>%
+  filter(abs_error_added == "Additional error") %>%
+  distinct(LABID, dimension, dataset, .keep_all = T) %>%
+  ungroup() %>%
+  group_by(dimension, dataset) %>%
+  summarize(Mean = mean(dist_phen),
+            Median = median(dist_phen))
+
+# Calculate mean, median, and standard deviation for each dimension (overall)
+mu <- mu %>%
+  group_by(dimension) %>%
+  summarize(sd = round(sd(Mean), 3),
+            Mean = round(mean(Mean), 3),
+            Median = round(median(Median), 3))
+
+# Create a ggplot for visualization
+D <- ggplot(mu, aes(x=dimension, y=Mean)) + 
+  geom_point(color="#E41A1C")+
+  geom_line(color="#E41A1C") +
+  geom_errorbar(aes(ymin=Mean-sd, ymax=Mean+sd), width=.2,
+                 position=position_dodge(0.05), color="#E41A1C") +
+  theme_bw() +
+  labs(x = "Dimension", y = "Mean Prediction Error (MIC units)") 
+
+# Save the ggplot as an image
+#ggsave("S_pneumo_noise_multi_panel_plot.jpg")
+
+```
+

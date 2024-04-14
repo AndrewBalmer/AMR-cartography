@@ -1,0 +1,1234 @@
+---
+title: "28-mvLMM-and-heritability"
+author: "Andrew Balmer"
+date: "2024-03-25"
+output: html_document
+---
+
+### mvLMM data setup
+
+In this script, I set up the required files for the mvLMM. This includes the amino acid dummy variables which will be tested.  
+
+```{r setup, include=FALSE}
+
+remove(list = ls())
+library(stringr)
+library(tidyverse)
+library(smacof)
+library(seqinr)
+library(ape)
+library(dplyr)
+library(cluster)
+library(FactoMineR)
+library(fastDummies)
+library(heritability)
+library(poolr)
+
+options(dplyr.summarise.inform = FALSE)
+
+
+# Set working directory
+setwd("/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#03-06-Generating-phenotype-and-genotype-maps")
+
+# Specify the full path to the data file
+phen_map <- "/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#03-06-Generating-phenotype-and-genotype-maps/Spneumo_3628_PCA_start_2D_METRIC.RData"
+
+load(phen_map)
+
+# Read in the relevant meta data
+tablemic_meta <- read.csv("/Users/ajb306/AMR-cartography/data/meta_data_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+
+
+  res_samp <- torg_met
+  theta <- 326*pi/180 ## degrees to radians
+  rot <- matrix(c(cos(theta), sin(theta), -sin(theta), cos(theta)), ncol = 2)
+  res_samp$conf <- res_samp$conf %*% rot ## rotated configurations
+  plot(res_samp)
+  
+  ### create a vector of isolates with PBP deletion substitutions and remove them from dataframes  
+  isolates_with_PBP_deletion <- c("20156696" , "20162849" , "20151885" ,
+                           "20153985" , "20154509" , "2013224047" , "2013218247" ,
+                           "2014200662" , "5869-99" , "2513-99")
+  
+# Specify the full path to the data file
+gen_map <- "/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#03-06-Generating-phenotype-and-genotype-maps/Spneumo_3628_PCA_start_2D_METRIC_genetic.RData"
+load('/Users/ajb306/AMR-cartography/data/tablemic_pneumo_gen_3628.RData')
+
+# Load the precomputed PCA start 2D metric data
+load(gen_map)
+
+genotype_mds <- as.data.frame(torg_met$conf)
+  
+colnames(genotype_mds) <- c("G1","G2")
+  
+  
+slope <- 0.1842996
+dilation <- 1/slope
+slope
+map_coords <- as.data.frame(res_samp$conf)
+
+map_coords$V1 <- map_coords$V1 * dilation
+map_coords$V2 <- map_coords$V2 * dilation
+
+### create main dataframe of map coordinates and PBP metadata
+AA_matrix_phenotype <- bind_cols(map_coords, tablemic_meta) %>%
+                         rename(PBP_type = PT, D1 = V1, D2 = V2) %>%
+                         group_by(PBP_type) %>%
+                         mutate(x_centroid = median(D1), 
+                         y_centroid = median(D2)) %>%
+                         filter(!LABID %in% isolates_with_PBP_deletion) %>%
+                         bind_cols(genotype_mds)
+
+## import MDS transformations for phenoptype and genotype maps
+gen_slope <- 0.01814108
+
+### As I only want to cluster on distinct PBP types, I 
+gen_clustering <- cbind(dplyr::select(AA_matrix_phenotype, G1,G2, PBP_type)) %>%
+                  distinct(PBP_type, .keep_all = TRUE) %>% 
+                  ungroup()
+
+
+res.hcpc <- HCPC(select(gen_clustering, G1,G2), nb.clust = 12, consol = T, iter.max = 500, graph = T, order = T)
+
+### scree plot of clustering 
+plot(log(res.hcpc$call$t$inert.gain[c(1:30)]))
+
+### bind the genetic clusters to the genetic map data
+gen_clustering$gen_cluster <- res.hcpc[[1]]$clust
+
+AA_matrix_phenotype <- left_join(AA_matrix_phenotype, select(gen_clustering, PBP_type, gen_cluster), by = "PBP_type") %>% bind_cols(PBPseq)%>% ungroup 
+
+
+
+genotype_mds <- NULL
+tablemic <- NULL
+torg_met <- NULL
+gen_clustering <- NULL
+
+map_coords <- AA_matrix_phenotype %>% select( D1, D2)
+mod.matrix <- cov(map_coords)
+
+## the following files are the LABIDs for the isolates, along with the phenotypic map coordinates, and the covariance matrix of the two map dimensions
+setwd("/Users/ajb306/PycharmProjects/pythonProject1/")
+
+# Get the current working directory
+current_directory <- getwd()
+
+# Print the current working directory
+print(current_directory)
+
+write.csv(select(AA_matrix_phenotype, LABID), file = "S.pneumo_map_mvlmm_LABID.csv", row.names=FALSE)
+write.csv(map_coords, file = "S.pneumo_map_mvlmm_map_coords.csv", row.names=FALSE)
+write.csv(mod.matrix, file = "S.pneumo_map_mvlmm_mod_matrix.csv", row.names=FALSE)
+
+
+# Read the MIC table data
+tablemic <- read.csv("/Users/ajb306/AMR-cartography/data/MIC_table_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+
+# Transform the data so that it is easier to work with noise added values later - the relative euclidean distances between the points will remain the same
+for (i in 1:ncol(tablemic)) {
+  tablemic[,i] <- (tablemic[,i] + (-(min(tablemic[,i], na.rm = TRUE))))+1
+}
+
+
+tablemic <- bind_cols(select(tablemic_meta,LABID), tablemic)
+tablemic <- filter(tablemic, LABID != "20156696" & LABID != "20162849" & LABID != "20151885" &
+                       LABID != "20153985" & LABID != "20154509" & LABID != "2013224047" & LABID != "2013218247" & 
+                       LABID != "2014200662" & LABID != "5869-99" & LABID != "2513-99")
+
+tablemic <- select(tablemic, Penicillin:Cefuroxime)
+colnames(tablemic)
+
+tablemic <- tablemic %>% 
+  mutate(Amoxicillin = Amoxicillin - mean(Amoxicillin),
+         Meropenem = Meropenem - mean(Meropenem),
+         Cefotaxime = Cefotaxime - mean(Cefotaxime),
+         Ceftriaxone = Ceftriaxone - mean(Ceftriaxone),
+         Cefuroxime = Cefuroxime - mean(Cefuroxime),
+         Penicillin = Penicillin - mean(Penicillin))
+
+## Here I save the MIC values, which are normalised for use in the LIMIX mvLMM package.
+write.csv(tablemic, file = "S.pneumo_map_mvlmm_MIC_values.csv", row.names=FALSE)
+
+dummy_gen <- AA_matrix_phenotype %>% select(PBP1A_T371:PBP2X_V587)
+
+dummy_gen <- na.omit(dummy_gen)
+ncol(dummy_gen)
+ncol(dummy_gen[, sapply(dummy_gen, function(col) length(unique(col))) > 1])
+
+dummy_gen <- dummy_cols(dummy_gen, remove_selected_columns = T)
+
+
+dummy_gen_AA_counts <- pivot_longer(dummy_gen, cols = everything()) %>%
+  mutate(AA_gt_202 = as.character(str_sub(name,7,7)),
+         AA_gt = as.character(str_sub(name,12,12))) 
+
+## Here I save the number of isolates which contain each amino acid variant
+write.csv(dummy_gen_AA_counts, file = "S.pneumo_map_dummy_gen_AA_counts.csv", row.names=FALSE)
+
+dummy_gen <- dummy_gen[, sapply(dummy_gen, function(col) length(unique(col))) > 1]
+
+
+
+PBP1A <- dummy_gen %>% select(starts_with("PBP1A"))
+PBP2B <- dummy_gen %>% select(starts_with("PBP2B"))
+PBP2X <- dummy_gen %>% select(starts_with("PBP2X"))
+write.csv(PBP1A, file = "S.pneumo_map_PBP1A_dummy_gen_relatedness_matrix.csv", row.names=FALSE)
+write.csv(PBP2B, file = "S.pneumo_map_PBP2B_dummy_gen_relatedness_matrix.csv", row.names=FALSE)
+write.csv(PBP2X, file = "S.pneumo_map_PBP2X_dummy_gen_relatedness_matrix.csv", row.names=FALSE)
+
+
+temp <- pivot_longer(dummy_gen, cols = everything()) %>%
+  mutate(AA_gt_202 = as.character(str_sub(name,7,7)),
+         AA_gt = as.character(str_sub(name,12,12))) 
+
+temp <- filter(temp, AA_gt != AA_gt_202)
+
+
+dummy_gen <- dummy_gen %>% select(all_of(c(temp$name)))
+
+
+cor_dummy_gen <- cor(dummy_gen)
+
+cor_matrix <- as.data.frame(cor_dummy_gen)
+
+cor_matrix <- rownames_to_column(cor_matrix, "PBP_AA_location_1") %>%
+  pivot_longer(!PBP_AA_location_1, names_to = "PBP_AA_location_2", values_to = "Corr_coef") 
+
+cor_matrix$Corr_coef <- as.character(cor_matrix$Corr_coef)
+cor_matrix$Corr_coef <- as.numeric(cor_matrix$Corr_coef)
+
+cor_matrix <- cor_matrix %>%
+  filter(Corr_coef == 1 | Corr_coef == -1) %>%
+  #unite("merged_location", PBP_AA_location_1:PBP_AA_location_2, remove = FALSE) %>%
+  ungroup() %>%
+  select(PBP_AA_location_1, PBP_AA_location_2) %>% 
+  group_by(PBP_AA_location_1) %>%
+  summarise(all_names = paste(PBP_AA_location_2, collapse = "_")) %>%
+  distinct(all_names, .keep_all = T) 
+
+cor_dummy_gen[upper.tri(cor_dummy_gen)] <- 0
+diag(cor_dummy_gen) <- 0
+
+cor_dummy_gen <- as.data.frame(cor_dummy_gen)
+dummy_gen <- dummy_gen[,!apply(cor_dummy_gen,2,function(x) any(abs(x) == 1))]
+head(dummy_gen)
+
+values <- c(as.character(colnames(dummy_gen)))
+
+cor_matrix <- filter(cor_matrix, PBP_AA_location_1 %in% values)
+
+oldnames <- c(cor_matrix$PBP_AA_location_1)
+newnames <- c(cor_matrix$all_names)
+
+dummy_gen <- dummy_gen %>% select(oldnames) %>% rename_at(vars(oldnames), ~ newnames)
+
+
+## I also save the relatedness matrix based on the dummy gen variables for use in the mvLMM
+write.csv(dummy_gen, file = "S.pneumo_map_dummy_gen_relatedness_matrix.csv", row.names=FALSE)
+
+
+Counts_of_each_AA_combination <- data.frame(matrix(ncol=5,nrow=0)) 
+
+for (i in 1:ncol(dummy_gen)) {
+temp <- as.vector(colnames(select(dummy_gen,i)))
+temp <- temp[[1]]
+
+x <- select(dummy_gen, temp)
+x <- table(x, dnn = c(temp))
+x <- as_tibble(x)
+
+x <- x  %>% pivot_wider(names_from = 1, values_from = n) %>%
+  mutate(AA = c(temp))
+  Counts_of_each_AA_combination <- rbind(Counts_of_each_AA_combination,x)
+  temp <- NULL
+  x <- NULL
+
+}
+
+colnames(Counts_of_each_AA_combination) <- c("Present", "Absent", "AA")
+one_percent <- (nrow(dummy_gen) * 0.01)
+
+Counts_of_each_AA_combination <- Counts_of_each_AA_combination %>%
+    filter(Present > one_percent & Absent > one_percent)
+
+
+write.csv(Counts_of_each_AA_combination, file = "Counts_of_each_AA_combination_dummy_gen.csv", row.names=FALSE)
+
+Counts_of_each_AA_combination <-read.csv("Counts_of_each_AA_combination_dummy_gen.csv")
+
+genetic_markers <- dummy_gen %>% select(c(Counts_of_each_AA_combination$AA))
+
+## Lastly, after merging and removing identical amino acids, as well as merging those which are precisely inverse I save the list of markers which I would like to test
+write.csv(genetic_markers, file = "S.pneumo_map_dummy_gen_test_markers.csv", row.names=FALSE)
+#dummy_gen <-read.csv("S.pneumo_map_dummy_gen_test_markers.csv")
+
+
+
+
+
+
+
+### generating a dummy set of epistatic interactions, and then a corresponding dummy_gen of 
+#just the relevant comparisons
+
+Y <- map_coords$D1
+form <- Y ~ .^2
+test_matrix <- model.matrix(form, data = dummy_gen)
+test_matrix <- as.data.frame(test_matrix)
+test_matrix <- test_matrix[, sapply(test_matrix, function(col) length(unique(col))) > 1]
+#colnames(tail(test_matrix))
+test_matrix <- select(test_matrix,contains(":"))
+
+
+Counts_of_each_AA_combination <- data.frame(matrix(ncol=5,nrow=0)) 
+
+
+for (i in 1:ncol(test_matrix)) {
+temp <- as.vector(colnames(select(test_matrix,i)))
+temp <- str_split(temp, ":", n = 2)
+temp <- temp[[1]]
+
+x <- table(select(dummy_gen, temp))
+x <- as_tibble(x)
+x <- x %>% mutate(AA1 = colnames(x[,1]),
+                  AA2 = colnames(x[,2]), .before = 1) %>%
+  unite("AA_combination", 3:4, sep = "_", remove = FALSE) %>%
+  unite("PBP_AA_location", 1:2, sep = ":", remove = FALSE) %>%
+  select(PBP_AA_location, AA_combination,n) %>%
+  pivot_wider(names_from = AA_combination, values_from = n )
+  Counts_of_each_AA_combination <- rbind(Counts_of_each_AA_combination,x)
+  temp <- NULL
+  x <- NULL
+}
+
+
+
+colnames(Counts_of_each_AA_combination) <- c("PBP_AA_location", "AA_Combination_0_0", "AA_Combination_1_0", "AA_Combination_0_1", "AA_Combination_1_1")
+one_percent <- (nrow(dummy_gen) * 0.01)
+
+Counts_of_each_AA_combination <- Counts_of_each_AA_combination %>%
+    filter(AA_Combination_0_0 >= one_percent & AA_Combination_0_1 >= one_percent & AA_Combination_1_0 >= one_percent & AA_Combination_1_1 >= one_percent)
+
+
+write.csv(Counts_of_each_AA_combination, file = "Counts_of_each_AA_combination_epi.csv", row.names=FALSE)
+
+test_matrix <- test_matrix %>% select(c(Counts_of_each_AA_combination$PBP_AA_location))
+
+
+setwd("/Users/ajb306/PycharmProjects/pythonProject1/")
+write.csv(test_matrix, file = "S.pneumo_map_test_markers_incl_2nd_order_epistatic.csv", row.names=FALSE)
+
+
+```
+
+
+
+# Linear mixed models
+Here, I have used multivariate LMMs to identify the amino acid substitutions responsible for changes in beta-lactam resistance phenotypes. This method is meant to work in combination with the previous analysis on single AA substitutions, along with the results of the clustering and informative isolates analysis. 
+
+The multivariate LMM can have additional statistical power over the univariate LMMs, as it allows fewer total statistical tests to be conducted, increasing statistical power. It is also not sensitive to the rotation of the map on the axes as the univariate ones can be.  
+
+As with the previous analysis, for now I have limited the analysis to the transpeptidase regions (TPD) of the three penicillin binding proteins (PBPs): PBP1a, PBP2b and PBP2x, as  my estimates of heritability suggest they are the main regions which determine variation in beta-lactam resistance phenotype.
+
+
+
+### Results from running multivariate LMM on map and plotting significant results
+
+Below, I ran the multivariate LMM on the s. suis map and identified 18 AA positions positively associated position on the map after correction for multiple comparisons. 3 were located in PBP1A, 4 in  PBP2b, and 9 in PBP2x. Some of the same positions were associated with changes in MIC in both the individual AA subs and clustering analyses, as well as in previous studies. 
+
+I have presented their raw p-values in the below plot However, substitutions were marked in blue as significant if they were <= 0.05 after correction for multiple comparisons using the Galwey method. The black line represents a p-value of 0.05. Below, I have plotted their -log10 p-values by their position in each protein as a Manhattan plot.
+
+
+```{r, echo =F}
+
+setwd("/Users/ajb306/PycharmProjects/pythonProject1/")
+
+#### reading in p-values and effect sizes === Dimension 1 (x axis)
+p_values <- read.csv(file = 'mvLMM_p_values_normal_pneumo_low_freq_vars.csv')
+eff_sizes <- read.csv(file = 'mvLMM_effect_sizes_normal_pneumo_low_freq_vars.csv')
+
+eff_sizes_candidates <- eff_sizes %>% filter(effect_type == "candidate")
+eff_sizes_candidates <- eff_sizes_candidates %>% rename(PBP_AA_location = effect_name)
+p_values$PBP_AA_location <- colnames(genetic_markers)
+
+uvLMM_D1 <- left_join(p_values, eff_sizes_candidates, by = c("PBP_AA_location"="PBP_AA_location"))
+
+uvLMM_D1$Previous_AA_PBP <- str_sub(uvLMM_D1$PBP_AA_location, 7, 7) 
+uvLMM_D1$PBP <- str_sub(uvLMM_D1$PBP_AA_location,1, 5) 
+
+
+uvLMM_D1 <- uvLMM_D1 %>% 
+  select(-X.x, -X.y, -test, -trait) %>%
+  pivot_wider(names_from = env, values_from = c(effsize,effsize_se))
+
+# estimate galwey p-value correction
+galwey_meff <- cor(genetic_markers, method = c("pearson"))
+galwey_meff <- meff(galwey_meff, method = "galwey")
+
+uvLMM_D1$pv20_adj_galwey <- uvLMM_D1$pv20 * galwey_meff
+uvLMM_D1$Significance <- uvLMM_D1$pv20_adj_galwey
+uvLMM_D1$Significance <- ifelse(uvLMM_D1$Significance <= 0.001, "Significant", "Non-Significant")
+
+No_sig_D1_all <- uvLMM_D1 %>% 
+  add_count(Significance) %>% 
+add_count(PBP, name = "PBP_count") %>%
+  distinct(PBP_AA_location, .keep_all = T) 
+
+No_sig_D1 <- uvLMM_D1 %>% 
+ filter(pv20_adj_galwey <= 0.001) %>%
+add_count(PBP, name = "PBP_count") 
+
+
+ggplot(filter(uvLMM_D1), aes(x=PBP_AA_location,y=-log10(pv20_adj_galwey))) + 
+  geom_point(shape = 21, size = 3,  alpha = 0.8, 
+             aes(fill = Significance), position = position_jitter(width = 0., height = 0.)) +
+  guides() +
+  geom_hline(yintercept=-log10(0.001)) +
+  facet_wrap(~PBP, scales ="free_x") +
+  theme(legend.position='none') +
+  theme_linedraw() +
+ # scale_y_continuous(limits = c( 0,4), breaks=seq( 0,4, .5)) +
+  #scale_y_continuous(limits = c(min(AA_matrix_phenotype$D2, na.rm = T), max(AA_matrix_phenotype$D2, na.rm = T)), breaks=seq(min(AA_matrix_phenotype$D2, na.rm = T), max(AA_matrix_phenotype$D2, na.rm = T), slope)) +
+  labs(title ="") +
+  theme_bw() +
+  labs( x = "Location", y = "-log10 (p-value)") + 	
+  theme(axis.text =element_text(size=16), 
+        axis.text.x =element_blank(), 
+        axis.title=element_text(size=16)) +
+  scale_fill_manual(values=c( "#E41A1C", "#377EB8"))
+
+
+```
+
+I have also plotted their effect sizes, with black lines representing 1 log2 fold MIC unit on the MDS map. Here, I have only plotted the substitutions with p-values less than 0.05 after correction for multiple comparisons.  
+
+Note that statistical power to detect effects <1 unit may be low. Note that one significant result comprises multiple AA changes. These were cases where these positions were identical within the dataset, so combined into a single dummy variable. In such examples it is not possible to establish which of the substitutions are causal without additional lab work for example.
+
+```{r, echo =F}
+
+
+uvLMM_D1 <- uvLMM_D1 %>%
+  mutate(joint_effect_size = sqrt(effsize_env1_D1^2 + effsize_env1_D2^2))
+
+ggplot(filter(uvLMM_D1), aes(x=joint_effect_size, y = -log10(pv20_adj_galwey))) + 
+   geom_vline(xintercept=1) +
+    geom_hline(yintercept=-log10(0.05)) +
+  geom_hline(yintercept=-log10(0.01)) +
+    geom_hline(yintercept=-log10(0.001)) +
+ geom_point(shape = 16, colour = "#377EB8", size = 2,  alpha = 0.25, 
+             aes(), position = position_jitter(width = 0., height = 0.)) +
+#  geom_point(data = uvLMM_D1_epi,  aes(x=joint_effect_size, y = -log10(pv20)),
+ #            colour = "#377EB8", shape = 16, size = 2, alpha = .25) +
+  guides() +
+#facet_wrap(~PBP, scales ="free_x") +
+  theme(legend.position='none') +
+  theme_linedraw() +
+ #scale_y_continuous(limits = c( 0,8), breaks=seq( 0,8, .5)) +
+  #scale_y_continuous(limits = c(min(AA_matrix_phenotype$D2, na.rm = T), max(AA_matrix_phenotype$D2, na.rm = T)), breaks=seq(min(AA_matrix_phenotype$D2, na.rm = T), max(AA_matrix_phenotype$D2, na.rm = T), slope)) +
+  labs(title ="") +
+  theme_bw() +
+  #coord_fixed(ratio = .2) + 
+  labs( x = "Effect size (MIC units)", y = "-log10 adj. p-value") + 	
+  theme(axis.text =element_text(size=16), 
+        #axis.text.x =element_blank(), 
+        axis.title=element_text(size=16)) +
+  annotate("label", x = 3.25, y = -log10(0.05), label = "0.05")  +
+  annotate("label", x = 3.25, y = -log10(0.01), label = "0.01")  +
+  annotate("label", x = 3.25, y = -log10(0.001), label = "0.001")  +
+  scale_colour_manual(values=c( "#E41A1C", "#377EB8"))
+
+
+ggplot(filter(uvLMM_D1, pv20_adj_galwey <= 0.001), aes(x=effsize_env1_D1, y = effsize_env1_D2, size = -log10(pv20_adj_galwey))) + 
+ geom_point(shape = 16, colour = "#E41A1C",alpha = 0.25, 
+             aes(), position = position_jitter(width = 0., height = 0.)) +
+  geom_vline(xintercept=1) +
+  geom_vline(xintercept=-1) +
+  geom_hline(yintercept=1) +
+  geom_hline(yintercept=-1) +
+#  geom_point(data = uvLMM_D1_epi,  aes(x=joint_effect_size, y = -log10(pv20)),
+ #            colour = "#377EB8", shape = 16, size = 2, alpha = .25) +
+  guides() +
+#facet_wrap(~PBP, scales ="free_x") +
+  theme(legend.position='none') +
+  theme_linedraw() +
+ #scale_y_continuous(limits = c( 0,8), breaks=seq( 0,8, .5)) +
+  #scale_y_continuous(limits = c(min(AA_matrix_phenotype$D2, na.rm = T), max(AA_matrix_phenotype$D2, na.rm = T)), breaks=seq(min(AA_matrix_phenotype$D2, na.rm = T), max(AA_matrix_phenotype$D2, na.rm = T), slope)) +
+  labs(title ="") +
+  theme_bw() +
+  coord_fixed() + 
+  labs( x = "Effect size (map axis 1 - Cephalosporins)", y = "Effect size (map axis 2 - Penicillin)") + 	
+  theme(axis.text =element_text(size=16), 
+        #axis.text.x =element_blank(), 
+        axis.title=element_text(size=16)) +
+  scale_colour_manual(values=c( "#E41A1C", "#377EB8"))
+
+ggsave("mvLMM_pneumo_effect_sizes.jpg")
+
+
+```
+
+
+
+## List of all identified positions
+Across the three proteins, a total of 18 PBP locations were identified as has significant phenotypic effects, after correction for multiple comparisons. 
+
+```{r, echo =F}
+
+
+uvLMM_D1$Substitution <- str_replace_all(uvLMM_D1$PBP_AA_location, "_PBP1A_|_PBP2B_|_PBP2X_", "/")
+uvLMM_D1$Substitution <- str_remove_all(uvLMM_D1$Substitution, ("PBP1A_|PBP2B_|PBP2X_|_"))
+
+### tables of sig subs for each dimension
+All_pos <- uvLMM_D1 %>% select(PBP, Substitution, pv20, pv20_adj_galwey, effsize_env1_D1, effsize_env1_D2, effsize_se_env1_D1, effsize_se_env1_D2,joint_effect_size) 
+colnames(All_pos) <- c("PBP", "PBP_AA_location", "pv20", "pv20_adj_galwey", "effsize_D1", "effsize_D2", "effsize_se_D1", "effsize_se_D2","Joint_effsize")
+head(All_pos)
+
+write.csv(All_pos, file = "Sub_effect_sizes_mv_pneumo.csv", row.names=FALSE)
+
+
+```
+
+
+# Linear mixed models and epistatic interactions
+Here, I have furthered my use of the LMMs to test for pairwise epistatic interactions between loci. This method is meant to work in combination with the previous LMM analysis on single AA substitutions, along with the results of the clustering and informative isolates analysis. 
+
+As with all my previous analysis, I have limited work to the transpeptidase regions (TPD) of the three penicillin binding proteins (PBPs): PBP1a, PBP2b and PBP2x.
+
+
+### Testing for epistatic interactions between PBP TPD loci
+
+LMMs are a widely used method in GWAS studies, However, testing for epistatic interactions between loci is not usually done in typical GWAS because of the number of tests which would need to be conducted. The computation burden required to do this when using whole genome data is generally considered too large, i.e the number of pairwise comparisons is simply too great. Some methods have investigated this issue however, including a paper on S. pneumoniae and beta-lactam resistance -Spyderpick (https://doi.org/10.1093/nar/gkz656).
+
+Here however, since I am only completing analysis on a small portion of the genome (the TPD regions of the PBP proteins), it is possible to estimate the effect of epistatic interactions between PBP loci using LMMs. 
+
+To run this analysis, I have extended the analysis to include second order interaction terms between each pairwise set of variables. In this case, an interaction variable was coded as the logical 'and' between two dummy variables.
+
+The LMM is then run on these interaction variables to test whether it is associated with an effect independent of the effects of either substitution individually. The LIMIX package I have been using offers the option to test for such an interaction between two positions. It does this by estimating the effect sizes of each loci individually, then estimating an additional effect size for the interaction variable. It then estimates a p-value for each comparison.
+
+Below is an example of coding the logical 'and' between two variables to test for 2nd order interactions between the two variables. 
+
+
+```{r, echo =F}
+
+Isolate <- c('A (2-0-2)','B','C','D')
+loci_xA <- c('1','1','0','0')
+loci_xB <- c('1','0','0','1')
+loci_xAB <- c('1','0','0','0')
+
+
+Epistatic_interactions <- data.frame(Isolate, loci_xA, loci_xB, loci_xAB, stringsAsFactors=FALSE)
+
+kable(Epistatic_interactions, caption = "Coding an epistatic interaction between two variables") %>% 
+  kable_classic(full_width = F, html_font = "Cambria")
+
+```
+
+
+In this case, there are 914 positions across the three PBP TPD regions, of which 284 are variant. In my last markdown I coded the 284 positions as dummy variables and removed invariant, identical, and precisely opposite positions. I also removed the 'sensitive' representative AAs. (file:///Users/ajb306/Downloads/Chapter%203%20-%20LMM%20further%20analysis%20(3).html)
+
+After doing this I had 204 dummy variables. Coding the interaction terms resulted in a total of >8k interaction variables to be tested after removing invariant interactions. I then had a series of interaction variables with varying numbers of isolates representing each group. For example, an interaction with loci_A and loci_B would have four possible combinations  (a/b - 0_0, 0_1, 1_0, and 1_1). However, for many interactions, there was a very low number of isolates for each combination. I therefore wanted to exclude positions where I didnt have a good enough sample size to estimate effects. 
+
+Given there are 5 parameters in the epistatic LMM model, (Relatedness, The interaction marker being tested, Loci A as a covariate, Loci B as a covariate, and Noise), I therefore wanted to excluded positions which did not have a minimum of 5 isolates for each combination. I used 5 as a rough heuristic on which to exclude combinations which I would be unlikely to accurately estimate effects. This resulted in a total of 2320 interaction terms which needed to be tested. 
+
+In a previous document, I outlined the need to decompose the genetic and error components in each test, as this can result in p-value inflation. I did the same procedure here, estimating each of the components for each test individually. This resulted in making the test quite computationally intensive, for the S. pneumoniae dataset of >3.5k isolates,  it needed to be run overnight on the Hamilton server. However, because I am only using the 633 isolates non-divergent S. pneumo isolates, I was able to run this analysis on my laptop.
+
+
+### Results from running epistatic mvLMM on map dimension and plotting significant results
+
+Below, I ran the multivariate LMM on the map dimensions and identified 60 AA positions with interaction effects after Bonferroni correction for multiple comparisons. Many of the same positions were associated with changes in MIC in both the individual AA subs and clustering analyses, as well as in the GWAS and CDC. 
+
+Below, I have presented their -log10 p-values on the x-axis and their joint effect sizes on the y. The horizontal black line represents effect sizes of 1 MIC unit. The vertical black lines represent p-value cut-offs of 0.05, 0.01 and 0.001. Many interactions are coming out as strongly significant after correction for multiple comparisons. In many cases, these appear to have positive effects (i.e. increase MIC), across both map dimensions. However, although there is a large subset of interactions which produce a decrease in MIC on one or both axes (see table below). There is also a subset of interactions which have very large effect sizes (>5 MIC units). However, many of these do not come out as significant, and the ones which do have low numbers of isolates for one or more of the AA combinations. 
+
+
+```{r, echo = F}
+
+setwd("/Users/ajb306/PycharmProjects/pythonProject1/")
+
+test_matrix <- read.csv(file = 'S.pneumo_map_test_markers_incl_2nd_order_epistatic.csv')
+names(test_matrix) <-str_replace_all(names(test_matrix), "[.]", ":")
+Counts_of_each_AA_combination <-read.csv("Counts_of_each_AA_combination_epi.csv")
+
+#### reading in p-values and effect sizes === Dimension 1 (x axis)
+p_values <- read.csv(file = 'mvLMM_p_values_epi_pneumo.csv')
+eff_sizes <- read.csv(file = 'mvLMM_effect_sizes_h2_epi_pneumo.csv')
+
+
+eff_sizes_candidates <- eff_sizes %>% filter(effect_type == "candidate")
+eff_sizes_candidates <- eff_sizes_candidates %>% rename(PBP_AA_location = effect_name)
+
+
+p_values$PBP_AA_location <- colnames(test_matrix)
+
+uvLMM_V1_epi <- left_join(eff_sizes_candidates,p_values, by ="PBP_AA_location")
+uvLMM_V1_epi <- left_join(Counts_of_each_AA_combination, uvLMM_V1_epi, by = "PBP_AA_location")
+
+uvLMM_V1_epi <- uvLMM_V1_epi %>% 
+  select(-X.x, X.y, -test, -trait) %>%
+  pivot_wider(names_from = env, values_from = c(effsize,effsize_se))
+
+library(poolr)
+
+## These lines calculate the galwey correction factor, however the first line takes a long time to run, and so I have simply coded this below for ease of use
+#galwey_meff <- cor(test_matrix, method = c("pearson"))
+#galwey_meff <- meff(galwey_meff, method = "galwey")
+
+# galwey meff for test matrix is: 
+galwey_meff <- 39
+
+uvLMM_V1_epi$pv20_adj_galwey <- uvLMM_V1_epi$pv20 * galwey_meff
+range(uvLMM_V1_epi$pv20_adj_galwey)
+uvLMM_V1_epi$Significance <- uvLMM_V1_epi$pv20_adj_galwey
+uvLMM_V1_epi$Significance <- ifelse(uvLMM_V1_epi$Significance <= 9.72e-06, "Significant", "Non-Significant")
+
+uvLMM_V1_epi <- uvLMM_V1_epi %>%
+  mutate(joint_effect_size = sqrt(effsize_env1_V1^2 + effsize_env1_V2^2),
+         joint_effect_size_se = sqrt(effsize_se_env1_V1^2 + effsize_se_env1_V2^2))
+
+uvLMM_V1_epi <- uvLMM_V1_epi %>%
+  mutate(lowest_number_of_isolates_by_comb = pmin(AA_Combination_0_0, AA_Combination_1_0, AA_Combination_0_1,  AA_Combination_1_1))
+
+ggplot(filter(uvLMM_V1_epi), aes(x=joint_effect_size, y = -log10(pv20_adj_galwey), size=lowest_number_of_isolates_by_comb)) + 
+    geom_vline(xintercept=1) +
+    geom_hline(yintercept=-log10(0.001)) +
+ geom_point(shape = 16, colour = "#E41A1C",  alpha = 0.25, position = position_jitter(width = 0., height = 0.)) +
+  theme_linedraw() +
+  scale_x_continuous(limits = c( 0,5), breaks=seq( 0,5, 1)) +
+  labs(title ="") +
+  theme_bw() +
+  labs( x = "Effect size (MIC units)", y = "-log10 adj. p-value") + 
+  guides(size=guide_legend(title="No. isolates (min)")) + 
+  theme(axis.text =element_text(size=16), 
+        axis.title=element_text(size=16)) +
+  annotate("label", x = 4.5, y = -log10(0.001), label = "0.001")  + 
+  scale_colour_manual(values=c( "#E41A1C", "#377EB8"))
+
+
+#ggsave("spneumo_effect_size_plot.jpg")
+
+```
+
+
+
+
+```{r, echo = F}
+
+ggplot(filter(uvLMM_V1_epi,pv20_adj_galwey< 9.72e-06 ), aes(x=effsize_env1_V1, y = effsize_env1_V2, size = joint_effect_size_se)) + 
+  geom_point(shape = 16, colour = "#E41A1C",alpha = 0.25, 
+             aes(), position = position_jitter(width = 0., height = 0.)) +
+    geom_vline(xintercept=1) +
+    geom_vline(xintercept=-1) +
+    geom_hline(yintercept=1) +
+    geom_hline(yintercept=-1) +
+  guides() +
+  theme(legend.position='none') +
+  theme_linedraw() +
+  labs(title ="") +
+  theme_bw() +
+  coord_fixed() + 
+  labs( x = "Effect size - Map axis 1", y = "Effect size - Map axis 2") + 	
+  theme(axis.text =element_text(size=16), 
+        axis.title=element_text(size=16)) +
+  scale_colour_manual(values=c( "#E41A1C", "#377EB8"))
+
+```
+
+
+
+```{r, echo = F}
+
+No_sig_V1 <- uvLMM_V1_epi %>% 
+  filter(pv20_adj_galwey <= 0.001) %>%
+  filter(joint_effect_size-joint_effect_size_se >= 1) %>% 
+  #filter(effsize_env1_V1 >= abs(1) | effsize_env1_V2 >= abs(1)) %>%
+    separate(PBP_AA_location, c("AA1", "AA2"), ":", remove =F) %>% 
+  pivot_longer(cols = c("AA1", "AA2"), names_to = "AA", values_to = "Location") %>% 
+  add_count(Location, name = "PBP_count") 
+
+
+No_sig_V1_perm <- uvLMM_V1_epi %>% 
+ filter(pv20_adj_galwey <= 9.72e-06) %>%
+ #filter(joint_effect_size >= 1 | joint_effect_size <= -1) %>%
+  separate(PBP_AA_location, c("AA1", "AA2"), ":", remove =F) %>% 
+  pivot_longer(cols = c("AA1", "AA2"), names_to = "AA", values_to = "Location") %>% 
+  add_count(Location, name = "PBP_count_perm_cutoff") 
+
+No_sig_V1$PBP <- str_sub(No_sig_V1$Location,1, 5) 
+No_sig_V1_perm$PBP <- str_sub(No_sig_V1_perm$Location,1, 5) 
+
+No_sig_V1_perm <- No_sig_V1_perm %>% select(PBP, Location, PBP_count_perm_cutoff)
+
+No_sig_V1 <- left_join(No_sig_V1,No_sig_V1_perm, by = c("PBP" = "PBP", "Location" = "Location"))
+
+has_nas <- any(is.na(No_sig_V1$PBP_count_perm_cutoff))
+print(has_nas)
+
+
+Sub_effect_sizes_interaction <- No_sig_V1 %>%
+  distinct(Location,  .keep_all = T)
+
+setwd("/Users/ajb306/Google Drive/PhD - Andrew Balmer/Chapters/AMR cartography/MIC data/Streptococcus pneumoniae analysis/")
+
+write.csv(uvLMM_V1_epi, file = "Sig_AA_subs_all_epistatic_interactions_incl_nonsig_S.pneumo.csv", row.names=FALSE)
+
+write.csv(Sub_effect_sizes_interaction, file = "Sig_AA_subs_all_epistatic_interactions_S.pneumo.csv", row.names=FALSE)
+
+
+count_above_20 <- Sub_effect_sizes_interaction %>%
+  filter(PBP_count >=40)
+
+
+
+```
+
+
+I then plotted the number of significant interactions found at each position as a histogram. Most identifed positions have only one or two interactions. However, there is a subset of positions which have interactions with many other locations (mean in red) (see table below). I found one position had significant interactions with 21 other positions.
+
+```{r, echo = FALSE}
+
+a_mean <- Sub_effect_sizes_interaction %>% 
+  summarize(median_PBP_count = median(PBP_count),
+            mean_PBP_count = mean(PBP_count))
+
+ggplot(filter(Sub_effect_sizes_interaction), aes(x=PBP_count)) + 
+  labs( x = "Total number of significant interactions", y = "Frequency") + 	
+ geom_histogram(fill = "#E41A1C", alpha = 0.65, colour="black" ,bins = 50) +
+  #geom_vline(aes(xintercept=2),
+            #color="black", linetype="solid", size=1) +
+    geom_vline(data = a_mean, aes(xintercept=median_PBP_count), color="#E41A1C", linetype="dashed", size=1) +
+  scale_x_continuous( breaks=seq( 0,70, 10)) +
+  scale_y_continuous(limits = c(0,15), breaks=seq( 0,15, 5)) +
+    theme_bw()  +
+  coord_fixed(ratio = .4) + 
+   geom_label(data=a_mean, inherit.aes=FALSE, aes(x = 30, y = 12.5,label=paste("Median =",median_PBP_count)))
+
+ggsave("spneumo_epistatic_histogram.jpg")
+
+
+```
+
+
+## List of all identified positions
+Across the three proteins, a total of 60 PBP AA substitutions at 58 locations were identified as having significant phenotypic effects, after correction for multiple comparisons. In particular position PBP2x 551 had strong epistatic effects across a range of other loci (21 interactions in total), include across other PBP proteins. Several in vitro studies have suggested the PBP proteins may act as a complex in generation of the peptidoglycan cell wall, and these results would also seem to also suggest that. 
+
+In the table below, I have excluded interactions which were significant but had absolute effect sizes of less than 1 MIC unit. This is because we likely wont have statistical power to detect effects beneath this threshold given the nature of the MIC dilutions. 
+
+Typically, those with the largest effect sizes have much larger standard error estimates for one or both map dimensions. They are also typically the ones with a low number of isolates in one or more of the combination groups (AA1/2, 0_0, 0_1, 1_0, or 1_1), suggesting a lower degree of confidence in these estimates. 
+
+
+```{r, echo =F}
+
+options(digits=3)
+
+### tables of sig subs for each dimension
+All_pos <- No_sig_V1 %>% 
+  select(PBP_AA_location, pv20, pv20_adj_galwey, effsize_env1_V1, effsize_env1_V2, effsize_se_env1_V1,effsize_se_env1_V2, joint_effect_size) %>% distinct(PBP_AA_location, .keep_all = T) 
+
+colnames(All_pos) <- c("PBP_AA_location","pv20","pv20_adj_galwey","effect_size_V1","effect_size_V2","effectsize_V1_se","effectsize_V2_se","joint_effect_size")
+
+All_pos <- All_pos %>% 
+  arrange(pv20)
+
+library(kableExtra)
+
+  kbl(All_pos, escape =F)  %>% 
+  kable_classic(full_width = F, html_font = "Cambria")
+
+  
+  theme_MDR_cartography <- function(){ 
+    theme(panel.grid.major = element_line(colour="grey", size = (0.3)),
+        panel.grid.minor = element_blank(),
+        axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.title.y=element_blank(), 
+        axis.text.y=element_blank(),
+        axis.ticks.y = element_blank()
+
+    )
+}
+
+my_colours <- c("#4DAF4A", "#377EB8", "#E41A1C", "#984EA3", "#FF7F00", "black",
+                             "white", "#7570B3", "#E7298A", "#FFFF33", "#A65628", "cyan",
+                             "#999999", "red","magenta", "purple", "brown","green")
+
+limits_phen_map_x <- c(min(map_coords$D1, na.rm = T), 
+                       max(map_coords$D1, na.rm = T))
+limits_phen_map_y <- c(min(map_coords$D2, na.rm = T), 
+                       max(map_coords$D2, na.rm = T))
+
+breaks_phen_map_x <- seq(min(map_coords$D1, na.rm = T) - (1), 
+                         max(map_coords$D1, na.rm = T) + (1), 1)
+breaks_phen_map_y <- seq(min(map_coords$D2, na.rm = T) - (1), 
+                         max(map_coords$D2, na.rm = T) + (1), 1)
+
+
+```
+
+
+
+### Interaction network - all interactions
+I then plotted a network of the significant interactions between loci. Each node represents a PBP loci, and the edges between them represent a significant interaction between those loci. The colours represent which of the PBP proteins to loci occurs in and the size of the nodes represents the number of nodes they are directly connected to.
+
+Here, the two largest nodes are PBP2X T551S and the PBP1A S473G/PBP1A K475Q positions. Most of the significant interactions appear to occur against one of these two substitutions (approx 43% of the significant interactions). In several cases, there appears to be a nested structure of significant substitutions. In other words several of the substitutions have interaction effects on a particular background, and that these interactions subsequently interact with other substitutions.
+
+Furthermore, most of the substitutions which generate significant effects in interaction with the PBP2x 551 substitution are not in that protein, i.e. they interact with substitutions in the other PBP proteins. The same is true for the PBP1A S473G/PBP1A K475Q substitutions. This again suggests that there are strong epistatic interactions between the three proteins and that modifications act in combination to generate increased MIC. The same was true with the S. pneumoniae dataset. 
+
+```{r, echo =F}
+
+interaction_network <- All_pos %>% 
+  select(c(PBP_AA_location, joint_effect_size, pv20_adj_galwey)) %>%
+  separate(PBP_AA_location, c("AA1", "AA2"), ":", remove =F) %>%
+  select(-PBP_AA_location)%>%
+  separate_rows(AA1, sep='_PBP', convert = TRUE) %>%
+  separate_rows(AA2, sep='_PBP', convert = TRUE)  %>%
+  filter(pv20_adj_galwey <= 9.72e-06) 
+
+interaction_network$AA1 <- substr(interaction_network$AA1, 1, nchar(interaction_network$AA1) - 2)
+interaction_network$AA2 <- substr(interaction_network$AA2, 1, nchar(interaction_network$AA2) - 2)
+
+interaction_network$AA1 <- str_remove_all(interaction_network$AA1, ("PBP"))
+interaction_network$AA2 <- str_remove_all(interaction_network$AA2, ("PBP"))
+
+interaction_network$Significance <- -log10(interaction_network$pv20_adj_galwey)
+
+
+sources <- interaction_network %>%
+  distinct(AA1) %>%
+  rename(label = AA1)
+
+destinations <- interaction_network %>%
+  distinct(AA2) %>%
+  rename(label = AA2)
+
+#nodes <- full_join(sources, destinations, by = "label") %>% rowid_to_column("id") 
+nodes <- as.data.frame(colnames(select(AA_matrix_phenotype, 16:929))) %>% rowid_to_column("id") %>% rename(label = 2)
+nodes
+
+nodes$label <- str_remove_all(nodes$label, ("PBP"))
+
+per_route <- interaction_network %>%  
+  group_by(AA1, AA2) %>%
+  ungroup() 
+
+
+
+edges <- per_route %>% 
+  left_join(nodes, by = c("AA1" = "label")) %>% 
+  rename(from = id)
+
+edges <- edges %>% 
+  left_join(nodes, by = c("AA2" = "label")) %>% 
+  rename(to = id)
+
+edges <- select(edges, from, to, Significance)
+edges
+
+routes_tidy <- tbl_graph(nodes = nodes, edges = edges, directed = TRUE)
+routes_tidy <- routes_tidy %>% 
+  activate(edges) %>% 
+  arrange(desc(Significance))
+
+V(routes_tidy)$degree<-degree(routes_tidy)
+
+
+V(routes_tidy)$label<-nodes$label
+
+
+# generate a PBP type vector
+PBP_AA_location <- nodes %>% select(label) %>%
+  separate(label, c("PBP", "Location"), "_", remove = F) %>%
+    mutate(position = as.character(str_sub(Location,2,4)))
+
+PBP_AA_location <- PBP_AA_location[order(PBP_AA_location$position), ]
+PBP_AA_location <- PBP_AA_location[order(PBP_AA_location$PBP), ]
+
+PBP_AA_location <- PBP_AA_location %>%
+  mutate(vector = as.integer(str_sub(position, 2, 3))) %>%  # Convert to integer
+  mutate(position = ifelse(vector %% 50 == 0, position, NA)) %>%  # Check if multiple of 50
+  select(-vector)
+
+# plotting
+ggraph(routes_tidy, layout = "linear", circular = TRUE ) + 
+  #geom_edge_link(aes(width = Significance),width = 0.05,  alpha = .65, colour = '#B30000') + # straight edges
+  geom_edge_arc(aes(width = Significance), width = 0.05,  alpha = .85, colour = '#B30000') + # curved arcs
+  scale_edge_width(range = c(.05, .1)) +
+  geom_node_point(aes(colour = PBP_AA_location$PBP), shape = 16) + 
+      scale_size(range = c(1,4),guide = 'none') +
+  labs(edge_width = "-log10 adj. p-value") +
+  #geom_node_text(aes(label = PBP_AA_location$position), size = 3) + # adjust the y position conditionally
+geom_node_label(aes(label = PBP_AA_location$position), size = 3, hjust = 0.5, vjust = 0.5, margin = margin(.1, .1, .1, .1)) +
+  #guides(fill=guide_legend(title="PBP",override.aes = list(size=5))) + 
+  theme_graph() +
+  #theme_bw()+
+   coord_fixed(ratio = 1) + 
+   scale_colour_manual(values = c("#FDBB84", "#EF6548" , "#B30000")) +
+    #theme(legend.position="bottom",legend.title = element_text(size=10, 
+    #                                  face="bold")) +
+    theme(legend.position='none') +
+    annotate("label", x = .9, y = .9, label = "PBP1A") +
+    annotate("label", x = 0, y = -1.25, label = "PBP2B")   +
+    annotate("label", x = -.9, y = .9, label = "PBP2X")   
+
+  #ggsave("spneumo_epistatic_interaction_network.jpg")
+
+
+
+```
+
+
+
+
+## Estimating Heritability 
+
+The heritability of a trait in a given population is the proportion of phenotypic variance which can be explained by the genetic variation between individuals. In other words, this parameter estimates what to what extent variation in a trait can be attributed to genetic factors, versus environmental factors or experimental error. Estimating heritability is therefore an important parameter in quantitative genetics, both in understanding the causal basis of a trait, and because it affects the capacity for that trait to evolve.
+
+Estimates of heritability can be subdivided down into broad sense heritability (H2) and narrow sense heritability (h2). 'Broad-sense' heritability is the proportion of phenotypic variance which can be explained by all genetic variation, including epistatic, dominance, or interaction effects. In contrast, 'narrow-sense' heritability is the proportion of phenotypic variance which is explained by only additive genetic variation. 
+
+Heritability can be calculated through a range of different methods, typically involving a measurement of the phenotype, alongside information of their shared genotypes and environment. 
+
+Important point:
+
+Notably, heritability is estimated using genetic sequences information rather tha AA sequences as I have done here. Additionally, heritability is usually estimated across the entire genome, rather than only using the sequence for a few relevant proteins. Where I think this may be relevant I have mentioned it in the text below.
+
+### Aims and objectives
+
+Here, I aim to estimate both broad and narrow-sense heritability for both map axes for the S. pneumoniae beta-lactam map. I then further decompose variance into components for each of the three PBP proteins i.e. how much phenotypic variation does each of the three proteins explain. 
+
+Lastly, I use the LMMs to generate genotype to phenotype predictions for the map axes.
+
+These estimates will likely be useful to include at the start of my results for chapter 3, as they give further justification on focusing only on the PBP proteins for the analysis.
+
+## Estimating heritability for each map dimension
+
+### Estimating repeatability/broad sense heritability 
+
+(text adapted from: https://cran.r-project.org/web/packages/heritability/heritability.pdf)
+
+Broad sense heritability is an estimate of the proportion of phenotypic variance which is explained by all genetic variance i.e. additive, epistatic, or interaction effects. Under certain assumptions (see below), this case be estimated by calculating the repeateability of a trait. Where a phenotypic trait is measured for a number of genetically identical replicates, the repeatability (or intra-class correlation) of that trait can be estimated using the following calculation:
+
+(V_g / (V_g + V_e))
+
+where (V_g = (MS(G) - MS(E)) / r) and (V_e = MS(E)). Here, (r) is the number of replicates per genotype (in this case PBP type), and (MS(G)) and (MS(E)) are the mean sums of squares for each PBP type and residual error obtained from an analysis of variance. 
+
+These estimates of repeatability are not strictly the same as broad sense heritability. However, under the assumption that all differences between PBP types are genetic, repeatability equals broad-sense heritability. If isolates were measured in different environments or there were other confounding factors, the repeatability only provides an upper-bound for broad-sense heritability. In this case, since the bacterial isolates were measured in the same conditions , we would expect the differences between to be purely genetic. In practice, athough the isolates were measured using the same assay under the same conditions, there may have been differences across labs, suggesting these estimates can be taken as an upper limit only.
+
+
+```{r, echo = F}
+
+PBP_types <- AA_matrix_phenotype %>% 
+    select(PBP1A_T371:PBP2X_V587) %>% 
+    unite("PBPtype", 1:914, remove = TRUE)  %>%
+    mutate(PBPtype = factor(PBPtype))
+  
+
+H2_map_V1 <- repeatability(AA_matrix_phenotype$D1, PBP_types$PBPtype, line.repeatability = FALSE,
+              covariates.frame = data.frame())
+H2_map_V1
+
+print("Broad sense heritability (repeatability) - map axis one: 0.976, 95% conf int: 0.972-0.979, Residual variance: 0.008")
+
+H2_map_V2 <- repeatability(AA_matrix_phenotype$D2, PBP_types$PBPtype, line.repeatability = FALSE,
+              covariates.frame = data.frame())
+H2_map_V2
+
+print("Broad sense heritability (repeatability) - map axis two: 0.958, 95% conf int: 0.952-0.964, Residual variance: 0.007")
+
+```
+
+Here, broad sense heritability estimates (repeatability) were very high for both axes (>95%). This suggests that most of the phenotypic variation on both axes can potentially be explained by genetic variation across the PBPs. This makes sense given the results of the clustering and LMM analyses, as well as the results from the in vitro work in the literature. Very little of the total phenotypic variation across either axis was explained by residual variance (i.e. noise). 
+
+For both axes, a small proportion of phenotypic variation could not be explained by genetic variation (Map axis 1: 0.017, map axis 2: 0.035). This remaining variation may be explained by variation in other areas of the genome or isolates which were mislabelled. 
+
+### Estimating narrow sense heritability
+
+As mentioned above, narrow sense heritability is the proportion of variance which is explained by additive genetic variance only. 
+
+LMMs are one class of models which can be used to estimate narrow sense heritability. LMMs decompose variation in a phenotype into the variance explained by fixed effects of genetic markers, random effects of genetic relatedness, and random error.
+
+Traditionally, LMMs have used pedigree information to estimate narrow sense heritability, particularly in the context of animal breeding. However, the LIMIX package allows for more complex genetic covariance structures based on similarity between genetic sequences (or AA sequences in this case. LMMs use the covariance matrix to model the effect of additve genetic variation as a random effect using maximum likelihood estimation. This allows the effect of genetic variation on the phenotype to be estimated as a random effect. The proportion of the total phenotypic variation explained by the additive genetic factors is then estimated as the narrow sense heritability. For more detail see:
+
+https://www.ebi.ac.uk/sites/ebi.ac.uk/files/shared/documents/phdtheses/Casale-Thesis.pdf
+
+https://www.biorxiv.org/content/10.1101/003905v2.full.pdf 
+
+Narrow sense heritability estimates for each axis were moderate, yet broadly in line with previously published estimates for beta-lactam resistance in S. pneumoniae, albeit slightly lower (typically 0.7-0.8). However, as mentioned above, here I have only considered variation at a small portion of the genome, and used AA sequences rather than genetic sequences. For both of these reasons we might expect a lower proportion of the total phenotype variation to be explained. 
+
+
+```{r, echo = F}
+print("Narrow sense heritability - Map axis 1: 0.746")
+print("Narrow sense heritability - Map axis 2: 0.597")
+
+```
+
+As expected, estimates of narrow sense heritability for each axis are much lower than for than broad sense heritability. This suggests that a substantial portion of the total phenotypic variation may be explained by non additve effects (i.e. epistatic or interaction effects between loci). This makes sense in the context of the results from the LMMs, where I found there were potentially a large number of epistatic effects between PBP loci. 
+
+## Per PBP protein variance decomposition. 
+
+I then wanted to estimate the contribution of each PBP protein to phenotypic variation on each map axis, to better understand the relative importance of variation across the three proteins. Here, the narrow sense heritability is further decomposed into phenotype variation explained by genetic variation for each of the three proteins. 
+
+LMMs model the effect of genetic variation at each protein as a random effect using maximum likelihood estimation. This allows the narrow sense heritability to be decomposed into multiple subsets (i.e. the three proteins) as well as a noise component, by including each as a random effect. These models decompose the narrow sense heritability estimate, i.e of the proportion of phenotypic variance explained by additive genetic variation, what proportion of that is explained by variation in each PBP.
+
+I found that for both axes, of the phenotypic variation that could be explained by additive genetic variation, most of this variation could be explained by variation in the PBP2X protein. While this was true for map axis 1 and 2, a slightly larger relative proportion of the variation on axis 2 could be attributed to variation in the 1A and 2b proteins. 
+
+This suggests that the 2X protein is the dominant contributor to variation in beta-lactam phenotypes, which agrees with the previous work I have done, along with other in vitro and computational work in this system. 
+
+Noise for each axis could also be estimated using this method. While the estimates of variation explained by noise using this method was larger than the broad-sense heritability estimates, they were still low (<3%).
+
+```{r, echo = F}
+
+PBPs <- c("PBP1A","PBP2B","PBP2X","Noise")
+explained_variance_axis_1 <- c(11.898263672528143, 11.022279489705223, 75.95880731721752, 1.1206495205491118)
+explained_variance_axis_2 <- c(18.186864815389185, 17.723311873243873, 61.29063344332075, 2.7991898680461773)
+
+Variance_decomp <- as.data.frame(cbind(PBPs,explained_variance_axis_1, explained_variance_axis_2))
+
+Variance_decomp$explained_variance_axis_1 <- as.numeric(Variance_decomp$explained_variance_axis_1)
+Variance_decomp$explained_variance_axis_2 <- as.numeric(Variance_decomp$explained_variance_axis_2)
+#Variance_decomp <- filter(Variance_decomp, PBPs != "Noise")
+
+table <- Variance_decomp
+colnames(Variance_decomp) <- c("Variance component","Proportion variation explained - Axis 1 (%)","Proportion variation explained - Axis 2 (%)")
+
+  kbl(Variance_decomp, escape =F)  %>% 
+  kable_classic(full_width = F, html_font = "Cambria") #%>%
+  #add_header_above(c(" " = 1, "Map axes" = 4))#, "Map axis 2" = 3))
+  
+```
+
+
+### Map axis 1
+
+```{r, echo = F}
+  ggplot(Variance_decomp, aes(x=PBPs, y = explained_variance_axis_1, fill = PBPs))  + 
+ geom_bar(stat="identity") +
+      theme_bw()  +
+  labs( x = "Component", y = "Proportion variation explained - Axis 1 (%)") +
+        scale_y_continuous(limits = c(0,100),  breaks=seq( 0,100, 10)) +
+  scale_fill_brewer(palette = "Set1")
+
+```
+
+### Map axis 2
+
+```{r, echo = F}
+ggplot(Variance_decomp, aes(x=PBPs, y = explained_variance_axis_2, fill = PBPs))  + 
+ geom_bar(stat="identity") +
+      theme_bw()  +
+  labs( x = "Component", y = "Proportion variation explained - Axis 2 (%)") +
+        scale_y_continuous(limits = c(0,100),  breaks=seq( 0,100, 10)) +
+  scale_fill_brewer(palette = "Set1")
+
+
+```
+
+## Genotype-phenotype predictions
+
+### Best Linear Unbiased Predictor (BLUP)
+LMMs can be trained and used to predict phenotypes from genotypes. To do this, LMMs need to be trained on a set of 'in-sample' data, before being used to predict the phenotype of the 'out-of-sample' data. Typically, the LMMs estimate the effect of genetic covariation between isolates as a random effect, alongside an estimate for noise. Where the phenotype of the out of sample individuals is not known, the parameters for the genetic and noise variance parameters are learned using only the in-sample individuals. The similarity (genetic covariance) between the out of sample and in sample individuals can then be used to predict the out-of-sample phenotypes. 
+
+This method is known as best linear unbiased predictor, and is typically used in animal breeding. 
+ 
+### Accuracy of BLUP predictions
+
+Here, I used a four fold-cross validation scheme. For now however, I have only run the model for one fold (i.e. 20% of the data). I removed this 20% of the isolates (724 of 3620 isolates), trained the model on the remaining 80%, and predicted the phenotypes for each axis for the out of sample isolates. 
+
+Here, I estimated BLUP predictions for out-of-sample isolates for each map axis. I then calculated the euclidean distance between the prediction and that isolates 'true' position on the map. I plotted these distances as a histogram, where the x axis shows the distance to the true values in log2 MIC units. 
+
+Here, most of the predictions were less than 1 log MIC unit away from their true value, with most of these predictions less than 0.5 units away. Mean prediction error in MIC units was 0.345 (marked in red on plot), while the median distance was 0.068 (marked in blue). 90% of predictions were within 1 log fold of their true value, with 98.1% of predictions within 2 log fold dilutions. It is difficult to directly compare these results to the Random forest method used by the CDC, as here, the error is aggregated across 6 antibiotics rather than each drug individually. However, the predictions do seem to be of similar accuracy between the two methods. Next step will be to more quantitatively compare the two methods in their predictions. I can get the MIC values for the isolate predictions from the map and test these against the raw MIC values. 
+
+Notably however, in most cases, the most accurate predictions were for those with the threshold values in the bottom left of the map (see below). This is an issue which seems to affect both this method and the random forest CDC method, as predicting the numeric MIC values is more difficult than predicting that they are simply below a threshold. It may be possible to further improve these predictions by incorporating the fixed effects of important alleles. 
+
+
+```{r, echo =F}
+
+setwd("/Users/ajb306/PycharmProjects/pythonProject1/")
+
+#### reading in p-values and effect sizes === Dimension 2 (y axis)
+blups_predictions_fold_1 <- read.csv(file = 'blups_predictions_fold_1.csv')
+blups_predictions_fold_1 <- blups_predictions_fold_1[,2:7]
+
+
+colnames(blups_predictions_fold_1) <- c('fold_1_test_D1', 'fold_1_test_D2', 'predictions_D1', 'SE_D1','predictions_D2', 'SE_D2')
+
+blups_predictions_fold_1$fold_1_test_D1 <- blups_predictions_fold_1$fold_1_test_D1 / slope
+blups_predictions_fold_1$fold_1_test_D2 <- blups_predictions_fold_1$fold_1_test_D2 / slope
+blups_predictions_fold_1$predictions_D1 <- blups_predictions_fold_1$predictions_D1 / slope
+blups_predictions_fold_1$SE_D1 <- blups_predictions_fold_1$SE_D1 / slope
+blups_predictions_fold_1$predictions_D2 <- blups_predictions_fold_1$predictions_D2 / slope
+blups_predictions_fold_1$SE_D2 <- blups_predictions_fold_1$SE_D2 / slope
+
+
+   blups_predictions_fold_1 <- blups_predictions_fold_1 %>% 
+     mutate(
+       distance_to_prediction = sqrt((fold_1_test_D1 -predictions_D1)^2 + (fold_1_test_D2-predictions_D2)^2)  )
+
+   
+#ggplot(blups_predictions_fold_1, aes(x=distance_to_prediction)) + 
+# geom_histogram( colour="black", fill="white") +
+#  geom_vline(aes(xintercept=1),
+ #           color="black", linetype="dashed", size=1)
+# geom_density(alpha=.2, fill="#FF6666") 
+
+slope <-  1
+map_coords$D1 <- map_coords$D1 / slope
+map_coords$D2 <- map_coords$D2 / slope
+
+blups_predictions_fold_1 <- blups_predictions_fold_1 %>% mutate(Major_errors = ifelse(distance_to_prediction > 2, "Major error (>2 units)", "<= 2 MIC units"))
+
+ggplot(blups_predictions_fold_1, aes(x=distance_to_prediction)) + 
+ geom_histogram(fill = "white", colour="black" ,bins = 50) +
+  #geom_vline(aes(xintercept=2),
+            #color="black", linetype="solid", size=1) +
+   geom_vline(aes(xintercept=mean(distance_to_prediction)),
+            color="red", linetype="dashed", size=1) +
+    geom_vline(aes(xintercept=median(distance_to_prediction)),
+            color="blue", linetype="dashed", size=1) +
+    labs( x = "Euclidean distance to prediction") + 	
+
+  scale_x_continuous( breaks=seq( 0,12, 1)) +
+  #scale_x_continuous(limits = c(0,12), breaks=seq( 0,12, 1)) +
+    theme_bw()  
+  
+
+#print("Mean prediction error in MIC units was 0.345")
+#print("Median prediction error in MIC units was 0.068")
+
+#mean(blups_predictions_fold_1$distance_to_prediction)
+#median(blups_predictions_fold_1$distance_to_prediction)
+  
+prop <- blups_predictions_fold_1 %>% 
+group_by(Major_errors) %>%
+  summarise(n = n()) %>%
+  mutate(freq = n / sum(n))
+```
+
+### Visualising genotype-phenotype predictions on the map
+
+Below I have plotted the predictions on the map. Here, the large points represent the out-of-sample isolates, while the crosses mark the in-sample isolates used to train the model. The darker crosses represent many overlapping isolates. The black points represent the 'true' values of a given isolate on the map, while the red points show the prediction for that isolate based on genotype. The two points are connected by grey lines, showing the distance between an isolates true value and its prediction. 
+
+In the plot below I have only plotted the isolates with prediction error of <= 2 MIC units to make the comparisons clearer. The predictions appear to be accurate across all areas of the map, although as mentioned the lower threshold values on the bottom left of the map are typically the most accurate. 
+
+```{r, echo = F}
+ggplot(blups_predictions_fold_1, aes(x=fold_1_test_D1, y=fold_1_test_D2)) + 
+  geom_point(data = map_coords, aes(x=D1, y=D2), shape = 4, fill = "grey", size = 2, alpha = 0.6)+
+    geom_segment(data = filter(blups_predictions_fold_1, distance_to_prediction <= 2), aes(x = fold_1_test_D1, y = fold_1_test_D2, xend = predictions_D1, yend = predictions_D2), size = .75, colour = "grey") + 
+  geom_point(data = filter(blups_predictions_fold_1, distance_to_prediction <= 2), shape= 21, fill = "black", size = 3.5, colour = "white") + 
+  geom_point(data = filter(blups_predictions_fold_1, distance_to_prediction <= 2), aes(x=predictions_D1, y=predictions_D2), shape = 21, fill = "red", size = 3.5, colour = "white") +
+  #scale_y_continuous(limits = c( 0,10), breaks=seq( 0,10, 1)) +
+  #scale_x_continuous(limits = c( 0,10), breaks=seq( 0,10, 1)) +
+  theme_bw() +   
+  scale_x_continuous(limits = c(min(map_coords$D1, na.rm = T), max(map_coords$D1, na.rm = T)+ slope/2), breaks=seq(min(map_coords$D1, na.rm = T), max(map_coords$D1, na.rm = T) + slope,  slope))   +
+  scale_y_continuous(limits = c(min(map_coords$D2, na.rm = T), max(map_coords$D2, na.rm = T)+ slope/2), breaks=seq(min(map_coords$D2, na.rm = T), max(map_coords$D2, na.rm = T) + slope,  slope)) +
+  labs(title ="") +
+  labs( x = "MDR distance", y = "MDR distance") + 	
+  theme(axis.text=element_text(size=16), 
+        axis.title=element_text(size=16), 
+        panel.grid.major = element_line(colour="grey", size = (0.3)),
+        panel.grid.minor = element_blank(),
+        axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y = element_blank()) +
+  coord_fixed() #+
+ # geom_abline(intercept = 0, slope = 1) +
+  #geom_abline(intercept = 1, slope = 1, linetype = "dashed") +
+  #geom_abline(intercept = -1, slope = 1, linetype = "dashed")
+```
+
+### Predictions >=2 log fold dilutions 
+I then plotted the predictions which were >=2 log fold dilutions (1.9%). In these cases, the isolates were obviously much further from their predictions. However, the isolates and their predictions were evently spread across the map, suggesting the model is not generating weaker predictions for a particular area of the map. 
+
+In several of these cases I have looked into other isolates of the same PBP genotype, and often the isolates with weak predictions appear to be those which are strongly different from other isolates with the same PBP genotype. This may mean these are more likely to be mistakes or mislabelling of isolates in the dataset, or perhaps that other areas of the genome are causing these isolates to have different phenotypes. 
+
+```{r, echo = F}
+ggplot(blups_predictions_fold_1, aes(x=fold_1_test_D1, y=fold_1_test_D2)) + 
+  geom_point(data = map_coords, aes(x=D1, y=D2), shape = 4, fill = "grey", size = 2, alpha = 0.6)+
+    geom_segment(data = filter(blups_predictions_fold_1, distance_to_prediction >= 2), aes(x = fold_1_test_D1, y = fold_1_test_D2, xend = predictions_D1, yend = predictions_D2), size = .75, colour = "grey") + 
+  geom_point(data = filter(blups_predictions_fold_1, distance_to_prediction >= 2), shape= 21, fill = "black", size = 3.5, colour = "white") + 
+  geom_point(data = filter(blups_predictions_fold_1, distance_to_prediction >= 2), aes(x=predictions_D1, y=predictions_D2), shape = 21, fill = "red", size = 3.5, colour = "white") +
+  #scale_y_continuous(limits = c( 0,10), breaks=seq( 0,10, 1)) +
+  #scale_x_continuous(limits = c( 0,10), breaks=seq( 0,10, 1)) +
+  theme_bw() +   
+  scale_x_continuous(limits = c(min(map_coords$D1, na.rm = T), max(map_coords$D1, na.rm = T) + slope/2), breaks=seq(min(map_coords$D1, na.rm = T), max(map_coords$D1, na.rm = T) + slope,  slope))   +
+  scale_y_continuous(limits = c(min(map_coords$D2, na.rm = T), max(map_coords$D2, na.rm = T) + slope/2), breaks=seq(min(map_coords$D2, na.rm = T), max(map_coords$D2, na.rm = T) + slope,  slope)) +
+  labs(title ="") +
+  labs( x = "MDR distance", y = "MDR distance") + 	
+  theme(axis.text=element_text(size=16), 
+        axis.title=element_text(size=16), 
+        panel.grid.major = element_line(colour="grey", size = (0.3)),
+        panel.grid.minor = element_blank(),
+        axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y = element_blank()) +
+  coord_fixed() #+
+ # geom_abline(intercept = 0, slope = 1) +
+
+```
+
+### Residuals and position on both axes
+
+I then wanted to estimate the r2 values for the predictions on both axes, to quantify how well the predictions are matching the true values. Below is the summary of a linear model for the true values for the 'out of sample' isolates on map axis 1 against their predictions for that axis. I then did the same for axis two. 
+
+For map axis one, the r squared value was 0.9645, and for axis 2 it was 0.9372. In both cases, these values were approaching the broad-sense heritability estimates for these axes (99% and 98% respectively). This suggests that the model is doing a good job at predicting the positions of the isolates on each axis. These values are broadly similar to the results of the CDC random forest method. 
+
+I then plotted the residuals and standardised residuals for the true values on the x axis against their predictions. Looking at the standardised residuals, the isolates at the far left of the x axis on the map have much lower prediction error, as noted by the curved red line on this plot. This suggests the models fit the threshold values most accurately, perhaps due to the larger number of them.
+
+
+```{r, echo = F}
+
+lmMod <- lm(fold_1_test_D1 ~ predictions_D1, data=blups_predictions_fold_1)
+#summary(lmMod)
+par(mfrow=c(1,2)) # init 4 charts in 1 panel
+plot(lmMod, which=c(1,3)) 
+
+#lmtest::bptest(lmMod)  # Breusch-Pagan test
+#car::ncvTest(lmMod) 
+
+```
+
+The same is true on the predictions for the y axis:
+
+```{r, echo = F}
+
+lmMod <- lm(fold_1_test_D2 ~ predictions_D2, data=blups_predictions_fold_1)
+#summary(lmMod)
+par(mfrow=c(1,2)) # init 4 charts in 1 panel
+plot(lmMod, which=c(1,3)) 
+
+
+#lmtest::bptest(lmMod)  # Breusch-Pagan test
+#car::ncvTest(lmMod) 
+```
+
+
+```{r, echo = F, include = F}
+ggplot(blups_predictions_fold_1, aes(x=fold_1_test_D1, y=predictions_D1)) + 
+    geom_point() + 
+  scale_y_continuous(limits = c( 0,15), breaks=seq( 0,15, 1)) +
+  scale_x_continuous(limits = c( 0,15), breaks=seq( 0,15, 1)) +
+  theme_bw()  +
+  geom_abline(intercept = 0, slope = 1) +
+  geom_abline(intercept = 1, slope = 1, linetype = "dashed") +
+  geom_abline(intercept = -1, slope = 1, linetype = "dashed")
+```
+  
+```{r, echo = F, include =F}
+
+ggplot(blups_predictions_fold_1, aes(x=fold_1_test_D2, y=predictions_D2)) + 
+    geom_point() + 
+  scale_y_continuous(limits = c( 0,10), breaks=seq( 0,10, 1)) +
+  scale_x_continuous(limits = c( 0,10), breaks=seq( 0,10, 1)) +
+  theme_bw() +
+  geom_abline(intercept = 0, slope = 1) +
+  geom_abline(intercept = 1, slope = 1, linetype = "dashed") +
+  geom_abline(intercept = -1, slope = 1, linetype = "dashed")
+
+
+```
+

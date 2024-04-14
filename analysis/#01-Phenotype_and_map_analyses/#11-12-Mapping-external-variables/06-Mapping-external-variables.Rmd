@@ -1,0 +1,344 @@
+---
+title: "06-Mapping-external-variables"
+author: "Andrew Balmer"
+date: "2023-12-22"
+output: html_document
+---
+
+# ========= Aim of this document
+AMRC plots can be communicate more information by mapping the original variables onto the plots. This can be done in different ways, such as by colouring isolate points and or by mapping external variables as biplot vectors. The maps can also be rotated to convey information on the external variables. The plots can also be dilated to an appropriate scale to convey additional information on the scale. 
+
+```{r setup, include=FALSE}
+
+# Clear the workspace
+remove(list = ls())
+
+# Load required packages
+library(tidyverse)     # For data manipulation and visualization
+library(smacof)        # For multidimensional scaling
+library(RColorBrewer)  # For color palettes
+library(calibrate)     # For calibration
+library(ggExtra)       # For marginal histograms
+library(ggdensity)     # For density distrbutions
+
+# Set the working directory
+setwd("/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#11-12-Mapping-external-variables/results")
+
+# Read the MIC table data
+tablemic <- read.csv("/Users/ajb306/AMR-cartography/data/MIC_table_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+
+# Read in the relevant meta data
+tablemic_meta <- read.csv("/Users/ajb306/AMR-cartography/data/meta_data_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+
+# Specify the full path to the data file
+phen_map <- "/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#03-06-Generating-phenotype-and-genotype-maps/results/Spneumo_3628_PCA_start_2D_METRIC.RData"
+
+# Load the precomputed PCA start 2D metric data
+load(phen_map)
+
+```
+
+   
+### ========= Rotating and dilating the maps
+
+In order to properly interpret the map, they need to be rotated and dilated to an appropriate scale (i.e. 1 unit on the map should equal 1 MIC unit in the assay). As MDS is only concerned with finding the optimal pairwise distances between points, their rotation and dilation can be adjusted as needed. To dilate the maps to an interpretable scale, we used the slope of the relationship between the pairwise table distances and the pairwise distances on the map (see #05-Estimating-goodness-of-fit for meore information). The borders of the plots were chosen to correspond to the range of dilutions tested for the different drugs (see below).
+
+```{r, echo = F}
+
+# Convert torg_met[[1]] and torg_met[[3]] to tibbles and set column names
+table_distances <- as_tibble(as.matrix(torg_met[[1]]))
+map_distances <- as_tibble(as.matrix(torg_met[[3]]))
+colnames(map_distances) <- colnames(table_distances)
+
+# Reshape data using gather function
+table_distances <- gather(table_distances, "antibiotic", "table_distance", 1:nrow(tablemic)) 
+map_distances <- gather(map_distances, "antibiotic", "map_distance", 1:nrow(tablemic))
+
+# Combine table_distances and map_distances into a single tibble
+distances <- bind_cols(table_distances, map_distances)
+
+# Convert distances to numeric
+distances$table_distance <- as.numeric(distances$table_distance)
+distances$map_distance <- as.numeric(distances$map_distance)
+
+# Fit linear model and display summary
+mapvtable <- lm(map_distance ~ table_distance, data = distances)
+summary(mapvtable)
+
+# Perform Pearson correlation test
+cor.test(distances$table_distance, distances$map_distance, method = "pearson")
+
+# Extract slope and calculate dilation factor
+slope <- as.numeric(coef(mapvtable)[2])
+dilation <- 1 / slope
+slope
+colnames(torg_met$conf) <- c("D1", "D2")
+
+# Apply dilation to each column in torg_met$conf
+for (i in 1:ncol(torg_met$conf)) {
+  torg_met$conf[, i] <- torg_met$conf[, i] * dilation
+}
+
+# Rotate configuration by 326 degrees
+theta <- 326 * pi / 180 ## degrees to radians
+rot <- matrix(c(cos(theta), sin(theta), -sin(theta), cos(theta)), ncol = 2)
+torg_met$conf <- torg_met$conf %*% rot ## rotated configurations
+
+# Separate just the phenotype map coordinates
+phen_map <- as_tibble(torg_met$conf) %>%
+  rename(D1 = V1,
+         D2 = V2)
+
+```
+### Basic plot
+Next we can bring that together into a single plot, where the map is rotated and dilated to an appropriate scale. The gridlines now represent a single MIC dilution in any direction. The opacity (alpha) of points can also be used to show overlapping points.
+
+```{r, echo = F}
+
+# Custom theme function
+AMRC_phen_theme <- function() {
+  theme(
+    panel.grid.major = element_line(colour = "grey", size = 0.3),
+    panel.grid.minor = element_blank(),
+    axis.title.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.title.y = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text = element_text(size = 10, color = "black"),
+    axis.title = element_text(size = 12, color = "black"),
+    legend.text = element_text(size = 10, color = "black"),
+    legend.title = element_text(size = 12, color = "black")
+  )
+}
+
+ggplot(phen_map, aes(x = D1, y = D2)) +
+  geom_point(shape = 21, size = 3, alpha = 0.6, fill = "#377EB8") +
+  theme_linedraw() +
+  scale_y_continuous(limits = c(min(phen_map$D2), max(phen_map$D2)),
+                     breaks = seq(min(phen_map$D2), max(phen_map$D2) + 1, 1)) +
+  scale_x_continuous(limits = c(min(phen_map$D1), max(phen_map$D1)),
+                     breaks = seq(min(phen_map$D1), max(phen_map$D1) + 1, 1)) +
+    AMRC_phen_theme() +
+    coord_fixed()
+
+
+```
+
+# ========= Mapping external variables using colour
+One simple way of including original variables on the map is to use colour. Here, I have included original values for the four antibiotics on the map. Other variables can also be mapped, such as MLST or serotype.
+
+```{r, echo = F}
+
+# adjust tablemic_meta to include threshold values
+tablemic_meta <- tablemic_meta %>% 
+  mutate(
+    Penicillin = ifelse(grepl("^(0.03|64)$", Penicillin),
+                         recode(Penicillin, `0.03` = "<=0.03", `64` = ">=64"),
+                         Penicillin),
+    Amoxicillin = ifelse(grepl("^(0.03|16)$", Amoxicillin),
+                          recode(Amoxicillin, `0.03` = "<=0.03", `16` = ">=16"),
+                          Amoxicillin),
+    Meropenem = ifelse(grepl("^(0.06|2)$", Meropenem),
+                        recode(Meropenem, `0.06` = "<=0.06", `2` = ">=2"),
+                        Meropenem),
+    Cefotaxime = ifelse(grepl("^(0.06|16)$", Cefotaxime),
+                         recode(Cefotaxime, `0.06` = "<=0.06", `16` = ">=16"),
+                         Cefotaxime),
+    Ceftriaxone = ifelse(grepl("^(0.5|8)$", Ceftriaxone),
+                          recode(Ceftriaxone, `0.5` = "<=0.5", `8` = ">=8"),
+                          Ceftriaxone),
+    Cefuroxime = ifelse(grepl("^(0.5|4)$", Cefuroxime),
+                         recode(Cefuroxime, `0.5` = "<=0.5", `4` = ">=4"),
+                         Cefuroxime)
+  )
+
+# Common ggplot settings
+common_ggplot_settings <- function(plot) {
+  plot + AMRC_phen_theme() +
+  coord_fixed() +
+  scale_y_continuous(
+    limits = c(min(phen_map$D2), max(phen_map$D2)),
+    breaks = seq(min(phen_map$D2), max(phen_map$D2)+1, 1)
+  ) +
+  scale_x_continuous(
+    limits = c(min(phen_map$D1), max(phen_map$D1)),
+    breaks = seq(min(phen_map$D1), max(phen_map$D1)+1, 1)
+  )
+}
+
+# Create phenotype map with associated meta data attached
+phen_map <- bind_cols(phen_map, tablemic_meta)
+
+# Function to create a plot for a specific antibiotic
+create_antibiotic_plot <- function(data, antibiotic) {
+  plot <- ggplot(data, aes(x = D1, y = D2, fill = as.factor({{ antibiotic }}))) +
+    geom_point(shape = 21, size = 3, alpha = 0.6) +
+    theme_linedraw() +
+    labs(fill = sprintf("%s MIC (ug/ml)", colnames(data)[which(colnames(data) == deparse(substitute(antibiotic)))]) ) +
+    coord_fixed()
+
+  plot <- common_ggplot_settings(plot)
+  return(plot)
+}
+
+# Create plots for each antibiotic
+penicillin_plot <- create_antibiotic_plot(phen_map, Penicillin)
+amoxicillin_plot <- create_antibiotic_plot(phen_map, Amoxicillin)
+meropenem_plot <- create_antibiotic_plot(phen_map, Meropenem)
+cefotaxime_plot <- create_antibiotic_plot(phen_map, Cefotaxime)
+ceftriaxone_plot <- create_antibiotic_plot(phen_map, Ceftriaxone)
+cefuroxime_plot <- create_antibiotic_plot(phen_map, Cefuroxime)
+
+# Plot Penicillin MIC
+penicillin_plot
+
+# Arrange the plots one after the other
+gridExtra::grid.arrange(penicillin_plot, amoxicillin_plot, meropenem_plot,
+                        cefotaxime_plot, ceftriaxone_plot, cefuroxime_plot, nrow = 3, ncol = 2)
+
+```
+
+```{r,echo = F}
+# Duplicate the original tablemic data
+tablemic_rescaled <- tablemic
+
+# Rename the columns of the duplicated tablemic for better readability
+colnames(tablemic_rescaled) <- c("Penicillin_scaled", "Amoxicillin_scaled", "Meropenem_scaled",
+                                  "Cefotaxime_scaled", "Ceftriaxone_scaled", "Cefuroxime_scaled")
+
+# Rescale each column to a new range
+for (i in 1:ncol(tablemic_rescaled)) {
+  tablemic_rescaled[, i] <- (tablemic_rescaled[, i] + (-(min(tablemic_rescaled[, i], na.rm = TRUE)))) + 1
+}
+
+# Combine the rescaled tablemic with phen_map
+phen_map <- as.data.frame(cbind(phen_map, tablemic_rescaled))
+tablemic_rescaled <- NULL  # Remove the rescaled tablemic to save memory
+
+# Calculate the mean_titre column as the row mean of columns 11 to 16 in phen_map
+phen_map <- phen_map %>%
+  mutate(mean_titre = rowMeans(phen_map[, 11:16], na.rm = TRUE))
+
+# Create a ggplot with a marginal histogram
+p <- ggplot(phen_map, aes(x = D1, y = D2)) +
+  geom_hdr(aes(fill = after_stat(probs)),
+           probs = c(0.95, 0.8, 0.6),
+           size = .1,
+           alpha = 0.6) +
+  geom_point(aes(x = D1, y = D2, colour = mean_titre), shape = 16, alpha = 1, size = 4) +
+  geom_point(aes(x = D1, y = D2), shape = 21, alpha = 1, size = 4) +
+  scale_colour_gradient(low = "yellow", high = "red") +
+  theme_linedraw() +
+  theme(legend.background = element_rect(fill = "white",
+                                         size = 0.25, linetype = "solid",
+                                         colour = "black"),
+        legend.position = c(0.8, 0.2)) +
+  guides(size = "none", fill = "none", color = guide_legend(title = "Mean MIC")) +
+  scale_fill_manual(values = c("skyblue2", "orange", "firebrick1"))
+
+# Create a marginal histogram with ggMarginal and save the final plot
+p1 <- ggMarginal(common_ggplot_settings(p), size = 10, fill = "#E41A1C", alpha = 0.75, type = "histogram")
+p1
+
+# Save the final plot as an image
+ggsave("Mean_MIC_spneumo_phen_distribution.jpg")
+
+```
+
+
+
+# ========= Calibrated Biplot vectors
+An additional option is to use Biplot vectors to map the external variables onto the plot. Here I have used the 'calibrate' package in R. This program calibrates variable vectors in biplots and scatterplots, by drawing tick marks along a given the vector and labelling the tick marks with specified values. The optimal calibration is found by (generalized) least squares. Here, I have fit the calibrated vectors only using the numeric values, not those which were thresholded values. 
+
+Importantly, MIC values are a mixture of metric and non-metric (rank) information. This is because in many cases, the values are only measured up to a defined threshold (e.g. => 2ug/ml). It makes sense that samples with threshold values should be treated differently when defining the biplot vectors. As the vectors use least squares, using both rank and metric measurements to define the vector would distort the calibration. 
+
+Here the vectors show the points which had numeric titres for that drug and their calibrated axis.
+
+```{r, echo=FALSE}
+# Rescale each column of the tablemic dataframe
+Z <- tablemic
+
+for (i in 1:ncol(Z)) {
+  Z[, i] <- (Z[, i] + (-(min(Z[, i], na.rm = TRUE)))) + 1
+}
+
+# Extract relevant coordinates from phen_map
+map_coords <- as.data.frame(phen_map[, 1:2])
+
+# Combine coordinates with the first column of Z
+x <- drop_na(cbind(map_coords, Z[, 1]))
+
+# Plot the data points with rescaled color based on the first column of Z
+plot(x[, 1],
+  x[, 2],
+  pch = 19,
+  cex = 0.5,
+  xlab = expression(x[1]),
+  xlim = c(min(map_coords[, 1]), max(map_coords[, 1])),
+  ylim = c(min(map_coords[, 2]), max(map_coords[, 2])),
+  ylab = expression(x[2]),
+  asp = 1,
+  col = x[, 3]
+)
+
+# Calculate the mean of the coordinates and mark the origin
+m <- apply(x[, 1:2], 2, mean)
+origin(m)
+
+# Center the data and fit a linear model
+Xc <- scale(x, center = TRUE, scale = FALSE)
+b <- solve(t(Xc[, c(1, 2)]) %*% Xc[, c(1, 2)]) %*% t(Xc[, c(1, 2)]) %*% Xc[, 3]
+yc <- scale(x[, 3], scale = FALSE)
+
+# Define a sequence of Penicillin values
+tmc_Penicillin <- seq(min(Z$Penicillin, na.rm = TRUE), max(Z$Penicillin, na.rm = TRUE), by = 1) - mean(Z$Penicillin, na.rm = TRUE)
+
+# Calibrate the model
+Calibrate.X5 <- calibrate(b, yc, tmc_Penicillin, Xc[, c(1, 2)], tmlab = levels(as.factor(tablemic$Penicillin)), m = m, tl = 0.1, axislab = "PEN", labpos = 4, cex.axislab = 1)
+
+# Convert the calibrated results to a tibble
+calibrated_pen <- as_tibble(Calibrate.X5$Mn)
+
+
+# Calculate slope of the original line
+slope_original <- (max(calibrated_pen$V2) - min(calibrated_pen$V2)) / (max(calibrated_pen$V1) - min(calibrated_pen$V1))
+
+# Calculate the negative reciprocal slope for the orthogonal line
+slope_orthogonal <- -1 / slope_original
+
+# Define a point of intersection
+intersection_point <- c(x = 1.07970346, y = 5.6923814)  # the clinical breakpoint of penicillin is 2ug/ml
+
+# Calculate the y-intercept for the orthogonal line
+intercept_orthogonal <- intersection_point[2] - slope_orthogonal * intersection_point[1]
+
+# Create a ggplot object
+ggplot(phen_map, aes(x = D1, y = D2)) +
+  geom_abline(slope = slope_orthogonal, intercept = intercept_orthogonal, linetype = "solid", color = "red") +
+  geom_point(aes(fill = as.factor(Penicillin)), shape = 21, size = 3, alpha = 0.6) +
+  theme_linedraw() +
+  geom_segment(aes(x = min(calibrated_pen$V1), y = min(calibrated_pen$V2), 
+                   xend = max(calibrated_pen$V1), yend = max(calibrated_pen$V2)), colour = "black") +
+  geom_point(data = calibrated_pen, aes(x = V1, y = V2), shape = 16, size = 2) +
+  
+  geom_label(data = calibrated_pen,
+             aes(x = V1 - 1, y = V2, label = c("<=0.03", "0.06", "0.12", "0.25", "0.5", "1", "2", "4", "8")),
+             fill = "white", color = "black",
+             label.padding = unit(0.2, "lines"), label.r = unit(0.2, "lines")) +
+
+  scale_y_continuous(limits = c(min(phen_map$D2), max(phen_map$D2)), breaks = seq(min(phen_map$D2), max(phen_map$D2)+1, 1)) +
+  scale_x_continuous(limits = c(min(phen_map$D1), max(phen_map$D1)), breaks = seq(min(phen_map$D1), max(phen_map$D1)+1, 1)) +
+  labs(fill = "Penicillin MIC (ug/ml)") +
+  AMRC_phen_theme() +
+  coord_fixed() +
+  scale_fill_brewer(palette = "Reds")
+
+
+ggsave("Penicillin_S_pneumo_biplot.jpg")
+
+
+```
+
+

@@ -1,0 +1,397 @@
+---
+title: "S pneumoniae phenotype map - Generating map testing start conditions"
+author: "Andrew Balmer"
+date: "03/12/2023"
+output: html_document
+---
+
+### ==== Aims and objectives of this Rmarkdown
+As MDS is an iterative method with a range of different options, is important to ensure MDS solutions represent the data accurately, and are stable to variation in the method and starting conditions used. Here, I have compared several methods to generate an initial map for the S. pneumoniae beta-lactam dataset. 
+
+This analysis uses the 3628 isolates of S. pneumoniae for 6 beta-lactam antibiotics from the CDC dataset. Although there weree 4309 solates in total in this dataset, only 3628 isolates had all MICs measured for all 6 drugs. Isolatese with MIC values missing were excluded from this and the following analysis.
+
+To run this script, you can use the entire dataset, as used for the published manuscript. However, this will take quite a long time to run the analysis in this script. I have therefore included code to run examples of the analysis using a subsample of 300 isolates. This should make it possible to run the analysis quickly to run on a laptop. 
+
+Note this script will not output the final map shown in the manuscript, as the points need to be rotated and dilated to an interpretable scale. These figures can be found in the 'Estimating goodness of fit' and 'Mapping external variables' sections of the Github repository.
+
+Lastly, this markdown will recreate the pairwise scatterplot for S. pneumoniae MIC values included in the manuscript (Supplementary figure 1).
+
+```{r setup, include=FALSE}
+
+# Clear the environment
+remove(list = ls())
+set.seed(1234)
+
+# Load required packages
+library(tidyverse)
+library(smacof)
+library(psych)
+
+# Set working directory
+setwd("/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#03-06-Generating-phenotype-and-genotype-maps/results")
+
+# Read MIC data from two CSV files
+tablemic <- read.csv("/Users/ajb306/AMR-cartography/data/MIC_table_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+
+# Generate a distance matrix for a subset of samples (for speed of use)
+#dist_pne <- dist(slice_sample(tablemic, n = 200))
+
+# However, if you would like to run the full analysis, use this line which reads in the full dist matrix
+dist_pne <- dist(tablemic)
+print(getwd())
+
+```
+
+### Pairwise scatterplot of MIC values for the 6 beta-lactam antibiotics in the S. pneumoniae dataset
+
+Here, I have simply plotted the pairwise MIC values for each drug for all isolates. Note the high number of 'threshold values' for Cefuroxime. Many isolates had MICs equal to or lower than the lowest dilution value tested for this drug.
+
+```{r, echo=FALSE}
+
+# Scatterplot of log2 MIC values with jitter
+pairs.panels(tablemic, smooth = F, ellipses = F, density = F, method = "pearson", rug = F, ci = F, jiggle = T, factor = 1, hist.col = "#377EB8")
+
+```
+
+
+## Scree plot - testing dimensionality to use
+To identify the number of dimensions which accurately capture the variation in the data, I have used the MDS algorithm to generate maps with several different dimensionalities and compared their relative 'stress'. Stress in this context is the sum of the squared residuals between points in the map compared to measured distances in the table. This provides a measure of how well fit the data is on a given representation. The lower the stress, the better the map fits the data.
+
+2 dimensions captures the majority of variation in beta-lactam resistance in the S. pneumoniae phenotype data (although 3 dimensions provides a slightly better fit). Further goodness-of fit testing will be completed in later scripts to test how well 2 dimensions capture the variation in the dataset.
+
+```{r, echo=FALSE}
+# Scree plot to identify the number of dimensions
+
+# Metric MDS with different dimensions
+stressvec <- NULL
+for (i in 1:6) 
+  stressvec[i] <- mds(dist_pne, ndim = i, init = "torgerson", modulus = 1, itmax = 1000, eps = 1e-06, type = "ratio")$stress
+save(stressvec, file="Dimensionality_test_Spneumo_3628_metric.RData")
+
+# Ordinal MDS with different dimensions
+stressvec <- NULL
+for (i in 1:6) 
+  stressvec[i] <- mds(dist_pne, ndim = i, init = "torgerson", ties = "primary", modulus = 1, itmax = 1000, eps = 1e-06, type = "ordinal")$stress
+save(stressvec, file="Dimensionality_test_Spneumo_3628_ordinal.RData")
+
+# Interval MDS with different dimensions
+stressvec <- NULL
+for (i in 1:6) 
+  stressvec[i] <- mds(dist_pne, ndim = i, init = "torgerson", modulus = 1, itmax = 1000, eps = 1e-06, type = "interval")$stress
+save(stressvec, file="Dimensionality_test_Spneumo_3628_interval.RData")
+
+# Load and process the results for ordinal MDS
+load("Dimensionality_test_Spneumo_3628_ordinal.RData")
+stressvec_ordinal <- as_tibble(stressvec) %>%
+  mutate(dimension = seq(1, 6, by = 1),
+         method = "ordinal") %>%
+  rename(stress = value)
+
+# Load and process the results for interval MDS
+load("Dimensionality_test_Spneumo_3628_interval.RData")
+stressvec_interval <- as_tibble(stressvec) %>%
+  mutate(dimension = seq(1, 6, by = 1),
+         method = "interval") %>%
+  rename(stress = value) 
+
+# Load and process the results for metric MDS
+load("Dimensionality_test_Spneumo_3628_metric.RData")
+stressvec <- as_tibble(stressvec) %>%
+  mutate(dimension = seq(1, 6, by = 1),
+         method = "metric") %>%
+  rename(stress = value) 
+
+# Combine the results for plotting
+stressvec <- bind_rows(stressvec, stressvec_ordinal, stressvec_interval)
+
+# Plotting the scree plot
+ggplot(filter(stressvec, method != "interval"), aes(x = dimension, y = stress, colour = method, shape = method, fill = "white")) + 
+  geom_line() +
+  geom_point(size = 3)+
+  theme_bw() +
+  labs(x = "Dimension", y = "Stress") +
+  scale_x_continuous(breaks = c(seq(1, 10, by = 1))) + 
+  scale_shape_manual(values = c(16, 21)) + 
+  scale_color_manual(values = c("#E41A1C", "#E41A1C", "#E41A1C")) + 
+  scale_fill_manual(values = c("white")) +
+  theme(legend.position = "none")
+
+# Calculate percentage drops between dimensions
+stressvec <- stressvec %>% pivot_wider(names_from = c(dimension), values_from = stress) 
+stressvec <- stressvec[, 1:6]
+colnames(stressvec) <- c("method", "D1", "D2", "D3", "D4", "D5", "D6")
+
+stressvec <- stressvec %>% 
+  mutate(drop_1Dto2D = round((D1 - D2) / D1 * 100, 3),
+         drop_2Dto3D = round((D2 - D3) / D1 * 100, 3),
+         drop_3Dto4D = round((D3 - D4) / D1 * 100, 3),
+         drop_4Dto5D = round((D4 - D5) / D1 * 100, 3))
+
+# Select and print the resulting dataframe
+stressvec <- stressvec %>% select(1, starts_with("drop"))
+stressvec
+
+```
+
+
+## Testing effect of different transformation assumptions
+The SMACOF algorithm offers the potential to use linear transformation of the metric distances, or use rank of measurements so the values do not translate directly into distances. This ordinal method may be useful in certain circumstances, such as where disc diffusion data included, as it only preserves the rank distances, rather than the metric values. A third option is to use a interval transformation. All three methods are plotted here and compared. Generally, metric MDS has higher stress values because it is a more strict assumption. However, provided stress is still acceptable, metric MDS is usually preferred so that the distances between isolates are directly preserved on the map. 
+
+
+```{r, echo = FALSE}
+
+# Multidimensional Scaling (MDS) with different types and dimensions
+# Metric MDS with 2 dimensions
+torg_met <- mds(dist_pne, ndim = 2, type = c("ratio"), init = "torgerson", modulus = 1, verbose = F, itmax = 1000, eps = 1e-06)
+
+# Ordinal MDS with 2 dimensions
+torg_ord <- mds(dist_pne, ndim = 2, type = c("ordinal"), ties = "secondary", init = "torgerson", modulus = 1, itmax = 1000, eps = 1e-06)
+
+# Interval MDS with 2 dimensions
+torg_int <- mds(dist_pne, ndim = 2, type = c("interval"), init = "torgerson", modulus = 1, itmax = 1000, eps = 1e-06)
+
+# Save the results into separate RData files
+save(torg_met, file="Spneumo_3628_PCA_start_2D_METRIC.RData")
+save(torg_ord, file="Spneumo_3628_PCA_start_2D_ORDINAL.RData")
+save(torg_int, file="Spneumo_3628_PCA_start_2D_INTERVAL.RData")
+
+
+```
+
+### Stress values for: metric, ordinal, and interval transformations respectively
+In all cases, stress is low, meaning the maps fit the data well. Here, the ordinal MDS has the lowest stress, but the metric MDS only has a slightly higher stress value and a very similar output, metric MDS was used for the further analyses.
+
+```{r}
+torg_met$stress
+torg_ord$stress
+torg_int$stress
+
+```
+
+On the left are the maps produced by the different methods, the plots on the right show the 'shepard' plot for each map. These show the real distances between isolates on the x axis and the distances between isolates on the map on the y axis. An r2 of 1 would equal an ideal fit and mean the data are represented perfectly. Each transformation represents the data very well. The fit of this relationship will be explored further in later scripts.
+
+
+```{r, echo = FALSE}
+
+# For each transformation:
+op <- par(mfrow = c(1,2)) # Set up the layout for the plots
+plot(torg_met, main = "Classical start metric", label.conf = list(label = FALSE)) # Plot the map
+plot(torg_met, "Shepard") # Plot the Shepard plot
+par(op) # Reset the plot layout
+
+op <- par(mfrow = c(1,2))
+plot(torg_ord, main = "Classical start ordinal", label.conf = list(label = FALSE))
+plot(torg_ord, "Shepard")
+par(op)
+
+op <- par(mfrow = c(1,2))
+plot(torg_int, main = "Classical start interval", label.conf = list(label = FALSE))
+plot(torg_int, "Shepard")
+par(op)
+
+```
+
+
+## Comparison of optimisation methods 
+The MDS algorithm operates by iteratively shifting the positions of points to reduce 'stress' - i.e. the sum of the squared residuals between points in the map compared to points in the table. Different starting positions of the points can affect the final positions of the points. Typically, one of two strategies are used to account for this. Firstly, this can be by using the output of a classical MDS (i.e. non-iterative PCoA) as the starting positions before shifting points, or by using random positions. Typically, when using random positions, many repeats are needed (i.e. ~100 or more typically) to find a good representation. 
+
+```{r,echo = F}
+### Multiple random starts
+# Initialize an empty list to store results from multiple random starts
+optimised <- NULL  
+
+# Loop for 100 random starts
+for(i in 1:100) 
+  optimised[[i]] <- mds(dist_pne, type = "ratio", ndim = 2, modulus = 1, itmax = 1000, eps = 1e-06, init = "random") 
+
+# Identify the index of the solution with the minimum stress
+ind <- which.min(sapply(optimised, function(x) x$stress))
+
+# Select the optimal solution based on minimum stress
+optimised <- optimised[[ind]]
+
+# Sort the sppwen variable in decreasing order
+sppwen <- sort(optimised$spp, decreasing = TRUE)
+
+# Testing the effect of different random starting positions
+optimisation_effects <- icExplore(dist_pne, type = "ratio", ndim = 2, nrep = 100, modulus = 1, itmax = 1000, eps = 1e-06, returnfit = TRUE)
+
+# Save the results for further analysis
+save(optimised, file="Spneumoniae_phen_metric_random_start_100.RData")
+save(optimisation_effects, file="Spneumoniae_phen_metric_random_start_100_optimisation_effects.RData")
+
+```
+
+### Stress comparison of PCA start, random start with the lowest stress, and optimised classical start
+
+```{r}
+torg_met$stress
+optimised$stress
+
+```
+
+### Plot results of comparison
+The solutions are very similar, but typically the MDS with the PCA start has the lowest stress and generates the best representation for this map.
+
+```{r, echo = F}
+op <- par(mfrow = c(1,2))
+plot(torg_met, main = "Classical MDS start ", label.conf = list(label = FALSE))
+plot(torg_met, "Shepard")
+par(op)
+
+op <- par(mfrow = c(1,2))
+plot(optimised, main = "Random start (100) resistance", label.conf = list(label = FALSE))
+plot(optimised, "Shepard")
+par(op)
+
+
+```
+
+# Comparing the effect of different random starting conditions
+As mentioned, running the algorithm using different random starting positions can result in different solutions. Typically the algorithm is repeated many times (typically ~100 or more) to find a solution with the lowest stress. Ideally most of the solutions come up with similar representations. Comparing the different solutions is typically recommended to ensure the final representation is stable. Often very different solutions will be found from different starting coordinates, but those with the lowest stress are usually those used for subsequent analysis.
+
+The method used here was to take all the maps produced using random starting conditions and compare the relative positions of the isolates between each map. To gain a measure of similarity between each map, it is possible to estimate the correlation of the distances between points. This measure was used to make a distance matrix. I plotted the matrix as a dendrogram and used hierarchical clustering to split the possible solutions into 6 clusters. I have then plotted the lowest stress solution of each cluster to show the differences based on different starting conditions.
+
+```{r,echo=F}
+# Plot dendrogram of differences between solutions
+# Load necessary library for hierarchical clustering
+library(ape)
+
+# Compute Euclidean distance between solutions
+dd <- dist(optimisation_effects$conf, method = "euclidean")
+
+# Perform hierarchical clustering using ward.D2 method
+hc <- hclust(dd, method = "ward.D2")
+
+# Convert hierarchical clustering result to dendrogram
+hcd <- as.dendrogram(hc)
+
+# Define colors for the clusters
+colors <- c("red", "blue", "green", "black", "cyan", "purple", "brown")
+
+# Cut the dendrogram into 4 clusters
+clus4 <- cutree(hc, 4)
+
+# Plot the dendrogram as a phylogenetic tree
+plot(as.phylo(hc), tip.color = colors[clus4],
+     label.offset = 1, cex = 0.7)
+
+
+
+```
+
+# Plotting the different possible solutions
+Here I have plotted the lowest stress solution from each hierarchical cluster. However, for subsequent analysis I have used the classical PCoA start instead of the random start because it found a better representation than any found using the random start method. 
+
+```{r,echo=F}
+# Convert cluster information and stress values to tibbles
+hclusters <- as_tibble(clus4)
+stressvec <- tibble::rowid_to_column(as_tibble(optimisation_effects$stressvec), "ID")
+
+# Combine stress values and cluster information into a single tibble
+multiple_restarts <- as_tibble(bind_cols(stressvec, hclusters))
+
+# Rename columns for clarity
+colnames(multiple_restarts) <- c("ID", "Stress", "Cluster")
+
+# Group the data by cluster and select the solution with the minimum stress in each cluster
+multiple_restarts <- multiple_restarts %>%
+  group_by(Cluster) %>%
+  slice_min(n = 1, Stress, with_ties = FALSE)
+
+# Create a list of solutions based on the selected IDs
+restart_options <- optimisation_effects[[1]][c(multiple_restarts$ID)]
+
+# Set up a multi-panel plot with 2 rows and 3 columns
+op <- par(mfrow = c(2, 3))
+
+# Plot each selected solution with different colors
+for (i in 1:nrow(multiple_restarts)) {
+  plot(optimisation_effects[[1]][i][[1]], label.conf = list(label = FALSE), col = colors[i])
+}
+
+# Reset plotting parameters
+par(op)
+
+
+```
+
+
+## Weighting of isolate points
+Isolate points can be weighted more or less strongly depending on confidence in their relative position. For example, if a small subset of points are affecting the overall representation, and we have reason to believe they were incorrectly measured, we can weight those points less strongly so it does not affect the representation of other points on the map. This is analagous to fitting a linear model and weighting an outlier point less strongly. I plan on further testing different weighting structures with the Vietnam isolates, but as mentioned above, i have excluded them for this analysis.
+
+Another use of weighting is where the most common values affect the representation of the map. This is because they are perfectly 'fit' before positioning other, less common points. Fitting the less common isolates is restricted by the more common ones, and this restriction can affect where the other points are located. Weighting the more common points less strongly (uniform weighting) is one possible solution for large datasets with many sensitive isolates. 
+
+```{r, echo = F}
+
+# Initialize an empty list to store results of multiple random starts
+optimised_unif <- NULL
+
+# Perform multiple random starts (100 in this case)
+for (i in 1:100) {
+  # Run MDS with ratio scaling, uniform weighting , and Torgerson initialization
+  optimised_unif[[i]] <- mds(
+    dist_pne,
+    type = "ratio",
+    ndim = 2,
+    modulus = 1,
+    itmax = 1000,
+    eps = 1e-06,
+    weightmat = dissWeights(dist_pne, type = "unif"),
+    init = "torgerson"
+  )
+}
+
+# Identify the index of the solution with the minimum stress
+ind <- which.min(sapply(optimised_unif, function(x) x$stress))
+
+# Select the solution with the minimum stress
+optimised_unif <- optimised_unif[[ind]]
+
+# Sort species weights in descending order
+sppwen <- sort(optimised_unif$spp, decreasing = TRUE)
+
+```
+
+### Stress 
+The weighted solution (second value) is better in this case than the standard MDS (first value) as it has lower stress and therefore represents the variation in the data more accurately. 
+
+```{r, echo = F}
+
+torg_met$stress
+optimised_unif$stress
+
+```
+
+
+```{r, echo = F}
+
+### Plot results of comparison
+op <- par(mfrow = c(2,2))
+plot(torg_met, main = "Classical start", label.conf = list(label = FALSE))
+plot(torg_met, "Shepard")
+plot(optimised_unif, main = "Weighted start (100) resistance", label.conf = list(label = FALSE))
+plot(optimised_unif, "Shepard")
+par(op)
+
+save(optimised_unif, file="Optimised_map_SMACOFB_beta-lactams_S_pneumo.RData")
+
+```
+
+
+## Final output using best method for pneumo map
+In this case the metric MDS using the PCA start had the lowest stress.I then compared this map to that made with a random start  (using 100 random start conditions), but the PCA start map still generated the best representation for this map. I then weighted the more common values less strongly and remade the map to test whether this further improved the representation, but this did not have a strong effect.
+
+Note this is not the final output shown in the manuscript, as the points need to be rotated and dilated to an interpretable scale. This can be found in the 'Estimating goodness of fit' and 'Mapping external variables' sections.
+
+
+```{r, echo = F}
+
+op <- par(mfrow = c(2,2))
+plot(torg_met, main = "Classical start", label.conf = list(label = FALSE))
+plot(torg_met, "Shepard")
+plot(torg_met,  main = "Frequency of dissimilarities between isolates", plot.type = "histogram", label.conf = list(label = FALSE))
+plot(torg_met, plot.type = "stressplot", label.conf = list(label = FALSE))
+par(op)
+
+```

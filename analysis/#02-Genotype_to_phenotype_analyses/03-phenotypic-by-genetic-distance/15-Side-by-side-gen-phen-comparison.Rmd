@@ -1,0 +1,243 @@
+---
+title: "15-Side-by-side-gen-phen-comparison"
+author: "Andrew Balmer"
+date: "2024-03-11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+remove(list = ls())
+
+library(tidyverse)
+library(cluster)
+library(RColorBrewer)
+library(FactoMineR)
+library(ggpubr)
+library(ggExtra)
+
+options(dplyr.summarise.inform = FALSE)
+  
+# Set working directory
+setwd("/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#03-06-Generating-phenotype-and-genotype-maps")
+
+# Read in the relevant meta data
+tablemic_meta <- read.csv("/Users/ajb306/AMR-cartography/data/meta_data_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+
+# Specify the full path to the data file
+phen_map <- "/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#03-06-Generating-phenotype-and-genotype-maps/Spneumo_3628_PCA_start_2D_METRIC.RData"
+
+load(phen_map)
+  res_samp <- torg_met
+  theta <- 326*pi/180 ## degrees to radians
+  rot <- matrix(c(cos(theta), sin(theta), -sin(theta), cos(theta)), ncol = 2)
+  res_samp$conf <- res_samp$conf %*% rot ## rotated configurations
+  
+  
+  ### create a vector of isolates with PBP deletion substitutions and remove them from dataframes  
+  isolates_with_PBP_deletion <- c("20156696" , "20162849" , "20151885" ,
+                           "20153985" , "20154509" , "2013224047" , "2013218247" ,
+                           "2014200662" , "5869-99" , "2513-99")
+  
+# Specify the full path to the data file
+gen_map <- "/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#03-06-Generating-phenotype-and-genotype-maps/Spneumo_3628_PCA_start_2D_METRIC_genetic.RData"
+
+# Load the precomputed PCA start 2D metric data
+load(gen_map)
+
+  genotype_mds <- as.data.frame(torg_met$conf)
+  
+  colnames(genotype_mds) <- c("G1","G2")
+  
+  
+#mod.matrix <- cov(select(map_coords, D1, D2))/colMeans(select(map_coords, D1, D2))
+slope <- 0.1842996
+dilation <- 1/slope
+slope
+map_coords <- as.data.frame(res_samp$conf)
+
+map_coords$V1 <- map_coords$V1 * dilation
+map_coords$V2 <- map_coords$V2 * dilation
+
+  ### create main dataframe of map coordinates and PBP metadata
+  ## rotate phenotype map
+AA_matrix_phenotype <- bind_cols(map_coords, tablemic_meta) %>%
+                         rename(PBP_type = PT, D1 = V1, D2 = V2) %>%
+                         group_by(PBP_type) %>%
+                         mutate(x_centroid = median(D1), 
+                         y_centroid = median(D2)) %>%
+                         filter(!LABID %in% isolates_with_PBP_deletion) %>%
+                         bind_cols(genotype_mds)
+
+## import MDS transformations for phenoptype and genotype maps
+slope <- 0.1843009
+gen_slope <- 0.01814108
+
+### As I only want to cluster on distinct PBP types, I 
+gen_clustering <- cbind(select(AA_matrix_phenotype, G1,G2, PBP_type)) %>%
+                  distinct(PBP_type, .keep_all = TRUE) %>% 
+                  ungroup()
+
+
+res.hcpc <- HCPC(select(gen_clustering, G1,G2), nb.clust = 12, consol = T, iter.max = 500, graph = T, order = T)
+
+### scree plot of clustering 
+plot(log(res.hcpc$call$t$inert.gain[c(1:30)]))
+
+### bind the genetic clusters to the genetic map data
+gen_clustering$gen_cluster <- res.hcpc[[1]]$clust
+
+AA_matrix_phenotype <- left_join(AA_matrix_phenotype, select(gen_clustering, PBP_type, gen_cluster), by = "PBP_type")
+
+
+
+genotype_mds <- NULL
+tablemic <- NULL
+torg_met <- NULL
+gen_clustering <- NULL
+
+all_isolates <- AA_matrix_phenotype
+
+
+
+```
+
+# setup for plotting
+```{r, echo = F}
+AA_matrix_phenotype$gen_cluster <- as.factor(AA_matrix_phenotype$gen_cluster)
+
+my_colours <- c("#4DAF4A", "#377EB8", "#E41A1C", "#984EA3", "#FF7F00", "black",
+                             "white", "#7570B3", "#E7298A", "#FFFF33", "#A65628", "cyan",
+                             "#999999", "red","magenta", "purple", "brown","green")
+    
+
+theme_MDR_cartography <- function(){ 
+    theme(panel.grid.major = element_line(colour="grey", size = (0.3)),
+        panel.grid.minor = element_blank(),
+        axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.title.y=element_blank(), 
+        axis.text.y=element_blank(),
+        axis.ticks.y = element_blank()
+
+    )
+}
+
+limits_phen_map_x <- c(min(AA_matrix_phenotype$D1, na.rm = T), 
+                       max(AA_matrix_phenotype$D1, na.rm = T))
+limits_phen_map_y <- c(min(AA_matrix_phenotype$D2, na.rm = T), 
+                       max(AA_matrix_phenotype$D2, na.rm = T))
+
+breaks_phen_map_x <- seq(min(AA_matrix_phenotype$D1, na.rm = T) - (1), 
+                         max(AA_matrix_phenotype$D1, na.rm = T) + (1), 1)
+breaks_phen_map_y <- seq(min(AA_matrix_phenotype$D2, na.rm = T) - (1), 
+                         max(AA_matrix_phenotype$D2, na.rm = T) + (1), 1)
+
+
+limits_gen_map_x <- c(min(AA_matrix_phenotype$G1, na.rm = T) - (gen_slope * 5), 
+                      max(AA_matrix_phenotype$G1, na.rm = T) + (gen_slope * 5))
+limits_gen_map_y <- c(min(AA_matrix_phenotype$G2, na.rm = T) - (gen_slope * 5), 
+                      max(AA_matrix_phenotype$G2, na.rm = T)+ (gen_slope * 5))
+
+breaks_gen_map_x <- seq(min(AA_matrix_phenotype$G1, na.rm = T)- (gen_slope * 10), 
+                        max(AA_matrix_phenotype$G1, na.rm = T) + (gen_slope * 10), gen_slope * 10)
+breaks_gen_map_y <- seq(min(AA_matrix_phenotype$G2, na.rm = T)- (gen_slope * 10), 
+                        max(AA_matrix_phenotype$G2, na.rm = T) + (gen_slope * 10), gen_slope * 10)
+
+```
+
+
+```{r, echo =F}
+
+A <- ggplot(filter(AA_matrix_phenotype), aes(x=G1,y=G2, fill = gen_cluster)) +
+  geom_point(shape = 21,size = 3, alpha = .5) +
+    theme_linedraw() +
+    theme(legend.position='none') +
+  scale_x_continuous(limits = limits_gen_map_x, breaks=breaks_gen_map_x) +
+  scale_y_continuous(limits = limits_gen_map_y, breaks=breaks_gen_map_y) +
+  theme_MDR_cartography() +
+  guides(fill=guide_legend(title="Genetic cluster")) +
+  coord_fixed() +    
+  scale_fill_manual(values=my_colours)
+
+
+B <- ggplot(filter(AA_matrix_phenotype), aes(x=D1,y=D2, fill = gen_cluster)) +
+   geom_point(shape = 21, size = 1.5, alpha = 0.4, show.legend =F) +
+  theme(legend.position='none') +
+  theme_linedraw() +
+  #facet_wrap(.~gen_cluster) +
+  geom_point(filter(AA_matrix_phenotype), mapping = aes(x_centroid, y_centroid, fill = gen_cluster),
+             shape = 21, size = 3, alpha = 0.7,show.legend =F) +
+  scale_x_continuous(limits = limits_phen_map_x, breaks=breaks_phen_map_x) +
+  scale_y_continuous(limits = limits_phen_map_y, breaks=breaks_phen_map_y) +
+  theme_MDR_cartography() +
+  guides(fill=guide_legend(title="Genetic cluster")) +
+coord_fixed() +    
+  scale_fill_manual(values=my_colours)
+
+
+ggarrange(A,B,  nrow = 1, ncol = 2, font.label = list(size = 16, face = "bold"))
+
+#ggsave("gen_by_phen_col_gen_clust.jpg")
+
+```
+
+```{r, echo = F}
+
+centroids_202 <- AA_matrix_phenotype %>% 
+  filter(PBP_type == "2-0-2") %>%
+  distinct(PBP_type, .keep_all = TRUE) %>% 
+  ungroup() %>%
+  select(x_centroid, y_centroid, G1, G2)
+  
+centroids_202
+   
+AA_matrix_phenotype <- AA_matrix_phenotype %>% mutate(phen_centroid_x_202 = centroids_202[c(1), 1], 
+                                  phen_centroid_y_202 = centroids_202[c(1), 2],
+                                  gen_centroid_x_202 = centroids_202[c(1), 3],
+                                  gen_centroid_y_202 = centroids_202[c(1), 4])
+   
+   AA_matrix_phenotype <- AA_matrix_phenotype %>% 
+     mutate(dist_phen_centroid = sqrt((x_centroid-phen_centroid_x_202)^2 + (y_centroid-phen_centroid_y_202)^2),
+            dist_gen_centroid =sqrt((G1-gen_centroid_x_202)^2 + (G2-gen_centroid_y_202)^2))
+
+   dist_to_centroid_comparison <- cbind(AA_matrix_phenotype$dist_phen_centroid, AA_matrix_phenotype$dist_gen_centroid)
+   dist_to_centroid_comparison <- as.data.frame(dist_to_centroid_comparison)
+   colnames(dist_to_centroid_comparison) <- c('dist_phen_centroid', 'dist_gen_centroid')
+   
+   dist_to_centroid_comparison <- dist_to_centroid_comparison %>% 
+     mutate(pheno_dist_to_centroid =  dist_phen_centroid ,
+            geno_dist_to_centroid =  dist_gen_centroid / gen_slope)
+
+   
+   mapvtable <- lm(pheno_dist_to_centroid ~ geno_dist_to_centroid, data = dist_to_centroid_comparison)
+   summary(mapvtable)
+
+
+   dist_to_centroid_comparison <- as.data.frame(dist_to_centroid_comparison)
+   dist_to_centroid_comparison$gen_cluster <- AA_matrix_phenotype$gen_cluster 
+   dist_to_centroid_comparison$gen_cluster <- as.factor(dist_to_centroid_comparison$gen_cluster)
+   test <- cor.test(dist_to_centroid_comparison$pheno_dist_to_centroid, dist_to_centroid_comparison$geno_dist_to_centroid, method = "spearman")
+   test
+   
+   ggplot(filter(dist_to_centroid_comparison), aes(x=geno_dist_to_centroid, y=pheno_dist_to_centroid, fill = gen_cluster))+ 
+    
+     geom_point(size=4.5, shape = 21, alpha =0.6, position=position_jitter(width=0,height=0)) +
+     guides(fill = "none") +
+     scale_x_continuous(limits = c( 0, 120), breaks=seq(0, 120, 10)) +
+     scale_y_continuous(limits = c( 0, 16), breaks=seq(0, 16,2)) +
+     theme_bw() + 
+     labs( x = "Genetic distance (No. AA substitutions from 2-0-2)", y = "Median map distance (MIC units from 2-0-2)", fill = "Genetic group") +
+     theme(axis.text=element_text(size=12), 
+           axis.title=element_text(size=14)) +
+     theme(aspect.ratio=1)+
+     scale_fill_manual(values=my_colours) + 
+  geom_label(inherit.aes=FALSE, size = 4.5, aes(x = 60, y = 16,label=paste("rho = 0.791, p-value < 0.001")))
+
+#ggsave("Spneumo_gen_by_phen_distance_relationship.jpg")
+
+```
+
+
+
