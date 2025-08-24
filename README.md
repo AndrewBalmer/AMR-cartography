@@ -1,2 +1,126 @@
-# AMR-cartography
-Data and R scripts needed to reproduce the analysis from the AMR cartography paper (2025)
+<<<<<<< HEAD
+# AMR Cartography
+
+**Antimicrobial Resistance Cartography Reveals the Molecular Determinants of Multivariate Beta‑lactam Resistance in** ***Streptococcus pneumoniae***
+
+Andrew J. Balmer\*, Gemma G. R. Murray, Stephanie Lo, Olivier Restif⍅, Lucy A. Weinert⍅
+\*Corresponding author; ⍅ Joint senior author
+
+---
+
+## Overview
+
+AMR Cartography is a toolkit for analysing and visualising **multivariate** antibiotic susceptibility profiles (e.g., MICs to several drugs), study population level trends in multivariate phenotypes, and link changes in phenotype to underlying **genetic variation**. It adapts multidimensional scaling (MDS/SMACOF) and multivariate linear mixed models (mvLMM) to:
+
+* build low‑dimensional **phenotype maps** from log₂‑MIC profiles,
+* assess **goodness‑of‑fit** (cross‑validation, dimensionality tests),
+* integrate **censored/missing** values and even categorical susceptibility,
+* associate **PBP substitutions** with multivariate phenotypes (including epistasis).
+
+This repo contains the analysis scripts to reproduce the figures/tables in the associated manuscript and instructions on to run the core AMR Cartography workflow on similar datasets.
+
+---
+
+## Repository structure
+
+**Example layout (placeholder):**
+
+```
+AMR-cartography/
+├─ analysis/
+│  ├─ 01-Phenotype_and_map_analyses/
+│  └─ 02-Genotype_to_phenotype_analyses/
+├─ manuscript/
+│  └─ (text, figures, supplementary)
+├─ .gitignore
+└─ README.md (this file)
+```
+
+---
+
+## Installation & requirements
+
+AMR Cartography analyses are primarily in **R**. Some optional steps can leverage **Python** tools; those are not required to reproduce the main figures here.
+
+### R
+
+* **R ≥ 4.2** (4.3+ recommended)
+* Suggested packages (install on first use):
+
+  * Core: `tidyverse`, `data.table`, `readr`, `stringr`, `purrr`, `ggplot2`, `patchwork`, `cowplot`
+  * MDS: `smacof`
+  * R Markdown: `rmarkdown`, `knitr`
+
+Install in R:
+
+```r
+install.packages(c(
+  "tidyverse","data.table","readr","stringr","purrr","ggplot2",
+  "patchwork","cowplot","smacof","broom","matrixStats",
+  "rmarkdown","knitr"
+))
+```
+
+> If you prefer **reproducible environments**, you can initialise `renv`:
+
+```r
+install.packages("renv"); renv::init()
+```
+
+We can provide a lockfile if you prefer pinning versions.
+
+### (Optional) Python
+
+* Recommended (only if you plan to rerun mvLMM variants in Python): `numpy`, `pandas`, `limix`/`fastlmm`.
+
+---
+
+## Data
+
+* The analysis uses the Active Bacterial Core surveillance dataset of *S. pneumoniae* isolates with MICs for six β‑lactams and PBP TPD sequences.
+* **Inputs are referenced/ingested by the scripts**; large raw data may not be included in the repo. Where data cannot be redistributed, scripts document how to fetch or derive them.
+
+---
+
+## Citation
+
+If you use **AMR Cartography** (methods or code), **please cite**:
+
+> Balmer AJ, Murray GGR, Lo S, Restif O, Weinert LA. *Antimicrobial Resistance Cartography Reveals the Molecular Determinants of Multivariate Beta‑lactam Resistance in Streptococcus pneumoniae*.
+>
+> **Preprint**: *link coming soon*
+> **Journal article**: *link coming soon*
+
+A BibTeX entry will be provided once the DOI is available.
+
+---
+
+## License
+
+This project is released under the **MIT License** (permissive).
+**Attribution required**: in academic or public outputs that use the methods or scripts here, please include the citation above.
+
+See [`LICENSE`](#) (to be added) for full terms.
+
+---
+
+## Funding & acknowledgements
+
+This work was supported by the **Biotechnology and Biological Sciences Research Council (BBSRC)**.
+We also acknowledge the CDC/ABC programme for making data available, and the colleagues and groups listed in the manuscript’s Acknowledgements.
+
+---
+
+## Contact & contributions
+
+* Lead/contact: **Andrew J. Balmer**
+* Issues and improvements via **GitHub Issues**/PRs are welcome.
+* Please open an issue for reproducibility questions or environment pinning (we can provide an `renv.lock`).
+
+---
+
+## Reproducibility notes
+
+* Rmds are designed to be run independently once inputs are prepared.
+* Some steps (e.g., bootstrap MDS or mvLMM grids) can be compute‑intensive; scripts cache intermediates (`*.rds`, `*.RData`).
+* For this repo, outputs are git‑ignored; re‑running the Rmds will regenerate the figures/tables.
