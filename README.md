@@ -123,5 +123,3 @@ We also acknowledge the CDC/ABC programme for making data available, and the col
 * Rmds are designed to be run independently once inputs are prepared.
 * Some steps (e.g., bootstrap MDS or mvLMM grids) can be compute‑intensive; scripts cache intermediates (`*.rds`, `*.RData`).
 * For this repo, outputs are git‑ignored; re‑running the Rmds will regenerate the figures/tables.
-# AMR-cartography
-Data and R scripts needed to reproduce the analysis from the AMR cartography paper (2024)
