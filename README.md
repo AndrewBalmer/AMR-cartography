@@ -4,6 +4,7 @@
 **Antimicrobial Resistance Cartography Reveals the Molecular Determinants of Multivariate Beta‑lactam Resistance in** ***Streptococcus pneumoniae***
 
 Andrew J. Balmer\*, Gemma G. R. Murray, Stephanie Lo, Olivier Restif⍅, Lucy A. Weinert⍅
+
 \*Corresponding author; ⍅ Joint senior author
 
 ---
