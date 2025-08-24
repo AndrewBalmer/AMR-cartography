@@ -10,12 +10,12 @@ Andrew J. Balmer\*, Gemma G. R. Murray, Stephanie Lo, Olivier Restif⍅, Lucy A.
 
 ## Overview
 
-AMR Cartography is a toolkit for analysing and visualising **multivariate** antibiotic susceptibility profiles (e.g., MICs to several drugs), study population level trends in multivariate phenotypes, and link changes in phenotype to underlying **genetic variation**. It adapts multidimensional scaling (MDS/SMACOF) and multivariate linear mixed models (mvLMM) to:
+AMR Cartography is a toolkit for analysing and visualising multivariate antibiotic susceptibility profiles (e.g., MICs to several drugs), study population level trends in multivariate phenotypes, and link changes in phenotype to underlying genetic variation. It adapts multidimensional scaling (MDS/SMACOF) and multivariate linear mixed models (mvLMM) to:
 
-* build low‑dimensional **phenotype maps** from log₂‑MIC profiles,
-* assess **goodness‑of‑fit** (cross‑validation, dimensionality tests),
-* integrate **censored/missing** values and even categorical susceptibility,
-* associate **PBP substitutions** with multivariate phenotypes (including epistasis).
+* build low‑dimensional phenotype maps from log₂‑MIC profiles,
+* assess goodness‑of‑fit (cross‑validation, dimensionality tests),
+* integrate censored/missing values and even categorical susceptibility,
+* associate PBP substitutions with multivariate phenotypes (including epistasis).
 
 This repo contains the analysis scripts to reproduce the figures/tables in the associated manuscript and instructions on to run the core AMR Cartography workflow on similar datasets.
 
@@ -40,7 +40,7 @@ AMR-cartography/
 
 ## Installation & requirements
 
-AMR Cartography analyses are primarily in **R**. Some optional steps can leverage **Python** tools; those are not required to reproduce the main figures here.
+AMR Cartography analyses are primarily in **R**, althoigh the mvLMM steps use **Python**.
 
 ### R
 
@@ -61,13 +61,7 @@ install.packages(c(
 ))
 ```
 
-> If you prefer **reproducible environments**, you can initialise `renv`:
 
-```r
-install.packages("renv"); renv::init()
-```
-
-We can provide a lockfile if you prefer pinning versions.
 
 ### (Optional) Python
 
@@ -106,7 +100,7 @@ See [`LICENSE`](#) (to be added) for full terms.
 
 ## Funding & acknowledgements
 
-This work was supported by the **Biotechnology and Biological Sciences Research Council (BBSRC)**.
+This work was supported by the **Biotechnology and Biological Sciences Research Council (BBSRC)** (Student Project ID 2113638), BBSRC Doctoral Training Partnership.
 We also acknowledge the CDC/ABC programme for making data available, and the colleagues and groups listed in the manuscript’s Acknowledgements.
 
 ---
@@ -122,5 +116,5 @@ We also acknowledge the CDC/ABC programme for making data available, and the col
 ## Reproducibility notes
 
 * Rmds are designed to be run independently once inputs are prepared.
-* Some steps (e.g., bootstrap MDS or mvLMM grids) can be compute‑intensive; scripts cache intermediates (`*.rds`, `*.RData`).
+* Note, some steps (e.g., bootstrap MDS or mvLMM grids) can be compute‑intensive; scripts cache intermediates (`*.rds`, `*.RData`).
 * For this repo, outputs are git‑ignored; re‑running the Rmds will regenerate the figures/tables.
