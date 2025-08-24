@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # AMR Cartography
 
 **Antimicrobial Resistance Cartography Reveals the Molecular Determinants of Multivariate Beta‑lactam Resistance in** ***Streptococcus pneumoniae***
