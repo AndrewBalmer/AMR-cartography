@@ -11,7 +11,7 @@ library(tidyverse)
 library(curl)
 
 # Set working directory
-setwd("/Users/ajb306/AMR-cartography/data")
+setwd("/Users/ajb306/AMR-cartography-results/data")
 
 # Replace "YOUR_DOI" with the actual DOI
 doi <- "10.1186/s12864-017-4017-7"
@@ -61,6 +61,8 @@ tablemic <- tablemic %>% group_by(PT) %>% add_count()
 
 colnames(tablemic) <- c("LABID","PT","Penicillin","Amoxicillin","Meropenem","Cefotaxime","Ceftriaxone","Cefuroxime")
 
+colSums(!is.na(tablemic))
+
 # Select relevant columns and remove rows with NA values
 tablemic <- tablemic[!is.na(tablemic$Penicillin), ]
 tablemic <- tablemic[!is.na(tablemic$Amoxicillin), ]
@@ -93,13 +95,13 @@ for (i in seq(nrow(replacement_table))) {
 tablemic_meta$PT <- gsub("/", "-", tablemic_meta$PT)
 
 # Save the dataframe as a CSV file
-write.csv(tablemic, file = "/Users/ajb306/AMR-cartography/data/MIC_table_Spneumoniae.csv", row.names = FALSE)
-write.csv(tablemic_meta, file = "/Users/ajb306/AMR-cartography/data/meta_data_Spneumoniae.csv", row.names = FALSE)
+write.csv(tablemic, file = "/Users/ajb306/AMR-cartography-results/data/MIC_table_Spneumoniae.csv", row.names = FALSE)
+write.csv(tablemic_meta, file = "/Users/ajb306/AMR-cartography-results/data/meta_data_Spneumoniae.csv", row.names = FALSE)
 
 # Generate distance matrix
 dist_pne <- dist(slice_sample(tablemic)) # Use this analysis if you would like to replicate the full analysis (be aware this may take a long time to run).
 #dist_pne <- dist(slice_sample(tablemic, n = 200))
 
 # Save file
-save(dist_pne, file="/Users/ajb306/AMR-cartography/data/phenotype_distance_matrix_Spneumoniae.Rdata")
+save(dist_pne, file="/Users/ajb306/AMR-cartography-results/data/phenotype_distance_matrix_Spneumoniae.Rdata")
 

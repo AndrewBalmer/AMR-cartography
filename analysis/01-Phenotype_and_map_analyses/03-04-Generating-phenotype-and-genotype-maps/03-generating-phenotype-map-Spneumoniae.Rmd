@@ -1,5 +1,5 @@
 ---
-title: "S pneumoniae phenotype map - Generating map testing start conditions"
+title: "S pneumoniae phenotype map - Generating map and testing start conditions"
 author: "Andrew Balmer"
 date: "03/12/2023"
 output: html_document
@@ -8,7 +8,7 @@ output: html_document
 ### ==== Aims and objectives of this Rmarkdown
 As MDS is an iterative method with a range of different options, is important to ensure MDS solutions represent the data accurately, and are stable to variation in the method and starting conditions used. Here, I have compared several methods to generate an initial map for the S. pneumoniae beta-lactam dataset. 
 
-This analysis uses the 3628 isolates of S. pneumoniae for 6 beta-lactam antibiotics from the CDC dataset. Although there weree 4309 solates in total in this dataset, only 3628 isolates had all MICs measured for all 6 drugs. Isolatese with MIC values missing were excluded from this and the following analysis.
+This analysis uses the 3628 isolates of S. pneumoniae for 6 beta-lactam antibiotics from the CDC dataset. Although there were 4309 solates in total in this dataset, only 3628 isolates had all MICs measured for all 6 drugs. Isolates with MIC values missing were excluded from this and the following analysis.
 
 To run this script, you can use the entire dataset, as used for the published manuscript. However, this will take quite a long time to run the analysis in this script. I have therefore included code to run examples of the analysis using a subsample of 300 isolates. This should make it possible to run the analysis quickly to run on a laptop. 
 
@@ -28,30 +28,156 @@ library(smacof)
 library(psych)
 
 # Set working directory
-setwd("/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#02-05-Generating-phenotype-and-genotype-maps/results")
+setwd("/Users/ajb306/AMR-cartography-results/data")
 
 # Read MIC data from two CSV files
-tablemic <- read.csv("/Users/ajb306/AMR-cartography/data/MIC_table_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+tablemic <- read.csv("/Users/ajb306/AMR-cartography-results/data/MIC_table_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+
+
+# Read in the relevant meta data
+tablemic_meta <- read.csv("/Users/ajb306/AMR-cartography-results/data/meta_data_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+
+
 
 # Generate distance matrix
-#dist_pne <- dist(slice_sample(tablemic)) # Use this analysis if you would like to replicate the full analysis (be aware this may take a long time to run).
-dist_pne <- dist(slice_sample(tablemic, n = 200))
+dist_pne <- dist(tablemic) # Use this analysis if you would like to replicate the full analysis (be aware this may take a long time to run).
+#dist_pne <- dist(slice_sample(tablemic, n = 200))
 
 # Save file
-#save(dist_pne, file="/Users/ajb306/AMR-cartography/data/phenotype_distance_matrix_Spneumoniae.Rdata")
+#save(dist_pne, file="/Users/ajb306/AMR-cartography-results/data/phenotype_distance_matrix_Spneumoniae.Rdata")
 
 ```
+
+
 
 ### Pairwise scatterplot of MIC values for the 6 beta-lactam antibiotics in the S. pneumoniae dataset
 
 Here, I have simply plotted the pairwise MIC values for each drug for all isolates. Note the high number of 'threshold values' for Cefuroxime. Many isolates had MICs equal to or lower than the lowest dilution value tested for this drug.
 
-```{r, echo=FALSE}
 
-# Scatterplot of log2 MIC values with jitter
-pairs.panels(tablemic, smooth = F, ellipses = F, density = F, method = "pearson", rug = F, ci = F, jiggle = T, factor = 1, hist.col = "#377EB8")
+```{r, echo = F}
+
+# ==== Pairwise plot: keep all tick marks, label only min & max (µg/mL) ====
+
+library(ggplot2)
+library(GGally)
+library(rlang)
+library(dplyr)
+
+#  Data (log2-transformed)
+pairwise_panels <- as.data.frame(tablemic)
+pairwise_panels <- pairwise_panels %>% select(rev(names(pairwise_panels)))
+
+# Define breakpoints (convert to log2 scale)
+breakpoints <- c(
+  Penicillin = 1,
+  Cefuroxime = 1,
+  Ceftriaxone = 1,
+  Cefotaxime = 1,
+  Amoxicillin = 3,
+  Meropenem  = 0
+)
+log_breakpoints <- log2(breakpoints)
+
+# Helpers:
+# - full_breaks: all integer log2 steps across panel range (for tick marks)
+# - minmax_labeler: show labels only for min & max ticks (values in µg/mL)
+full_breaks <- function(v) {
+  r1 <- floor(min(v, na.rm = TRUE))
+  r2 <- ceiling(max(v, na.rm = TRUE))
+  if (!is.finite(r1) || !is.finite(r2)) return(numeric(0))
+  if (r1 == r2) r2 <- r1 + 1
+  seq(r1, r2, by = 1)
+}
+minmax_labeler <- function(breaks_vec) {
+  bmin <- min(breaks_vec); bmax <- max(breaks_vec)
+  function(x) {
+    labs <- rep("", length(x))
+    sel <- x %in% c(bmin, bmax)
+    v <- 2^x
+    labs[sel] <- ifelse(v[sel] < 1,
+                        formatC(v[sel], format = "f", digits = 2),
+                        formatC(v[sel], format = "fg", digits = 1, drop0trailing = TRUE))
+    labs
+  }
+}
+
+# Custom lower panel: scatter with breakpoints, rotated x-axis
+tick_size <- 18
+
+my_lower <- function(data, mapping, ...) {
+  xvar <- as_label(mapping$x); yvar <- as_label(mapping$y)
+  x_break <- log_breakpoints[xvar]; y_break <- log_breakpoints[yvar]
+  xb_full <- full_breaks(data[[xvar]])
+  yb_full <- full_breaks(data[[yvar]])
+
+  ggplot(data, mapping) +
+    geom_vline(xintercept = x_break, linetype = "solid", color = "#E41A1C") +
+    geom_hline(yintercept = y_break, linetype = "solid", color = "#E41A1C") +
+    geom_point(shape = 21, color = "black", fill = "#E41A1C", size = 3, ...) +
+    scale_x_continuous(breaks = xb_full, labels = minmax_labeler(xb_full)) +
+    scale_y_continuous(breaks = yb_full, labels = minmax_labeler(yb_full)) +
+    theme_bw() +
+    theme(
+      panel.grid.minor = element_blank(),
+      axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = tick_size),
+      axis.text.y = element_text(size = tick_size)
+    )
+}
+
+# Custom diagonal panel: histogram with vertical breakpoint line
+my_diag <- function(data, mapping, ...) {
+  xvar <- as_label(mapping$x); x_break <- log_breakpoints[xvar]
+  xb_full <- full_breaks(data[[xvar]])
+
+  ggplot(data, mapping) +
+    geom_histogram(binwidth = 1, fill = "#E41A1C", color = "black", ...) +
+    geom_vline(xintercept = x_break, linetype = "solid", color = "#E41A1C") +
+    scale_x_continuous(breaks = xb_full, labels = minmax_labeler(xb_full), expand = c(0, 0)) +
+    theme_bw() +
+    theme(
+      panel.grid.minor = element_blank(),
+      axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = tick_size),
+      axis.text.y = element_text(size = tick_size)
+    )
+}
+
+# Custom upper panel: correlation (unchanged)
+my_upper <- function(data, mapping, ...) {
+  xvar <- as_label(mapping$x)
+  yvar <- as_label(mapping$y)
+  r_val <- cor(data[[xvar]], data[[yvar]], use = "pairwise.complete.obs")
+
+  ggplot(data, mapping) +
+    annotate("text",
+             x = mean(range(data[[xvar]], na.rm = TRUE)),
+             y = mean(range(data[[yvar]], na.rm = TRUE)),
+             label = format(round(r_val, 2), nsmall = 2),
+             size = 10) +
+    theme_bw() +
+    theme(panel.grid.minor = element_blank(),
+          panel.grid.major = element_blank())
+}
+
+# Create pairwise plot
+suppressMessages(
+  p <- ggpairs(pairwise_panels,
+               lower = list(continuous = my_lower),
+               diag  = list(continuous = my_diag),
+               upper = list(continuous = my_upper))
+)
+
+p <- p + theme(
+  strip.background = element_rect(color = "black", fill = "white"),
+  strip.text = element_text(size = 16)
+)
+
+# Print and save
+print(p)
+ggsave("pairwise_plot.png", plot = p, width = 10, height = 10, dpi = 300)
 
 ```
+
 
 
 ## Scree plot - testing dimensionality to use
@@ -134,6 +260,7 @@ stressvec
 ```
 
 
+
 ## Testing effect of different transformation assumptions
 The SMACOF algorithm offers the potential to use linear transformation of the metric distances, or use rank of measurements so the values do not translate directly into distances. This ordinal method may be useful in certain circumstances, such as where disc diffusion data included, as it only preserves the rank distances, rather than the metric values. A third option is to use a interval transformation. All three methods are plotted here and compared. Generally, metric MDS has higher stress values because it is a more strict assumption. However, provided stress is still acceptable, metric MDS is usually preferred so that the distances between isolates are directly preserved on the map. 
 
@@ -142,6 +269,7 @@ The SMACOF algorithm offers the potential to use linear transformation of the me
 
 # Multidimensional Scaling (MDS) with different types and dimensions
 # Metric MDS with 2 dimensions
+
 torg_met <- mds(dist_pne, ndim = 2, type = c("ratio"), init = "torgerson", modulus = 1, verbose = F, itmax = 1000, eps = 1e-06)
 
 # Ordinal MDS with 2 dimensions
@@ -381,7 +509,7 @@ load('Optimised_map_SMACOFB_beta-lactams_S_pneumo.RData', verbose = F)
 
 
 ## Final output using best method for pneumo map
-In this case the metric MDS using the PCA start had the lowest stress.I then compared this map to that made with a random start  (using 100 random start conditions), but the PCA start map still generated the best representation for this map. I then weighted the more common values less strongly and remade the map to test whether this further improved the representation, but this did not have a strong effect.
+In this case the metric MDS using the PCA start had the lowest stress. I then compared this map to that made with a random start  (using 100 random start conditions), but the PCA start map still generated the best representation for this map. I then weighted the more common values less strongly and remade the map to test whether this further improved the representation, but this did not have a strong effect.
 
 Note this is not the final output shown in the manuscript, as the points need to be rotated and dilated to an interpretable scale. This can be found in the 'Estimating goodness of fit' and 'Mapping external variables' sections.
 
@@ -396,3 +524,210 @@ plot(torg_met, plot.type = "stressplot", label.conf = list(label = FALSE))
 par(op)
 
 ```
+
+
+
+### Initial test of goodness-of-fit - Comparison of pairwise errors above 1 MIC unit between dimensionalities
+
+Below, I made maps in several different dimensionalities, and compared the proportion of pairwise distances which were above 1 MIC unit. Here I found that a 2D map fit the data the best without overfitting, as indicated by the large decrease in error when moving from a 1D to 2D map. 
+
+```{r,echo = F}
+library(dplyr)
+library(tidyr)
+library(smacof)
+library(purrr)
+library(readr)
+
+table_distances <- as.matrix(dist_pne)
+
+mds_results <- list()
+results_list <- list()
+stress_baseline <- NULL
+residuals_list <- list()
+
+for (i in 1:5) {
+  mds_out <- mds(table_distances, ndim = i, init = "torgerson", modulus = 1,
+                 itmax = 1000, eps = 1e-06, type = "ratio")
+  
+  if (i == 1) stress_baseline <- mds_out$stress
+  
+  map_conf <- mds_out$conf
+  stress_total <- mds_out$stress
+  spp <- mean(as.numeric(mds_out$spp), na.rm = TRUE)
+  
+  # Scaled residuals
+  map_dist <- as.matrix(dist(map_conf))
+  slope <- coef(lm(as.vector(map_dist) ~ as.vector(table_distances)))[2]
+  dilation <- 1 / slope
+  map_dist_scaled <- map_dist * dilation
+  
+  residuals <- (table_distances - map_dist_scaled)[lower.tri(table_distances)]
+  residuals_list[[i]] <- residuals
+  abs_res <- abs(residuals)
+  
+  results_list[[i]] <- tibble(
+    Dim = i,
+    `Stress-per-point (%)` = round(spp, 3),
+    `↓ Stress vs 1D (%)` = if (i == 1) 0 else round(100 * (stress_baseline - stress_total) / stress_baseline, 3),
+    `Mean error` = round(mean(abs_res), 3),
+    `SD error` = round(sd(abs_res), 3),
+    `<1 MIC (%)` = round(mean(abs_res < 1) * 100, 3),
+    `1–2 MIC (%)` = round(mean(abs_res >= 1 & abs_res < 2) * 100, 3),
+    `>2 MIC (%)` = round(mean(abs_res >= 2) * 100, 3),
+    `T-test p vs d-1` = NA  # Placeholder
+  )
+  
+  mds_results[[i]] <- list(
+    dim = i,
+    stress = stress_total,
+    spp = spp,
+    map_conf = map_conf
+  )
+}
+
+# Run paired t-tests and update table
+for (i in 2:5) {
+  t_p <- t.test(residuals_list[[i]], residuals_list[[i - 1]], paired = TRUE)$p.value
+  results_list[[i]]$`T-test p vs d-1` <- signif(t_p, 3)
+}
+
+final_results <- bind_rows(results_list)
+print(final_results)
+
+saveRDS(mds_results, "mds_results_cache.rds")
+write_csv(final_results, "mds_fit_results_with_ttests.csv")
+
+
+```
+
+
+
+```{r, echo = F}
+
+library(dplyr)
+library(tidyr)
+library(broom)
+library(smacof)
+library(ggplot2)
+
+mds_results <- readRDS("mds_results_cache.rds")
+table_dist <- as.matrix(dist_pne)
+
+# Store projection results
+all_proj_results <- list()
+
+for (d in 2:5) {
+  if (is.null(mds_results[[d]]$map_conf) || is.null(mds_results[[d - 1]]$map_conf)) {
+    stop(paste0("Missing map_conf for dimension ", d, " or ", d - 1))
+  }
+
+  map_N   <- as.matrix(mds_results[[d]]$map_conf)
+  map_Nm1 <- as.matrix(mds_results[[d - 1]]$map_conf)
+
+  # Estimate dilation (scaling)
+  map_dist_N <- dist(map_N)
+  dist_df <- tibble(
+    table_distance = as.vector(table_dist),
+    map_distance   = as.vector(as.matrix(map_dist_N))
+  ) %>% filter(!is.na(table_distance) & !is.na(map_distance))
+
+  slope <- as.numeric(coef(lm(map_distance ~ table_distance, data = dist_df))[2])
+  dilation <- 1 / slope
+
+  # Apply dilation
+  map_N   <- map_N * dilation
+  map_Nm1 <- map_Nm1 * dilation
+
+  # Pad lower-dimensional map
+  pad_dims <- ncol(map_N) - ncol(map_Nm1)
+  map_Nm1_padded <- cbind(map_Nm1, matrix(0, nrow = nrow(map_Nm1), ncol = pad_dims))
+
+  # Procrustes alignment
+  proc <- smacof::Procrustes(map_N, map_Nm1_padded)
+
+  # Name aligned coordinates
+  aligned_N <- proc$X
+  aligned_Nm1 <- proc$Yhat
+  colnames(aligned_N) <- paste0("X_N_", 1:ncol(aligned_N))
+  colnames(aligned_Nm1) <- paste0("X_Nm1_", 1:ncol(aligned_Nm1))
+
+  # Take first two dimensions for error calc + rounding
+  dist_proj_df <- tibble(
+    LABID = tablemic_meta$LABID,
+    X_N = aligned_N[,1],
+    Y_N = aligned_N[,2],
+    X_Nm1 = aligned_Nm1[,1],
+    Y_Nm1 = aligned_Nm1[,2]
+  ) %>%
+    mutate(
+      dist_phen = sqrt((X_N - X_Nm1)^2 + (Y_N - Y_Nm1)^2),
+      X_N_round = round(X_N, 10),
+      Y_N_round = round(Y_N, 10)
+    ) %>%
+    group_by(X_N_round, Y_N_round) %>%
+    slice(1) %>%
+    ungroup() %>%
+    mutate(Dim = d)
+
+  all_proj_results[[d]] <- dist_proj_df %>%
+    select(LABID, Dim, Dist_to_lower_dim = dist_phen)
+
+  # Histogram
+  mu <- mean(dist_proj_df$dist_phen, na.rm = TRUE)
+  p <- ggplot(dist_proj_df, aes(x = dist_phen)) +
+    geom_histogram(fill = "#E41A1C", color = "black", bins = 30, alpha = 0.6) +
+    geom_vline(xintercept = mu, color = "#E41A1C", linetype = "dashed", size = 1) +
+    labs(
+      title = paste0(d, "D vs ", d - 1, "D projection (unique 2D positions)"),
+      x = "Distance between projections (MIC units)",
+      y = "Frequency"
+    ) +
+    theme_bw() +
+    theme(
+      axis.title = element_text(size = 14),
+      axis.text = element_text(size = 12)
+    )
+
+  ggsave(paste0("FilteredMap_Procrustes_projection_", d, "D_vs_", d - 1, "D.jpg"),
+         plot = p, width = 7, height = 5)
+}
+
+# Save and summarise
+proj_all_df <- bind_rows(all_proj_results)
+write.csv(proj_all_df, "FilteredMap_projection_distances_all_dims.csv", row.names = FALSE)
+
+summary_table <- proj_all_df %>%
+  group_by(Dim) %>%
+  summarise(Mean_Projection_Error = round(mean(Dist_to_lower_dim, na.rm = TRUE), 3))
+
+print(summary_table)
+
+
+library(purrr)
+
+# Number of bootstrap samples
+n_boot <- 1000
+
+# Bootstrap mean error estimates when increasing dimension
+bootstrap_means <- proj_all_df %>%
+  group_by(Dim) %>%
+  summarise(
+    boot_means = list(replicate(
+      n_boot,
+      mean(sample(Dist_to_lower_dim, replace = TRUE), na.rm = TRUE)
+    )),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    mean_boot = round(map_dbl(boot_means, mean), 3),
+    lower_ci = round(map_dbl(boot_means, ~ quantile(.x, 0.025, na.rm = TRUE)), 3),
+    upper_ci = round(map_dbl(boot_means, ~ quantile(.x, 0.975, na.rm = TRUE)), 3)
+  ) %>%
+  select(Dim, mean_boot, lower_ci, upper_ci)
+
+
+print(bootstrap_means)
+
+
+```
+

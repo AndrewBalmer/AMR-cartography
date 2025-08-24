@@ -20,13 +20,13 @@ library(smacof)        # For multidimensional scaling
 library(RColorBrewer)  # For color palettes
 
 # Set the working directory
-setwd("/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#07-10-Estimating-goodness-of-fit")
+setwd("/Users/ajb306/AMR-cartography/analysis/01-Phenotype_and_map_analyses/05-07-Estimating-goodness-of-fit")
 
 # Read the MIC table data
-tablemic <- read.csv("/Users/ajb306/AMR-cartography/data/MIC_table_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+tablemic <- read.csv("/Users/ajb306/AMR-cartography-results/data/MIC_table_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
 
 # Specify the full path to the data file
-gen_map <- "/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#03-06-Generating-phenotype-and-genotype-maps/Spneumo_3628_PCA_start_2D_METRIC_genetic.RData"
+gen_map <- "/Users/ajb306/AMR-cartography-results/data/Spneumo_3628_PCA_start_2D_METRIC_genetic.RData"
 
 # Load the precomputed PCA start 2D metric data
 load(gen_map)
@@ -130,15 +130,16 @@ distances_distinct_res <- distances %>%
   distinct(abs(residuals), .keep_all=TRUE)
 
 # Calculate the percentage of residuals greater than 1 and 2
-percentage_above_1 <- sum(distances$residuals > 10) / nrow(distances) * 100
-percentage_above_2 <- sum(distances$residuals > 20) / nrow(distances) * 100
+percentage_above_1 <- round(sum(abs(distances$residuals) > 10) / nrow(distances) * 100,3)
+percentage_above_2 <- round(sum(abs(distances$residuals) > 20) / nrow(distances) * 100,3)
 
 # Calculate and display mean and standard deviation of residuals
 mu <- distances %>%
   ungroup() %>%
-  summarize(Mean = mean(residuals),
-            sd = sd(residuals)) %>%
+  summarize(Mean = mean(abs(residuals)),
+            sd = sd(abs(residuals))) %>%
   round(3)
+
 
 # Print mean and sd of errors
 mu

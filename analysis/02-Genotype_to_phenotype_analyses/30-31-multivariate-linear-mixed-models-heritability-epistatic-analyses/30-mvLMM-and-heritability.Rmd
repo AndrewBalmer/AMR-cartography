@@ -23,36 +23,36 @@ library(FactoMineR)
 library(fastDummies)
 library(heritability)
 library(poolr)
+library(tidygraph)
 
 options(dplyr.summarise.inform = FALSE)
 
 
 # Set working directory
-setwd("/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#03-06-Generating-phenotype-and-genotype-maps")
+setwd("/Users/ajb306/AMR-cartography-results/data/")
 
 # Specify the full path to the data file
-phen_map <- "/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#03-06-Generating-phenotype-and-genotype-maps/Spneumo_3628_PCA_start_2D_METRIC.RData"
+phen_map <- "/Users/ajb306/AMR-cartography-results/data/Spneumo_3628_PCA_start_2D_METRIC.RData"
 
 load(phen_map)
 
 # Read in the relevant meta data
-tablemic_meta <- read.csv("/Users/ajb306/AMR-cartography/data/meta_data_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+tablemic_meta <- read.csv("/Users/ajb306/AMR-cartography-results/data/meta_data_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
 
 
   res_samp <- torg_met
   theta <- 326*pi/180 ## degrees to radians
   rot <- matrix(c(cos(theta), sin(theta), -sin(theta), cos(theta)), ncol = 2)
   res_samp$conf <- res_samp$conf %*% rot ## rotated configurations
-  plot(res_samp)
-  
+
   ### create a vector of isolates with PBP deletion substitutions and remove them from dataframes  
   isolates_with_PBP_deletion <- c("20156696" , "20162849" , "20151885" ,
                            "20153985" , "20154509" , "2013224047" , "2013218247" ,
                            "2014200662" , "5869-99" , "2513-99")
   
 # Specify the full path to the data file
-gen_map <- "/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#03-06-Generating-phenotype-and-genotype-maps/Spneumo_3628_PCA_start_2D_METRIC_genetic.RData"
-load('/Users/ajb306/AMR-cartography/data/tablemic_pneumo_gen_3628.RData')
+gen_map <- "/Users/ajb306/AMR-cartography-results/data/Spneumo_3628_PCA_start_2D_METRIC_genetic.RData"
+load('/Users/ajb306/AMR-cartography-results/data/tablemic_pneumo_gen_3628.RData')
 
 # Load the precomputed PCA start 2D metric data
 load(gen_map)
@@ -110,6 +110,7 @@ mod.matrix <- cov(map_coords)
 
 ## the following files are the LABIDs for the isolates, along with the phenotypic map coordinates, and the covariance matrix of the two map dimensions
 setwd("/Users/ajb306/PycharmProjects/pythonProject1/")
+genetic_markers <-read.csv("S.pneumo_map_dummy_gen_test_markers.csv")
 
 # Get the current working directory
 current_directory <- getwd()
@@ -123,7 +124,7 @@ write.csv(mod.matrix, file = "S.pneumo_map_mvlmm_mod_matrix.csv", row.names=FALS
 
 
 # Read the MIC table data
-tablemic <- read.csv("/Users/ajb306/AMR-cartography/data/MIC_table_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+tablemic <- read.csv("/Users/ajb306/AMR-cartography-results/data/MIC_table_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
 
 # Transform the data so that it is easier to work with noise added values later - the relative euclidean distances between the points will remain the same
 for (i in 1:ncol(tablemic)) {
@@ -151,6 +152,11 @@ tablemic <- tablemic %>%
 write.csv(tablemic, file = "S.pneumo_map_mvlmm_MIC_values.csv", row.names=FALSE)
 
 dummy_gen <- AA_matrix_phenotype %>% select(PBP1A_T371:PBP2X_V587)
+# Count the number of columns that are variant
+num_variant_columns <- sum(sapply(dummy_gen, function(col) length(unique(col)) > 1))
+
+# Display the number of variant columns
+print(num_variant_columns)
 
 dummy_gen <- na.omit(dummy_gen)
 ncol(dummy_gen)
@@ -262,11 +268,41 @@ genetic_markers <- dummy_gen %>% select(c(Counts_of_each_AA_combination$AA))
 ## Lastly, after merging and removing identical amino acids, as well as merging those which are precisely inverse I save the list of markers which I would like to test
 write.csv(genetic_markers, file = "S.pneumo_map_dummy_gen_test_markers.csv", row.names=FALSE)
 #dummy_gen <-read.csv("S.pneumo_map_dummy_gen_test_markers.csv")
+genetic_markers <-read.csv("S.pneumo_map_dummy_gen_test_markers.csv")
+
+
+### Add MLST data (optional)
+library(ggforce)
+
+# Read the MIC table data - https://www.frontiersin.org/journals/microbiology/articles/10.3389/fmicb.2018.02670/full
+tablemic_metadata_MLST <- read.csv("/Users/ajb306/AMR-cartography-results/data/MIC_S.Pneumo_metadata.csv", header=TRUE, sep=",", skip = 0)
+tablemic_metadata_MLST_post2015 <- read.csv("/Users/ajb306/AMR-cartography-results/data/Meta_data_spneumoniae_isolates_post_2015.csv", header=TRUE, sep=",", skip = 0) %>%
+  rename(LABID = Sample,
+         MLST = ST,
+         YEAR = Year.of.isolation,
+         SEROTYPE = WGS_Serotype) %>%
+  mutate(LABID = as.character(LABID))
+
+tablemic_metadata_MLST <- bind_rows(tablemic_metadata_MLST,tablemic_metadata_MLST_post2015) %>%
+                    distinct(LABID, .keep_all = TRUE) 
+
+# Perform initial processing and filtering
+processed_data <- left_join(AA_matrix_phenotype, tablemic_metadata_MLST, by = "LABID") %>%
+  select(MLST)
+
+# count of how many isolates had MLST data
+nrow(na.omit(processed_data))
+
+write.csv(processed_data, file = "S.pneumo_MLST_for_GWAS.csv", row.names=FALSE)
+
+```
 
 
 
 
 
+
+#```{r,echo = F}
 
 
 ### generating a dummy set of epistatic interactions, and then a corresponding dummy_gen of 
@@ -320,7 +356,7 @@ setwd("/Users/ajb306/PycharmProjects/pythonProject1/")
 write.csv(test_matrix, file = "S.pneumo_map_test_markers_incl_2nd_order_epistatic.csv", row.names=FALSE)
 
 
-```
+#```
 
 
 
@@ -368,7 +404,7 @@ galwey_meff <- meff(galwey_meff, method = "galwey")
 
 uvLMM_D1$pv20_adj_galwey <- uvLMM_D1$pv20 * galwey_meff
 uvLMM_D1$Significance <- uvLMM_D1$pv20_adj_galwey
-uvLMM_D1$Significance <- ifelse(uvLMM_D1$Significance <= 0.001, "Significant", "Non-Significant")
+uvLMM_D1$Significance <- ifelse(uvLMM_D1$Significance <= 0.0005875153233810342, "Significant", "Non-Significant")
 
 No_sig_D1_all <- uvLMM_D1 %>% 
   add_count(Significance) %>% 
@@ -376,7 +412,7 @@ add_count(PBP, name = "PBP_count") %>%
   distinct(PBP_AA_location, .keep_all = T) 
 
 No_sig_D1 <- uvLMM_D1 %>% 
- filter(pv20_adj_galwey <= 0.001) %>%
+ filter(pv20_adj_galwey <= 0.0005875153233810342) %>%
 add_count(PBP, name = "PBP_count") 
 
 
@@ -384,7 +420,7 @@ ggplot(filter(uvLMM_D1), aes(x=PBP_AA_location,y=-log10(pv20_adj_galwey))) +
   geom_point(shape = 21, size = 3,  alpha = 0.8, 
              aes(fill = Significance), position = position_jitter(width = 0., height = 0.)) +
   guides() +
-  geom_hline(yintercept=-log10(0.001)) +
+  geom_hline(yintercept=-log10(0.0005875153233810342)) +
   facet_wrap(~PBP, scales ="free_x") +
   theme(legend.position='none') +
   theme_linedraw() +
@@ -401,21 +437,179 @@ ggplot(filter(uvLMM_D1), aes(x=PBP_AA_location,y=-log10(pv20_adj_galwey))) +
 
 ```
 
+
+###Comparing GWAS Results With and Without MLST Adjustment
+This code compares the results of two multivariate GWAS analyses of β-lactam resistance in Streptococcus pneumoniae: one that includes MLST type as a covariate and one that does not. MLST is known to correlate strongly with both resistance phenotypes and PBP sequence variation. Including it can help distinguish lineage-specific background effects from independently acting substitutions. However, it also risks over-correcting—removing real signal—since PBP variation is often colinear with MLST type.
+
+In this study, we chose not to include MLST in the main analysis, as doing so would obscure the very PBP-associated effects we aimed to detect. Our goal was to identify substitutions within PBP transpeptidase regions that are predictive of resistance across lineages, even if their frequency varies by lineage. Adjusting for MLST would reduce power to detect such associations and bias results toward more lineage-independent variants.
+
+This supplementary analysis allows us to:
+
+- Quantify how inclusion of MLST alters p-values and effect size estimates.
+
+- Highlight substitutions whose significance is lost or gained under MLST adjustment.
+
+- Provide transparency on how lineage structure influences association signals.
+
+The code performs the following steps:
+
+ - Loads GWAS results and effect sizes from both models.
+
+- Applies a Galwey correction for multiple testing.
+
+- Flags significant substitutions based on the adjusted p-value threshold.
+
+- Compares effect sizes and significance status between the models.
+
+- Visualises key differences and outputs summary tables.
+
+This comparison contextualises the main findings and clarifies the role of lineage structure in shaping genotype–phenotype associations.
+
+```{r,echo = F}
+
+library(dplyr)
+library(ggplot2)
+library(readr)
+library(tidyr)
+library(stringr)
+
+setwd("/Users/ajb306/PycharmProjects/pythonProject1/")
+
+# --- Step 1: Load MLST GWAS results (adjusted for structure) ---
+mlst_gwas <- read_csv("mvLMM_p_values_with_MLST.csv")  # <-- adjust filename if needed
+mlst_eff_sizes <- read_csv("mvLMM_effect_sizes_with_MLST.csv")
+
+# Add PBP_AA_location if needed
+mlst_eff_sizes_candidates <- mlst_eff_sizes %>% 
+  filter(effect_type == "candidate") %>% 
+  rename(PBP_AA_location = effect_name)
+
+mlst_gwas$PBP_AA_location <- colnames(genetic_markers)  # only if needed
+
+mlst_combined <- left_join(mlst_gwas, mlst_eff_sizes_candidates, by = "PBP_AA_location")
+
+# Add PBP labels
+mlst_combined$Previous_AA_PBP <- str_sub(mlst_combined$PBP_AA_location, 7, 7)
+mlst_combined$PBP <- str_sub(mlst_combined$PBP_AA_location, 1, 5)
+
+# --- Step 2: Apply Galwey correction ---
+galwey_meff <- cor(genetic_markers, method = "pearson") %>% meff(method = "galwey")
+mlst_combined$pv20_adj_galwey <- mlst_combined$pv20 * galwey_meff
+
+# --- Step 3: Add significance calls ---
+mlst_combined <- mlst_combined %>%
+  mutate(Significance = if_else(pv20_adj_galwey <= 0.0005875, "Significant", "Non-Significant"))
+
+# --- Step 4: Compare with normal GWAS results ---
+comparison <- inner_join(
+  select(uvLMM_D1, PBP_AA_location, pv20_adj_galwey, Significance),
+  select(mlst_combined, PBP_AA_location, pv20_adj_galwey, Significance),
+  by = "PBP_AA_location",
+  suffix = c("_normal", "_mlst")
+)
+
+# --- Step 5: Visualise shift in significance (scatter plot) ---
+
+threshold <- -log10(0.0005875)
+
+ggplot(comparison, aes(x = -log10(pv20_adj_galwey_normal), y = -log10(pv20_adj_galwey_mlst))) +
+  geom_point(aes(color = Significance_normal != Significance_mlst), size = 3, alpha = 0.7) +
+  geom_hline(yintercept = threshold, linetype = "dashed", color = "black") +
+  geom_vline(xintercept = threshold, linetype = "dashed", color = "black") +
+  labs(
+    x = "-log10(p-value) | Normal GWAS",
+    y = "-log10(p-value) | MLST-adjusted GWAS",
+    title = "Comparison of GWAS Significance: Normal vs MLST-adjusted"
+  ) +
+  theme_minimal() +
+  scale_color_manual(values = c("FALSE" = "grey", "TRUE" = "#E41A1C")) +
+  theme(legend.position = "none")
+
+# --- Step 6: Count how many changes in significance ---
+comparison %>%
+  mutate(Change = Significance_normal != Significance_mlst) %>%
+  count(Change)
+
+uvLMM_D1 <- uvLMM_D1 %>%
+  mutate(joint_effect_size = sqrt(effsize_env1_D1^2 + effsize_env1_D2^2))
+
+
+
+test <- mlst_combined %>% 
+  pivot_wider(names_from = env, values_from = effsize, values_fill = 0) %>%
+  mutate(
+    joint_effsize = sqrt(
+      (`env0_env0_0`)^2 +  # Axis 1
+      (`env1_env1_0`)^2 + # Axis 2 component 1
+      (`env1_env1_1`)^2   # Axis 2 component 2
+    )
+  ) %>%
+  select(PBP_AA_location, joint_effsize)
+
+effect_comparison <- inner_join(
+  select(uvLMM_D1, PBP_AA_location, joint_effect_size) %>% rename(effsize_normal = joint_effect_size),
+  select(test, PBP_AA_location, joint_effsize) %>% rename(effsize_mlst = joint_effsize),
+  by = "PBP_AA_location"
+)
+
+
+
+ggplot(effect_comparison, aes(x = effsize_normal, y = effsize_mlst)) +
+  geom_point(alpha = 0.7) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dotted", color = "blue") +
+  theme_bw() +
+  labs(
+    x = "Joint Effect Size | Normal GWAS",
+    y = "Joint Effect Size | MLST-adjusted GWAS",
+    title = "Comparison of Joint Effect Sizes"
+  )
+
+# All substitutions where significance status changed
+top_changes <- comparison %>%
+      distinct(PBP_AA_location,  .keep_all = T) %>%
+  filter(Significance_normal != Significance_mlst) %>%
+  mutate(delta_log10p = abs(log10(pv20_adj_galwey_normal) - log10(pv20_adj_galwey_mlst)))
+
+
+ggplot(comparison, aes(x = -log10(pv20_adj_galwey_normal), y = -log10(pv20_adj_galwey_mlst))) +
+  geom_point(aes(color = Significance_normal != Significance_mlst), size = 3, alpha = 0.7) +
+  geom_text(data = top_changes, aes(label = PBP_AA_location), vjust = -0.5, size = 3) +
+  geom_hline(yintercept = threshold, linetype = "dashed", color = "black") +
+  geom_vline(xintercept = threshold, linetype = "dashed", color = "black") +
+  labs(
+    x = "-log10(p-value) | Normal GWAS",
+    y = "-log10(p-value) | MLST-adjusted GWAS",
+    title = "GWAS Significance Comparison: Normal vs MLST-adjusted"
+  ) +
+  theme_minimal() +
+  scale_color_manual(values = c("FALSE" = "grey", "TRUE" = "#E41A1C")) +
+  theme(legend.position = "none")
+
+# --- Step 8: Identify significance switches ---
+comparison %>%
+    distinct(PBP_AA_location,  .keep_all = T) %>%
+  mutate(Change = case_when(
+    Significance_normal == "Significant" & Significance_mlst == "Significant" ~ "Still significant",
+    Significance_normal == "Significant" & Significance_mlst != "Significant" ~ "Lost significance",
+    Significance_normal != "Significant" & Significance_mlst == "Significant" ~ "Gained significance",
+    TRUE ~ "Still non-significant"
+  )) %>%
+  count(Change)
+
+```
 I have also plotted their effect sizes, with black lines representing 1 log2 fold MIC unit on the MDS map. Here, I have only plotted the substitutions with p-values less than 0.05 after correction for multiple comparisons.  
 
-Note that statistical power to detect effects <1 unit may be low. Note that one significant result comprises multiple AA changes. These were cases where these positions were identical within the dataset, so combined into a single dummy variable. In such examples it is not possible to establish which of the substitutions are causal without additional lab work for example.
+Note that statistical power to detect effects <1 unit may be low. Note that one significant result can comprises multiple AA changes. These were cases where these positions were identical within the dataset, so combined into a single dummy variable. In such examples it is not possible to establish which of the substitutions are causal without additional lab work for example.
 
 ```{r, echo =F}
 
 
-uvLMM_D1 <- uvLMM_D1 %>%
-  mutate(joint_effect_size = sqrt(effsize_env1_D1^2 + effsize_env1_D2^2))
 
 ggplot(filter(uvLMM_D1), aes(x=joint_effect_size, y = -log10(pv20_adj_galwey))) + 
    geom_vline(xintercept=1) +
     geom_hline(yintercept=-log10(0.05)) +
   geom_hline(yintercept=-log10(0.01)) +
-    geom_hline(yintercept=-log10(0.001)) +
+    geom_hline(yintercept=-log10(0.0005875153233810342)) +
  geom_point(shape = 16, colour = "#377EB8", size = 2,  alpha = 0.25, 
              aes(), position = position_jitter(width = 0., height = 0.)) +
 #  geom_point(data = uvLMM_D1_epi,  aes(x=joint_effect_size, y = -log10(pv20)),
@@ -435,11 +629,12 @@ ggplot(filter(uvLMM_D1), aes(x=joint_effect_size, y = -log10(pv20_adj_galwey))) 
         axis.title=element_text(size=16)) +
   annotate("label", x = 3.25, y = -log10(0.05), label = "0.05")  +
   annotate("label", x = 3.25, y = -log10(0.01), label = "0.01")  +
-  annotate("label", x = 3.25, y = -log10(0.001), label = "0.001")  +
+  annotate("label", x = 3.25, y = -log10(0.0005875153233810342), label = "0.0005875153233810342")  +
   scale_colour_manual(values=c( "#E41A1C", "#377EB8"))
 
+format(0.0005875153233810342, scientific = TRUE)
 
-ggplot(filter(uvLMM_D1, pv20_adj_galwey <= 0.001), aes(x=effsize_env1_D1, y = effsize_env1_D2, size = -log10(pv20_adj_galwey))) + 
+ggplot(filter(uvLMM_D1, pv20_adj_galwey <= 0.0005875153233810342), aes(x=effsize_env1_D1, y = effsize_env1_D2, size = -log10(pv20_adj_galwey))) + 
  geom_point(shape = 16, colour = "#E41A1C",alpha = 0.25, 
              aes(), position = position_jitter(width = 0., height = 0.)) +
   geom_vline(xintercept=1) +
@@ -471,7 +666,7 @@ ggsave("mvLMM_pneumo_effect_sizes.jpg")
 
 
 ## List of all identified positions
-Across the three proteins, a total of 18 PBP locations were identified as has significant phenotypic effects, after correction for multiple comparisons. 
+Across the three proteins, many PBP locations were identified as having significant phenotypic effects, after correction for multiple comparisons. 
 
 ```{r, echo =F}
 
@@ -484,7 +679,33 @@ All_pos <- uvLMM_D1 %>% select(PBP, Substitution, pv20, pv20_adj_galwey, effsize
 colnames(All_pos) <- c("PBP", "PBP_AA_location", "pv20", "pv20_adj_galwey", "effsize_D1", "effsize_D2", "effsize_se_D1", "effsize_se_D2","Joint_effsize")
 head(All_pos)
 
-write.csv(All_pos, file = "Sub_effect_sizes_mv_pneumo.csv", row.names=FALSE)
+# Count number of sig mutations with effect sizes above 1
+no_sig <- filter(All_pos, pv20_adj_galwey < 0.05 & Joint_effsize >=1) %>%
+  separate_rows(PBP_AA_location, sep = "/")
+nrow(no_sig)
+
+# Count number of sig mutations (below perm thresh) with effect sizes above 1
+no_sig <- filter(All_pos, pv20_adj_galwey < 0.0005875153233810342 & Joint_effsize >=1)%>%
+  separate_rows(PBP_AA_location, sep = "/")
+nrow(no_sig)
+
+#counts for each protein
+PBP1A <- filter(no_sig, PBP == "PBP1A")%>%
+  separate_rows(PBP_AA_location, sep = "/")
+nrow(PBP1A)
+PBP2B <- filter(no_sig, PBP == "PBP2B")%>%
+  separate_rows(PBP_AA_location, sep = "/")
+nrow(PBP2B)
+PBP2X <- filter(no_sig, PBP == "PBP2X")%>%
+  separate_rows(PBP_AA_location, sep = "/")
+nrow(PBP2X)
+
+# counts above 2 mic units
+no_sig <- filter(no_sig, Joint_effsize >=2)%>%
+  separate_rows(PBP_AA_location, sep = "/")
+nrow(no_sig)
+
+write.csv(All_pos, file = "/Users/ajb306/Google Drive/PhD - Andrew Balmer/Chapters/AMR cartography/MIC data/Streptococcus pneumoniae analysis/Sub_effect_sizes_mv_pneumo.csv", row.names=FALSE)
 
 
 ```
@@ -509,7 +730,7 @@ The LMM is then run on these interaction variables to test whether it is associa
 Below is an example of coding the logical 'and' between two variables to test for 2nd order interactions between the two variables. 
 
 
-```{r, echo =F}
+#```{r, echo =F}
 
 Isolate <- c('A (2-0-2)','B','C','D')
 loci_xA <- c('1','1','0','0')
@@ -522,23 +743,23 @@ Epistatic_interactions <- data.frame(Isolate, loci_xA, loci_xB, loci_xAB, string
 kable(Epistatic_interactions, caption = "Coding an epistatic interaction between two variables") %>% 
   kable_classic(full_width = F, html_font = "Cambria")
 
-```
+#```
 
 
 In this case, there are 914 positions across the three PBP TPD regions, of which 284 are variant. In my last markdown I coded the 284 positions as dummy variables and removed invariant, identical, and precisely opposite positions. I also removed the 'sensitive' representative AAs. (file:///Users/ajb306/Downloads/Chapter%203%20-%20LMM%20further%20analysis%20(3).html)
 
-After doing this I had 204 dummy variables. Coding the interaction terms resulted in a total of >8k interaction variables to be tested after removing invariant interactions. I then had a series of interaction variables with varying numbers of isolates representing each group. For example, an interaction with loci_A and loci_B would have four possible combinations  (a/b - 0_0, 0_1, 1_0, and 1_1). However, for many interactions, there was a very low number of isolates for each combination. I therefore wanted to exclude positions where I didnt have a good enough sample size to estimate effects. 
+After doing this I had many dummy variables. Coding the interaction terms resulted in a total of >3k interaction variables to be tested after removing invariant interactions. I then had a series of interaction variables with varying numbers of isolates representing each group. For example, an interaction with loci_A and loci_B would have four possible combinations  (a/b - 0_0, 0_1, 1_0, and 1_1). However, for many interactions, there was a very low number of isolates for each combination. I therefore wanted to exclude positions where I didnt have a good enough sample size to estimate effects. 
 
 Given there are 5 parameters in the epistatic LMM model, (Relatedness, The interaction marker being tested, Loci A as a covariate, Loci B as a covariate, and Noise), I therefore wanted to excluded positions which did not have a minimum of 5 isolates for each combination. I used 5 as a rough heuristic on which to exclude combinations which I would be unlikely to accurately estimate effects. This resulted in a total of 2320 interaction terms which needed to be tested. 
 
-In a previous document, I outlined the need to decompose the genetic and error components in each test, as this can result in p-value inflation. I did the same procedure here, estimating each of the components for each test individually. This resulted in making the test quite computationally intensive, for the S. pneumoniae dataset of >3.5k isolates,  it needed to be run overnight on the Hamilton server. However, because I am only using the 633 isolates non-divergent S. pneumo isolates, I was able to run this analysis on my laptop.
+In a previous document, I outlined the need to decompose the genetic and error components in each test, as this can result in p-value inflation. I did the same procedure here, estimating each of the components for each test individually. This resulted in making the test quite computationally intensive, for the S. pneumoniae dataset of >3.5k isolates,  it needed to be run overnight on a server. 
 
 
 ### Results from running epistatic mvLMM on map dimension and plotting significant results
 
-Below, I ran the multivariate LMM on the map dimensions and identified 60 AA positions with interaction effects after Bonferroni correction for multiple comparisons. Many of the same positions were associated with changes in MIC in both the individual AA subs and clustering analyses, as well as in the GWAS and CDC. 
+Below, I ran the multivariate LMM on the map dimensions and identified many AA positions with interaction effects after Bonferroni correction for multiple comparisons. Many of the same positions were associated with changes in MIC in both the individual AA subs and clustering analyses, as well as in the GWAS and CDC. 
 
-Below, I have presented their -log10 p-values on the x-axis and their joint effect sizes on the y. The horizontal black line represents effect sizes of 1 MIC unit. The vertical black lines represent p-value cut-offs of 0.05, 0.01 and 0.001. Many interactions are coming out as strongly significant after correction for multiple comparisons. In many cases, these appear to have positive effects (i.e. increase MIC), across both map dimensions. However, although there is a large subset of interactions which produce a decrease in MIC on one or both axes (see table below). There is also a subset of interactions which have very large effect sizes (>5 MIC units). However, many of these do not come out as significant, and the ones which do have low numbers of isolates for one or more of the AA combinations. 
+Below, I have presented their -log10 p-values on the x-axis and their joint effect sizes on the y. The horizontal black line represents effect sizes of 1 MIC unit. The vertical black lines represent p-value cut-offs of 0.05, 0.01 and 0.0005875153233810342. Many interactions are coming out as strongly significant after correction for multiple comparisons. In many cases, these appear to have positive effects (i.e. increase MIC), across both map dimensions. However, although there is a large subset of interactions which produce a decrease    in MIC on one or both axes (see table below). There is also a subset of interactions which have very large effect sizes (>5 MIC units). However, many of these do not come out as significant, and the ones which do have low numbers of isolates for one or more of the AA combinations. 
 
 
 ```{r, echo = F}
@@ -579,18 +800,18 @@ galwey_meff <- 39
 uvLMM_V1_epi$pv20_adj_galwey <- uvLMM_V1_epi$pv20 * galwey_meff
 range(uvLMM_V1_epi$pv20_adj_galwey)
 uvLMM_V1_epi$Significance <- uvLMM_V1_epi$pv20_adj_galwey
-uvLMM_V1_epi$Significance <- ifelse(uvLMM_V1_epi$Significance <= 9.72e-06, "Significant", "Non-Significant")
+uvLMM_V1_epi$Significance <- ifelse(uvLMM_V1_epi$Significance <= 0.0007620121, "Significant", "Non-Significant")
 
 uvLMM_V1_epi <- uvLMM_V1_epi %>%
-  mutate(joint_effect_size = sqrt(effsize_env1_V1^2 + effsize_env1_V2^2),
-         joint_effect_size_se = sqrt(effsize_se_env1_V1^2 + effsize_se_env1_V2^2))
+  mutate(joint_effect_size = sqrt(effsize_env1_D1^2 + effsize_env1_D2^2),
+         joint_effect_size_se = sqrt(effsize_se_env1_D1^2 + effsize_se_env1_D2^2))
 
 uvLMM_V1_epi <- uvLMM_V1_epi %>%
   mutate(lowest_number_of_isolates_by_comb = pmin(AA_Combination_0_0, AA_Combination_1_0, AA_Combination_0_1,  AA_Combination_1_1))
 
 ggplot(filter(uvLMM_V1_epi), aes(x=joint_effect_size, y = -log10(pv20_adj_galwey), size=lowest_number_of_isolates_by_comb)) + 
     geom_vline(xintercept=1) +
-    geom_hline(yintercept=-log10(0.001)) +
+    geom_hline(yintercept=-log10(0.0007620121)) +
  geom_point(shape = 16, colour = "#E41A1C",  alpha = 0.25, position = position_jitter(width = 0., height = 0.)) +
   theme_linedraw() +
   scale_x_continuous(limits = c( 0,5), breaks=seq( 0,5, 1)) +
@@ -600,11 +821,11 @@ ggplot(filter(uvLMM_V1_epi), aes(x=joint_effect_size, y = -log10(pv20_adj_galwey
   guides(size=guide_legend(title="No. isolates (min)")) + 
   theme(axis.text =element_text(size=16), 
         axis.title=element_text(size=16)) +
-  annotate("label", x = 4.5, y = -log10(0.001), label = "0.001")  + 
+  annotate("label", x = 4.5, y = -log10(0.0007620121), label = "0.0007")  + 
   scale_colour_manual(values=c( "#E41A1C", "#377EB8"))
 
 
-#ggsave("spneumo_effect_size_plot.jpg")
+ggsave("spneumo_effect_size_plot.jpg")
 
 ```
 
@@ -613,7 +834,7 @@ ggplot(filter(uvLMM_V1_epi), aes(x=joint_effect_size, y = -log10(pv20_adj_galwey
 
 ```{r, echo = F}
 
-ggplot(filter(uvLMM_V1_epi,pv20_adj_galwey< 9.72e-06 ), aes(x=effsize_env1_V1, y = effsize_env1_V2, size = joint_effect_size_se)) + 
+ggplot(filter(uvLMM_V1_epi,pv20_adj_galwey< 0.0007620121 ), aes(x=effsize_env1_D1, y = effsize_env1_D2, size = joint_effect_size_se)) + 
   geom_point(shape = 16, colour = "#E41A1C",alpha = 0.25, 
              aes(), position = position_jitter(width = 0., height = 0.)) +
     geom_vline(xintercept=1) +
@@ -637,17 +858,61 @@ ggplot(filter(uvLMM_V1_epi,pv20_adj_galwey< 9.72e-06 ), aes(x=effsize_env1_V1, y
 
 ```{r, echo = F}
 
+# how many interactions were significant +1 MIC unit
+Count_sig_interactions <- uvLMM_V1_epi %>%
+  filter(pv20_adj_galwey <= 0.0007620121) %>%
+  filter(joint_effect_size >= 1)
+nrow(Count_sig_interactions)
+
+
+# how many locations were these interactions?
+Count_sig_interactions <- uvLMM_V1_epi %>%
+  filter(pv20_adj_galwey <= 0.0007620121) %>%
+  filter(joint_effect_size >= 1) %>%
+  # Step 1: Separate on ":" (multiple interaction pairs)
+  separate_rows(PBP_AA_location, sep = ":") %>%
+  # Step 2: Insert delimiter before _PBP so we can safely separate
+  mutate(PBP_AA_location = str_replace_all(PBP_AA_location, "_PBP", ";PBP")) %>%
+  # Step 3: Separate on that inserted delimiter
+  separate_rows(PBP_AA_location, sep = ";") %>%
+  mutate(PBP_AA_location = str_trim(PBP_AA_location)) %>%
+  distinct(PBP_AA_location,  .keep_all = T)
+nrow(Count_sig_interactions)
+
+# how many interactions were significant and had lower bound SE above 1 MIC
+Count_sig_interactions_SE <- uvLMM_V1_epi %>% 
+  filter(pv20_adj_galwey <= 0.0007620121) %>%
+  filter(joint_effect_size-joint_effect_size_se >= 1)
+nrow(Count_sig_interactions_SE)
+
+# how many locations were these interactions?
+Count_sig_interactions_SE <- uvLMM_V1_epi %>% 
+  filter(pv20_adj_galwey <= 0.0007620121) %>%
+  filter(joint_effect_size-joint_effect_size_se >= 1) %>%
+  # Step 1: Separate on ":" (multiple interaction pairs)
+  separate_rows(PBP_AA_location, sep = ":") %>%
+  # Step 2: Insert delimiter before _PBP so we can safely separate
+  mutate(PBP_AA_location = str_replace_all(PBP_AA_location, "_PBP", ";PBP")) %>%
+  # Step 3: Separate on that inserted delimiter
+  separate_rows(PBP_AA_location, sep = ";") %>%
+  mutate(PBP_AA_location = str_trim(PBP_AA_location)) %>%
+  distinct(PBP_AA_location,  .keep_all = T)
+nrow(Count_sig_interactions_SE)
+
+138 / 285 * 100
+
 No_sig_V1 <- uvLMM_V1_epi %>% 
-  filter(pv20_adj_galwey <= 0.001) %>%
+  filter(pv20_adj_galwey <= 0.0007620121) %>%
   filter(joint_effect_size-joint_effect_size_se >= 1) %>% 
-  #filter(effsize_env1_V1 >= abs(1) | effsize_env1_V2 >= abs(1)) %>%
+  #filter(effsize_env1_D1 >= abs(1) | effsize_env1_D2 >= abs(1)) %>%
     separate(PBP_AA_location, c("AA1", "AA2"), ":", remove =F) %>% 
   pivot_longer(cols = c("AA1", "AA2"), names_to = "AA", values_to = "Location") %>% 
   add_count(Location, name = "PBP_count") 
 
 
 No_sig_V1_perm <- uvLMM_V1_epi %>% 
- filter(pv20_adj_galwey <= 9.72e-06) %>%
+ filter(pv20_adj_galwey <= 0.0007620121) %>%
+  
  #filter(joint_effect_size >= 1 | joint_effect_size <= -1) %>%
   separate(PBP_AA_location, c("AA1", "AA2"), ":", remove =F) %>% 
   pivot_longer(cols = c("AA1", "AA2"), names_to = "AA", values_to = "Location") %>% 
@@ -664,25 +929,55 @@ has_nas <- any(is.na(No_sig_V1$PBP_count_perm_cutoff))
 print(has_nas)
 
 
+counts_of_no_positions <- No_sig_V1 %>%
+  distinct(Location,  .keep_all = T)
+
+
 Sub_effect_sizes_interaction <- No_sig_V1 %>%
   distinct(Location,  .keep_all = T)
 
 setwd("/Users/ajb306/Google Drive/PhD - Andrew Balmer/Chapters/AMR cartography/MIC data/Streptococcus pneumoniae analysis/")
 
-write.csv(uvLMM_V1_epi, file = "Sig_AA_subs_all_epistatic_interactions_incl_nonsig_S.pneumo.csv", row.names=FALSE)
+write.csv(uvLMM_V1_epi, file = "/Users/ajb306/Google Drive/PhD - Andrew Balmer/Chapters/AMR cartography/MIC data/Streptococcus pneumoniae analysis/Sig_AA_subs_all_epistatic_interactions_incl_nonsig_S.pneumo.csv", row.names=FALSE)
 
-write.csv(Sub_effect_sizes_interaction, file = "Sig_AA_subs_all_epistatic_interactions_S.pneumo.csv", row.names=FALSE)
+write.csv(Sub_effect_sizes_interaction, file = "/Users/ajb306/Google Drive/PhD - Andrew Balmer/Chapters/AMR cartography/MIC data/Streptococcus pneumoniae analysis/Sig_AA_subs_all_epistatic_interactions_S.pneumo.csv", row.names=FALSE)
 
+#count total number of locations with sig interaction effects
+count <- Sub_effect_sizes_interaction %>%
+  # Step 1: Separate on ":" (multiple interaction pairs)
+  separate_rows(Location, sep = ":") %>%
+  # Step 2: Insert delimiter before _PBP so we can safely separate
+  mutate(Location = str_replace_all(Location, "_PBP", ";PBP")) %>%
+  # Step 3: Separate on that inserted delimiter
+  separate_rows(Location, sep = ";") %>%
+  mutate(Location = str_trim(Location)) %>%
+  distinct(Location, .keep_all = T)
+nrow(count)
+colnames(Sub_effect_sizes_interaction)
+
+
+#counts for each protein
+PBP1A <- filter(count, PBP == "PBP1A")
+nrow(PBP1A) / 138 *100
+PBP2B <- filter(count, PBP == "PBP2B")
+nrow(PBP2B)/ 138 *100
+PBP2X <- filter(count, PBP == "PBP2X")
+nrow(PBP2X)/ 138 *100
+
+# counts above 2 mic units
+no_sig <- filter(no_sig, Joint_effsize >=2)%>%
+  separate_rows(PBP_AA_location, sep = "/")
+nrow(no_sig)
 
 count_above_20 <- Sub_effect_sizes_interaction %>%
   filter(PBP_count >=40)
-
+nrow(count_above_20) # one change involved 2 amino acids (PBP2B_T569_K_PBP2B_D578_E), so this was actually 30 positions which had more than 40 significant interactions
 
 
 ```
 
 
-I then plotted the number of significant interactions found at each position as a histogram. Most identifed positions have only one or two interactions. However, there is a subset of positions which have interactions with many other locations (mean in red) (see table below). I found one position had significant interactions with 21 other positions.
+
 
 ```{r, echo = FALSE}
 
@@ -722,7 +1017,7 @@ options(digits=3)
 
 ### tables of sig subs for each dimension
 All_pos <- No_sig_V1 %>% 
-  select(PBP_AA_location, pv20, pv20_adj_galwey, effsize_env1_V1, effsize_env1_V2, effsize_se_env1_V1,effsize_se_env1_V2, joint_effect_size) %>% distinct(PBP_AA_location, .keep_all = T) 
+  select(PBP_AA_location, pv20, pv20_adj_galwey, effsize_env1_D1, effsize_env1_D2, effsize_se_env1_D1,effsize_se_env1_D2, joint_effect_size) %>% distinct(PBP_AA_location, .keep_all = T) 
 
 colnames(All_pos) <- c("PBP_AA_location","pv20","pv20_adj_galwey","effect_size_V1","effect_size_V2","effectsize_V1_se","effectsize_V2_se","joint_effect_size")
 
@@ -776,13 +1071,15 @@ Furthermore, most of the substitutions which generate significant effects in int
 
 ```{r, echo =F}
 
-interaction_network <- All_pos %>% 
-  select(c(PBP_AA_location, joint_effect_size, pv20_adj_galwey)) %>%
+interaction_network <- No_sig_V1 %>% 
+  distinct(PBP_AA_location, .keep_all = T) %>%
+  select(c(PBP_AA_location, joint_effect_size, pv20_adj_galwey, joint_effect_size_se)) %>%
   separate(PBP_AA_location, c("AA1", "AA2"), ":", remove =F) %>%
   select(-PBP_AA_location)%>%
   separate_rows(AA1, sep='_PBP', convert = TRUE) %>%
   separate_rows(AA2, sep='_PBP', convert = TRUE)  %>%
-  filter(pv20_adj_galwey <= 9.72e-06) 
+  filter(pv20_adj_galwey <= 0.0007620121)  #%>%
+  #filter(joint_effect_size-joint_effect_size_se >= 1) 
 
 interaction_network$AA1 <- substr(interaction_network$AA1, 1, nchar(interaction_network$AA1) - 2)
 interaction_network$AA2 <- substr(interaction_network$AA2, 1, nchar(interaction_network$AA2) - 2)
@@ -824,15 +1121,15 @@ edges <- edges %>%
 edges <- select(edges, from, to, Significance)
 edges
 
+library('ggraph')
+
 routes_tidy <- tbl_graph(nodes = nodes, edges = edges, directed = TRUE)
 routes_tidy <- routes_tidy %>% 
   activate(edges) %>% 
   arrange(desc(Significance))
 
-V(routes_tidy)$degree<-degree(routes_tidy)
-
-
-V(routes_tidy)$label<-nodes$label
+#V(routes_tidy)$degree<-degree(routes_tidy)
+#V(routes_tidy)$label<-nodes$label
 
 
 # generate a PBP type vector
@@ -857,7 +1154,7 @@ ggraph(routes_tidy, layout = "linear", circular = TRUE ) +
       scale_size(range = c(1,4),guide = 'none') +
   labs(edge_width = "-log10 adj. p-value") +
   #geom_node_text(aes(label = PBP_AA_location$position), size = 3) + # adjust the y position conditionally
-geom_node_label(aes(label = PBP_AA_location$position), size = 3, hjust = 0.5, vjust = 0.5, margin = margin(.1, .1, .1, .1)) +
+geom_node_label(aes(label = PBP_AA_location$position), size = 5, hjust = 0.5, vjust = 0.5, margin = margin(.1, .1, .1, .1)) +
   #guides(fill=guide_legend(title="PBP",override.aes = list(size=5))) + 
   theme_graph() +
   #theme_bw()+
@@ -866,13 +1163,226 @@ geom_node_label(aes(label = PBP_AA_location$position), size = 3, hjust = 0.5, vj
     #theme(legend.position="bottom",legend.title = element_text(size=10, 
     #                                  face="bold")) +
     theme(legend.position='none') +
-    annotate("label", x = .9, y = .9, label = "PBP1A") +
-    annotate("label", x = 0, y = -1.25, label = "PBP2B")   +
-    annotate("label", x = -.9, y = .9, label = "PBP2X")   
-
-  #ggsave("spneumo_epistatic_interaction_network.jpg")
+    annotate("label", x = .9, y = .9, size = 6,label = "PBP1A") +
+    annotate("label", x = 0, y = -1.15, size = 6,label = "PBP2B")   +
+    annotate("label", x = -.9, y = .9, size = 6,label = "PBP2X")   
 
 
+  ggsave("spneumo_epistatic_interaction_network.jpg")
+
+
+
+```
+
+
+
+# Univariate to Multivariate comparison
+
+```{r, echo =F}
+
+setwd("/Users/ajb306/PycharmProjects/pythonProject1/")
+genetic_markers <-read.csv("S.pneumo_map_dummy_gen_test_markers.csv")
+
+#### reading in p-values and effect sizes === Dimension 1 (x axis)
+### Amoxicillin
+p_values <- read.csv(file = 'uniLMM_p_val_normal_MIC_pneumo.csv')
+eff_sizes <- read.csv(file = 'uniLMM_effect_normal_MIC_pneumo.csv')
+
+eff_sizes_candidates <- eff_sizes %>% filter(effect_type == "candidate")
+eff_sizes_candidates <- eff_sizes_candidates %>% rename(PBP_AA_location = effect_name)
+
+eff_sizes_candidates$PBP_AA_location <- as.character(eff_sizes_candidates$PBP_AA_location)
+
+p_values <- p_values %>% select(-X)
+
+uvLMM_D1 <- cbind(p_values, eff_sizes_candidates)
+
+
+uvLMM_D1$Previous_AA_PBP <- str_sub(uvLMM_D1$PBP_AA_location, 7, 7) 
+uvLMM_D1$PBP <- str_sub(uvLMM_D1$PBP_AA_location, 4, 5) 
+uvLMM_D1 <- uvLMM_D1 %>% rename(drug = trait)
+
+
+library(poolr)
+
+galwey_meff <- cor(genetic_markers, method = c("pearson"))
+#galwey_meff <- cor(map_coords)
+
+galwey_meff <- meff(galwey_meff, method = "galwey")
+#galwey_meff_epi <- cor(test_matrix)
+
+#galwey_meff_epi <- meff(galwey_meff_epi, method = "galwey")
+#uvLMM_D1$pv20_adj_galwey_epi <- uvLMM_D1$pv20 * galwey_meff
+
+uvLMM_D1$pv20_adj_galwey <- uvLMM_D1$pv20 * galwey_meff
+#str_sub(test$location, 1, 1) <- ""
+uvLMM_D1$Significance <- uvLMM_D1$pv20_adj_galwey 
+uvLMM_D1$Significance <- ifelse(uvLMM_D1$Significance <= 0.001, "Significant", "Non-Significant")
+#colnames(uvLMM_D1)
+
+No_sig_D1_uv_MIC <- uvLMM_D1 %>% 
+  add_count(Significance) %>% 
+ #filter(pv20_adj_galwey <= 0.05) %>%
+add_count(PBP, name = "PBP_count") #%>%
+  #distinct(PBP_AA_location, .keep_all = T) 
+  #separate(PBP_AA_location, c("PBP","Location"), remove = F) %>% 
+  
+
+No_sig_D1_uv <- uvLMM_D1 %>% 
+  add_count(Significance) %>% 
+ #filter(pv20_adj_galwey <= 0.001) %>%
+add_count(PBP, name = "PBP_count") %>%
+  distinct(PBP_AA_location, .keep_all = T) 
+
+colnames(No_sig_D1_uv)
+
+
+No_sig_D1_uv_MIC <- No_sig_D1_uv_MIC %>% select(PBP_AA_location, effsize, effsize_se, pv20_adj_galwey, drug) %>%
+  rename(pv20_adj_galwey_uv = pv20_adj_galwey)
+
+No_sig_D1_all <- No_sig_D1_all %>%
+  mutate(joint_effect_size = sqrt(effsize_env1_D1^2 + effsize_env1_D2^2))
+No_sig_D1_all <- No_sig_D1_all %>% select(PBP_AA_location, joint_effect_size, pv20_adj_galwey)
+No_sig_D1_all$PBP_AA_location <- as.character(No_sig_D1_all$PBP_AA_location)
+No_sig_D1_uv_MIC$PBP_AA_location <- as.character(No_sig_D1_uv_MIC$PBP_AA_location)
+
+No_sig_D1_all <- No_sig_D1_all %>%
+  rename(pv20_adj_galwey_mv = pv20_adj_galwey)
+
+comparison <- full_join(No_sig_D1_all, No_sig_D1_uv_MIC, by = c("PBP_AA_location" = "PBP_AA_location"))
+
+
+
+comparison$Substitution <- str_replace_all(comparison$PBP_AA_location, "_PBP1A_|_PBP2B_|_PBP2X_", "/")
+comparison$Substitution <- str_remove_all(comparison$Substitution, ("PBP1A_|PBP2B_|PBP2X_|_"))
+
+comparison$PBP <- str_sub(comparison$PBP_AA_location, 4, 5) 
+
+comparison <- comparison %>% select(-PBP_AA_location) %>%
+  relocate(Substitution) %>%
+  relocate(PBP)
+  
+#comparison <- comparison %>% 
+#      pivot_wider(values_from = c(effsize, effsize_se, pv20_adj_galwey.y), names_from = drug) %>%
+#      filter(pv20_adj_galwey.x <= 0.001 
+#             | pv20_adj_galwey.y_Amoxicillin <= 0.001
+#             | pv20_adj_galwey.y_Penicillin <= 0.001
+#             | pv20_adj_galwey.y_Meropenem <= 0.001
+#             | pv20_adj_galwey.y_Cefotaxime <= 0.001
+#             | pv20_adj_galwey.y_Ceftriaxone <= 0.001
+#             | pv20_adj_galwey.y_Cefuroxime <= 0.001) 
+
+#colnames(comparison)
+
+#comparison <- comparison %>% select(-effsize_se_Amoxicillin, -effsize_se_Penicillin, -effsize_se_Meropenem, -effsize_se_Cefotaxime, -effsize_se_Ceftriaxone, -effsize_se_Cefuroxime)
+
+comparison$pv20_adj_galwey_mv <- as.numeric(ifelse(comparison$pv20_adj_galwey_mv > 1, 1, comparison$pv20_adj_galwey_mv))
+
+comparison$pv20_adj_galwey_uv <- as.numeric(ifelse(comparison$pv20_adj_galwey_uv > 1, 1, comparison$pv20_adj_galwey_uv))
+comparison$joint_effect_size <- round(as.numeric(comparison$joint_effect_size), 3)
+comparison$effsize <- round(as.numeric(comparison$effsize), 3)
+comparison$effsize_se <- round(as.numeric(comparison$effsize_se), 3)
+
+
+
+# Count number of significant UV hits per substitution
+uv_sig_counts <- comparison %>%
+  group_by(Substitution) %>%
+  summarise(uv_sig = sum(pv20_adj_galwey_uv <= 0.001, na.rm = TRUE))
+
+# Build main table
+comparison_all <- comparison %>% 
+  group_by(Substitution) %>%
+  filter(joint_effect_size >= 1 | abs(effsize) >= 1) %>%
+  slice_min(pv20_adj_galwey_uv) %>%
+  filter(pv20_adj_galwey_mv <= 0.001 | pv20_adj_galwey_uv <= 0.001) %>%
+  distinct(Substitution, .keep_all = TRUE) %>%
+  mutate(mv_sig = if_else(pv20_adj_galwey_mv <= 0.001, "Yes", "No")) %>%
+  left_join(uv_sig_counts, by = "Substitution")
+
+write.csv(comparison_all, "comparison_all_output.csv", row.names = FALSE)
+
+
+
+
+
+comparison_just_mv <- comparison %>% 
+      filter(pv20_adj_galwey_mv <= 0.001) %>%
+     group_by(Substitution) %>%
+     slice_min(pv20_adj_galwey_uv) %>%
+  distinct(Substitution, .keep_all = T) 
+
+comparison_both <- comparison %>% 
+      filter(pv20_adj_galwey_mv <= 0.001 & pv20_adj_galwey_uv <= 0.001) %>%
+  distinct(Substitution, .keep_all = T) 
+
+
+ comparison_mv <- comparison %>% 
+   group_by(Substitution) %>% 
+  filter(joint_effect_size > 1) %>%
+   slice_min(pv20_adj_galwey_uv) %>%
+      filter(pv20_adj_galwey_mv <= 0.001 & pv20_adj_galwey_uv >= 0.001 ) %>%
+  distinct(Substitution, .keep_all = T) 
+
+
+ 
+comparison_mv <- comparison_mv 
+comparison_uv <- comparison %>% 
+      filter(pv20_adj_galwey_mv >= 0.001 & pv20_adj_galwey_uv <= 0.001) %>%
+  distinct(Substitution, .keep_all = T) 
+
+
+# Build main table
+comparison_uv_inmoredetail <- comparison %>% 
+  group_by(Substitution) %>%
+  filter(joint_effect_size >= 1 | abs(effsize) >= 1) %>%
+  filter(pv20_adj_galwey_mv <= 0.001 | pv20_adj_galwey_uv <= 0.001) %>%
+  mutate(mv_sig = if_else(pv20_adj_galwey_mv <= 0.001, "Yes", "No")) %>%
+  left_join(uv_sig_counts, by = "Substitution")
+
+
+
+
+ggplot(filter(comparison_all), aes(x=-log10(pv20_adj_galwey_mv),y=-log10(pv20_adj_galwey_uv))) + 
+  geom_point(shape = 21, size = 3,  alpha = 0.8, 
+              position = position_jitter(width = 0., height = 0.)) +
+  guides() +
+  geom_hline(yintercept=-log10(0.001)) +
+  geom_vline(xintercept=-log10(0.001)) +
+  #facet_wrap(~PBP, scales ="free_x") +
+  theme(legend.position='none') +
+  theme_linedraw() +
+ # scale_y_continuous(limits = c( 0,4), breaks=seq( 0,4, .5)) +
+  #scale_y_continuous(limits = c(min(AA_matrix_phenotype$D2, na.rm = T), max(AA_matrix_phenotype$D2, na.rm = T)), breaks=seq(min(AA_matrix_phenotype$D2, na.rm = T), max(AA_matrix_phenotype$D2, na.rm = T), slope)) +
+  labs(title ="") +
+  theme_bw() +
+  labs( x = " mvLMM -log10 (p-value)", y = "uvLMM -log10 (p-value)") + 	
+  theme(axis.text =element_text(size=16), 
+        #axis.text.x =element_blank(), 
+        axis.title=element_text(size=16)) +
+  scale_fill_manual(values=c( "#E41A1C", "#377EB8"))
+
+#ggsave("LMM_Galwey_map_axis_1.jpg")
+
+
+
+ggplot(filter(comparison_all), aes(x=joint_effect_size,y=abs(effsize))) + 
+  geom_point(shape = 21, size = 3,  alpha = 0.8, 
+              position = position_jitter(width = 0., height = 0.)) +
+  guides() +
+
+  #facet_wrap(~PBP, scales ="free_x") +
+  theme(legend.position='none') +
+  theme_linedraw() +
+ # scale_y_continuous(limits = c( 0,4), breaks=seq( 0,4, .5)) +
+  #scale_y_continuous(limits = c(min(AA_matrix_phenotype$D2, na.rm = T), max(AA_matrix_phenotype$D2, na.rm = T)), breaks=seq(min(AA_matrix_phenotype$D2, na.rm = T), max(AA_matrix_phenotype$D2, na.rm = T), slope)) +
+  labs(title ="") +
+  theme_bw() +
+  labs( x = " mvLMM effsize", y = "uvLMM effsize") + 	
+  theme(axis.text =element_text(size=16), 
+        #axis.text.x =element_blank(), 
+        axis.title=element_text(size=16)) +
+  scale_fill_manual(values=c( "#E41A1C", "#377EB8"))
 
 ```
 

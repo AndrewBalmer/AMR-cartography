@@ -14,7 +14,7 @@ library(ape)
 library(ggdendro)
 
 # Set working directory
-setwd("/Users/ajb306/AMR-cartography/data/")
+setwd("/Users/ajb306/AMR-cartography-results/data/")
 
 # Set DOI
 doi <- "10.1186/s12864-017-4017-7"

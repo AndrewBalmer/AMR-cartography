@@ -20,13 +20,13 @@ library(smacof)        # For multidimensional scaling
 library(RColorBrewer)  # For color palettes
 
 # Set the working directory
-setwd("/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#07-10-Estimating-goodness-of-fit")
+setwd("/Users/ajb306/AMR-cartography/analysis/01-Phenotype_and_map_analyses/05-07-Estimating-goodness-of-fit")
 
 # Read the MIC table data
-tablemic <- read.csv("/Users/ajb306/AMR-cartography/data/MIC_table_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+tablemic <- read.csv("/Users/ajb306/AMR-cartography-results/data/MIC_table_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
 
 # Specify the full path to the data file
-phen_map <- "/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#03-06-Generating-phenotype-and-genotype-maps/Spneumo_3628_PCA_start_2D_METRIC.RData"
+phen_map <- "/Users/ajb306/AMR-cartography-results/data/Spneumo_3628_PCA_start_2D_METRIC.RData"
 
 # Load the precomputed PCA start 2D metric data
 load(phen_map)
@@ -72,13 +72,97 @@ Next, we test the accuracy of the map using a linear model of the measured dista
 
 However, one complication is that to estimate error in fitting the points, the map transformation needs to be scaled to be interpretable (i.e. 1 unit on the map should equal 1 MIC unit in the assay). To make the map and the table distances comparable, we use the slope of the linear model to dilate the map to the correct scale. Lastly, we then rotate the map for plotting later in the markdown.
 
+```{r,echo =F}
+library(dplyr)
+library(tidyr)
+library(broom)
+
+# Convert torg_met[[1]] and torg_met[[3]] to tibbles and set column names
+table_distances <- as_tibble(as.matrix(torg_met[[1]]))
+map_distances   <- as_tibble(as.matrix(torg_met[[3]]))
+colnames(map_distances) <- colnames(table_distances)
+
+# Reshape using pivot_longer and add an id column to preserve row order
+table_distances <- table_distances %>%
+  mutate(id = row_number()) %>%
+  pivot_longer(cols = -id, names_to = "antibiotic", values_to = "table_distance")
+
+map_distances <- map_distances %>%
+  mutate(id = row_number()) %>%
+  pivot_longer(cols = -id, names_to = "antibiotic", values_to = "map_distance")
+
+# Combine table and map distances by id and antibiotic
+distances <- left_join(table_distances, map_distances, by = c("id", "antibiotic")) %>%
+  mutate(table_distance = as.numeric(table_distance),
+         map_distance   = as.numeric(map_distance))
+
+# Fit linear model: map_distance ~ table_distance
+mapvtable <- lm(map_distance ~ table_distance, data = distances)
+summary(mapvtable)
+slope <- as.numeric(coef(mapvtable)[2])
+dilation <- 1 / slope  # dilation factor so that 1 unit on the map ~ 1 MIC unit
+
+# Set column names of the configuration and apply dilation
+colnames(torg_met$conf) <- c("D1", "D2")
+for (i in 1:ncol(torg_met$conf)) {
+  torg_met$conf[, i] <- torg_met$conf[, i] * dilation
+}
+
+# Rotate configuration by 326 degrees
+theta <- 326 * pi / 180  # convert degrees to radians
+rot <- matrix(c(cos(theta), sin(theta), -sin(theta), cos(theta)), ncol = 2)
+torg_met$conf <- torg_met$conf %*% rot  # rotated configuration
+
+# Modify distances tibble: scale map_distance and calculate residuals
+distances <- distances %>%
+  mutate(map_distance = map_distance * dilation,
+         residuals    = table_distance - map_distance)
+
+# Compute goodness-of-fit metrics
+perc_above_1 <- sum(abs(distances$residuals) > 1) / nrow(distances) * 100
+perc_above_2 <- sum(abs(distances$residuals) > 2) / nrow(distances) * 100
+res_mean     <- mean(abs(distances$residuals), na.rm = TRUE)
+res_sd       <- sd(abs(distances$residuals), na.rm = TRUE)
+
+# Print metrics for comparison
+print(perc_above_1)
+print(perc_above_2)
+print(res_mean)
+print(res_sd)
+
+names(torg_met)
+
+# Compute absolute residuals
+distances <- distances %>%
+  mutate(abs_residual = abs(residuals))
+
+# Count total and banded residuals
+residual_summary <- distances %>%
+  summarise(
+    count_total = n(),
+    count_lt_1  = sum(abs_residual < 1, na.rm = TRUE),
+    count_1_2   = sum(abs_residual >= 1 & abs_residual < 2, na.rm = TRUE),
+    count_ge_2  = sum(abs_residual >= 2, na.rm = TRUE),
+    prop_lt_1   = round(count_lt_1 / count_total * 100, 3),
+    prop_1_2    = round(count_1_2 / count_total * 100, 3),
+    prop_ge_2   = round(count_ge_2 / count_total * 100, 3),
+    res_mean    = round(mean(abs_residual, na.rm = TRUE), 3),
+    res_sd      = round(sd(abs_residual, na.rm = TRUE), 3),
+    res_se      = round(sd(abs_residual, na.rm = TRUE) / sqrt(n()), 3)
+  )
+
+print(residual_summary)
+
+```   
+
+
 ```{r, echo = F}
 
 # Convert torg_met[[1]] and torg_met[[3]] to tibbles and set column names
 table_distances <- as_tibble(as.matrix(torg_met[[1]]))
 map_distances <- as_tibble(as.matrix(torg_met[[3]]))
 colnames(map_distances) <- colnames(table_distances)
-
+  
 # Reshape data using gather function
 table_distances <- gather(table_distances, "antibiotic", "table_distance", 1:nrow(tablemic)) 
 map_distances <- gather(map_distances, "antibiotic", "map_distance", 1:nrow(tablemic))
@@ -103,16 +187,6 @@ dilation <- 1 / slope
 slope
 colnames(torg_met$conf) <- c("D1", "D2")
 
-# Apply dilation to each column in torg_met$conf
-for (i in 1:ncol(torg_met$conf)) {
-  torg_met$conf[, i] <- torg_met$conf[, i] * dilation
-}
-
-# Rotate configuration by 326 degrees
-theta <- 326 * pi / 180 ## degrees to radians
-rot <- matrix(c(cos(theta), sin(theta), -sin(theta), cos(theta)), ncol = 2)
-torg_met$conf <- torg_met$conf %*% rot ## rotated configurations
-
 # Modify distances tibble by scaling map_distance and calculating residuals
 distances <- distances %>%
   mutate(map_distance = map_distance * dilation, 
@@ -135,14 +209,14 @@ distances_distinct_res <- distances %>%
   distinct(abs(residuals), .keep_all=TRUE)
 
 # Calculate the percentage of residuals greater than 1 and 2
-percentage_above_1 <- sum(distances$residuals > 1) / nrow(distances) * 100
-percentage_above_2 <- sum(distances$residuals > 2) / nrow(distances) * 100
+percentage_above_1 <- round(sum(abs(distances$residuals) > 1) / nrow(distances) * 100,3)
+percentage_above_2 <- round(sum(abs(distances$residuals)> 2) / nrow(distances) * 100,3)
 
 # Calculate and display mean and standard deviation of residuals
 mu <- distances %>%
   ungroup() %>%
-  summarize(Mean = mean(residuals),
-            sd = sd(residuals)) %>%
+  summarize(Mean = mean(abs(residuals)),
+            sd = sd(abs(residuals))) %>%
   round(3)
 
 # Print mean and sd of errors
@@ -154,14 +228,18 @@ ggplot(distances_distinct_res, aes(x = abs(residuals))) +
   geom_vline(aes(xintercept = mean(abs(residuals))),
              color = "#E41A1C", linetype = "dashed", size = 1) + 
   theme_bw() +
-  labs(x = "Absolute error (MIC units)", y = "Count") 
+  labs(x = "Absolute error (MIC units)", y = "Count") +
+  theme(
+    axis.text = element_text(size = 17),       # Increase tick font size
+    axis.title = element_text(size = 19)       # Increase axis title size
+  ) 
 
   ggsave("dist_phen_histogram_spneumo_phen.jpg")
   
 
 # Create a scatter plot of table_distance vs map_distance with diagonal reference lines 
 C <- ggplot(distances_distinct_res, aes(x = table_distance, y = map_distance)) +
-  geom_point(shape = 16, alpha = 0.1, colour = "#E41A1C", size = 0.75) +
+  geom_point(shape = 16, alpha = 1, colour = "#E41A1C", size = 0.75) +
   geom_abline(intercept = -1, slope = 1, linetype = "dashed", size = 0.5) +
   geom_abline(intercept = 0, slope = 1, linetype = "solid", size = 0.5) +
   geom_abline(intercept = 1, slope = 1, linetype = "dashed", size = 0.5) +
@@ -173,7 +251,12 @@ C <- ggplot(distances_distinct_res, aes(x = table_distance, y = map_distance)) +
   coord_fixed() +
   labs(x = "Table distance (MIC units)", y = "Map distance (MIC units)") +
   scale_x_continuous(breaks = seq(min(distances$table_distance), max(distances$table_distance) + 1, 1)) +
-  scale_y_continuous(breaks = seq(min(distances$map_distance), max(distances$map_distance + 1), 1))
+  scale_y_continuous(breaks = seq(min(distances$map_distance), max(distances$map_distance + 1), 1))+
+  theme(
+    axis.text = element_text(size = 14),       # Increase tick font size
+    axis.title = element_text(size = 16)       # Increase axis title size
+  ) 
+
 
 # Display the scatter plot (may take a while to load given the number of pairwise points)
 C
@@ -256,9 +339,9 @@ Another method of examining the stability of an MDS solution is to bootstrap the
 ```{r, echo = F}
 
 # bootstrap resampling
-bootRogers <- ?bootmds(torg_met, t(tablemic), method.dat = "euclidean", 
+#bootRogers <- bootmds(torg_met, t(tablemic), method.dat = "euclidean", 
                       alpha = 0.95, 
-                      nrep = 5, 
+                      nrep = 100, 
                       verbose = T)
 bootRogers
 
@@ -279,27 +362,27 @@ ellipses_conf[[i]] <- as_tibble(ellipses[[i]]) %>% select(c(1,2)) %>%
 }
 
 ellipses_conf <- bind_rows(ellipses_conf)
+head(ellipses_conf)
 
-
-ellipses_conf <- ellipses_conf %>% 
-  mutate(D1 = D1 *dilation,
-         D2 = D2 *dilation)
-
+#ellipses_conf <- ellipses_conf %>% 
+#  mutate(D1 = D1 *dilation,
+#         D2 = D2 *dilation)
+#head(ellipses_conf)
   
 #theta <- 326*pi/180 ## degrees to radians
 #rot <- matrix(c(cos(theta), sin(theta), -sin(theta), cos(theta)), ncol = 2)
 #x <- as.data.frame(as.matrix(ellipses_conf[,1:2]) %*% rot) ## rotated configurations
-#x <- ellipses_conf[,1:2]
+x <- ellipses_conf[,1:2]
 
-#ellipses_conf <- cbind(ellipses_conf$ID, x)
+ellipses_conf <- cbind(ellipses_conf$ID, x)
 colnames(ellipses_conf) <- c("ID","D1","D2")
 
 centroids <- as_tibble(bootRogers$conf) 
 colnames(centroids) <- c("D1","D2")
-
-centroids <- centroids %>% 
-  mutate(D1 = D1 *dilation,
-         D2 = D2 *dilation)
+head(centroids)
+#centroids <- centroids %>% 
+#  mutate(D1 = D1 *dilation,
+#         D2 = D2 *dilation)
 
   
 #theta <- 326*pi/180 ## degrees to radians
@@ -313,13 +396,13 @@ colnames(centroids) <- c("centroids_D1","centroids_D2")
 p <- ggplot(ellipses_conf, aes(x=D1, y=D2)) +
   #geom_point(aes(x=D1, y=D2, colour = mean_titre), shape = 16, alpha = 1, size = 4) +
   #geom_point(aes(x=D1, y=D2), shape = 16, color = "black", alpha = .5, size = 1) +
-    geom_polygon(aes(group = ID),color = "black", size = .25, alpha = .7,fill = "#E41A1C") +
+    geom_polygon(aes(group = ID),color = "black", size = .25, alpha = .75,fill = "#E41A1C") +
   geom_point(data = centroids, aes(x=centroids_D1, y=centroids_D2), shape = 21, color = "black", fill = "black", alpha = 0.8, size = .7) +
 
   #scale_colour_gradient(low="yellow", high="red") + 
   theme_linedraw() +
-  scale_x_continuous(limits = c(min(ellipses_conf$D1), max(ellipses_conf$D1) +.5), breaks=seq(min(ellipses_conf$D1), max(ellipses_conf$D1) + 1, 1)) +
-    scale_y_continuous(limits = c(min(ellipses_conf$D2), max(ellipses_conf$D2) + .5), breaks=seq(min(ellipses_conf$D2), max(ellipses_conf$D2+ 1), 1)) +
+  scale_x_continuous(limits = c(min(centroids$centroids_D1- .5), max(centroids$centroids_D1) +.5), breaks=seq(min(centroids$centroids_D1- 1), max(centroids$centroids_D1) + 1, 1)) +
+    scale_y_continuous(limits = c(min(centroids$centroids_D2- .5), max(centroids$centroids_D2) + 1), breaks=seq(min(centroids$centroids_D2- 1), max(centroids$centroids_D2+ 1), 1)) +
   theme(panel.grid.major = element_line(colour="grey", size = (0.3)),
         panel.grid.minor = element_blank(),
         axis.title.x=element_blank(),
@@ -333,7 +416,7 @@ p <- ggplot(ellipses_conf, aes(x=D1, y=D2)) +
                                   colour ="black")) + 
   guides(size = "none", fill="none") +
 coord_fixed() + 
-  geom_label(data = data.frame(x = -1.9516 + 12.5, y = -2.748013 + 1.5,label="Stability: 0.988"), aes(x = x, y = y, label = label),
+  geom_label(data = data.frame(x = -1.9516 + 12.5, y = -2.748013 + 1.5,label="Stability: 0.980"), aes(x = x, y = y, label = label),
     color = "black",
     fill="white",
     size= 6

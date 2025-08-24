@@ -22,16 +22,16 @@ library(foreach)
 library(doParallel)
 
 # Set the working directory
-setwd("/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#13-19-Cross-validation-analyses/results/")
+setwd("/Users/ajb306/AMR-cartography/analysis/01-Phenotype_and_map_analyses/09-12-Cross-validation-analyses/")
 
 # Read the MIC table data
-tablemic <- read.csv("/Users/ajb306/AMR-cartography/data/MIC_table_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+tablemic <- read.csv("/Users/ajb306/AMR-cartography-results/data/MIC_table_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
 
 # Read in the relevant meta data
-tablemic_meta <- read.csv("/Users/ajb306/AMR-cartography/data/meta_data_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+tablemic_meta <- read.csv("/Users/ajb306/AMR-cartography-results/data/meta_data_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
 
 # Specify the full path to the data file
-phen_map <- "/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#03-06-Generating-phenotype-and-genotype-maps/results/Spneumo_3628_PCA_start_2D_METRIC.RData"
+phen_map <- "/Users/ajb306/AMR-cartography-results/data/Spneumo_3628_PCA_start_2D_METRIC.RData"
 
 # Load the pre-computed PCA start 2D metric data
 load(phen_map)
@@ -64,7 +64,7 @@ In this first chunk, I generate the 100 missing datasets needed to run the analy
 set.seed(1234)
 
 # Number of missing sample datasets to be run
-no_missing_samples <- 8
+no_missing_samples <- 100
 
 # List to store missing sample datasets
 missing_samples <- list()
@@ -197,42 +197,36 @@ Next we run MDS on each of the 100 datasets with missing values. In this case, t
 
 missing_samples_mds_objects <- NULL
 
-# Set the number of cores to use
-num_cores <- 4  # Change this to the desired number of cores
+# 5 - Run MDS on each of the 100 datasets with missing values
 
-# Register parallel backend
+# Set the number of cores to use
+num_cores <- 4
 registerDoParallel(cores = num_cores)
 
-# Define ranges for each core
-core_ranges <- rep(ceiling(no_missing_samples / num_cores), num_cores)
-
-# Define a function to perform MDS on a chunk of datasets
-run_mds <- function(indices) {
-  missing_values_test <- list()
-  
-  for (i in 1:no_missing_samples) {
-    temp_MDS <- mds(missing_samples_dists[[i]], ndim = 2, type = c("ratio"), 
-                    weightmat = missing_samples_weight_matrices[[i]], init = "torgerson", 
-                    modulus = 1, itmax = 1000, eps = 1e-06)
-    
-    missing_values_test[[i]] <- list(conf = temp_MDS$conf, stress = temp_MDS$stress, spp = temp_MDS$spp)
-    temp_MDS <- NULL
-  }
-  
-  return(missing_values_test)
-}
-
-# Run MDS in parallel
-missing_samples_mds_objects <- foreach(indices = core_ranges, .combine = "c") %dopar% {
-  run_mds(1:no_missing_samples)
+missing_samples_mds_objects <- foreach(i = 1:no_missing_samples) %dopar% {
+  temp_MDS <- mds(
+    missing_samples_dists[[i]],
+    ndim     = 2,
+    type     = "ratio",
+    weightmat = missing_samples_weight_matrices[[i]],
+    init     = "torgerson",
+    modulus  = 1,
+    itmax    = 1000,
+    eps      = 1e-06
+  )
+  list(
+    conf   = temp_MDS$conf,
+    stress = temp_MDS$stress,
+    spp    = temp_MDS$spp
+  )
 }
 
 # Stop parallel processing
 registerDoSEQ()
 
+# (Optional) Save the MDS results if desired
+#saveRDS(missing_samples_mds_objects, file = "missing_samples_mds_objects.rds")
 
-# Save and restore the MDS results
-saveRDS(missing_samples_mds_objects, file = "missing_samples_mds_objects.rds")
 missing_samples_mds_objects <- readRDS(file = "missing_samples_mds_objects.rds")
 
 
@@ -253,9 +247,9 @@ objects_to_save <- list(
 )
 
 # Loop to save each object
-for (obj_name in names(objects_to_save)) {
-  saveRDS(objects_to_save[[obj_name]], file = paste0(obj_name, ".rds"))
-}
+#for (obj_name in names(objects_to_save)) {
+#  saveRDS(objects_to_save[[obj_name]], file = paste0(obj_name, ".rds"))
+#}
 
 # Loop to restore each object
 for (obj_name in names(objects_to_save)) {
@@ -343,7 +337,7 @@ for (i in 1:ncol(torg_met_conf)) {
 
 To more quantitatively compare the full map with those with missing values, I used procrustes to rotate and dilate the maps into the same rotation. I first calculated the congruence coefficient between the sets of maps which can be used too compare the similarity of two solutions (https://en.wikipedia.org/wiki/Congruence_coefficient#:~:text=In%20multivariate%20statistics%2C%20the%20congruence,derived%20in%20a%20factor%20analysis.&text=It%20can%20be%20used%20to,have%20taken%20the%20same%20test.)
 
-Below, the plot shows that the maps with missing values are essentially the same as the one made without these isolates. This suggests the missing values are not having a strong effect on how the maps are positioning the isolates with actual values. Generally, a congruence coefficient above 0.95 is considered very similar, and above .99 is near identical For each transformation. hHre, the estimate is >0.998, suggesting the solutions are essentially the same. While there are more fine-grain measures to measure error for the isolates with missing values (see below), this parameter provides a good estimate of the overall similarity of the maps.
+Below, the plot shows that the maps with missing values are essentially the same as the one made without these isolates. This suggests the missing values are not having a strong effect on how the maps are positioning the isolates with actual values. Generally, a congruence coefficient above 0.95 is considered very similar, and above .99 is near identical For each transformation. Here, the estimate is >0.998, suggesting the solutions are essentially the same. While there are more fine-grain measures to measure error for the isolates with missing values (see below), this parameter provides a good estimate of the overall similarity of the maps.
 
 ```{r, echo = F}
 
@@ -385,7 +379,6 @@ B <- ggplot(met_ord_comparison_congcoef, aes(x = value)) +
 B
 # Save the plot as a JPEG file
 ggsave("S_pneumoniae_missing_cong_conf.jpg", B)
-
 
 ```
 
@@ -430,6 +423,7 @@ colnames(torg_met_conf) <- c("D1", "D2", "LABID", "stress_per_point_real")
 stress_per_point_comparison <- list()
 
 # Perform additional data manipulations and comparisons
+
 for (i in 1:no_missing_samples) {
   stress_per_point_comparison[[i]] <- left_join(met_ord_comparison[[i]]$pairwise_dist, missing_samples[[i]], by = "LABID")
   stress_per_point_comparison[[i]]$spp <- as.numeric(stress_per_point_comparison[[i]]$spp)
@@ -453,11 +447,16 @@ for (i in 1:no_missing_samples) {
 stress_per_point_comparison <- bind_rows(stress_per_point_comparison) %>% 
   mutate(missing_values = ifelse(count_na == "0", "No missing values", "Missing values"))
 
+# Remove duplicates, keeping only one row per unique LABID
+stress_per_point_comparison <- stress_per_point_comparison %>%
+  distinct(LABID, dataset, .keep_all = TRUE)
 
 # Calculate and print the difference in means of spp values
 mu <- stress_per_point_comparison %>%
   group_by(missing_values) %>%
-  summarize(Mean = mean(spp, na.rm = TRUE))
+  summarize(Mean = round(mean(spp, na.rm = TRUE),3),
+    SE = round(sd(spp, na.rm = TRUE) / sqrt(n()),5)
+    )
 
 difference_in_means <- round(mu$Mean[1] - mu$Mean[2], 3)
 cat("Difference in Means:", difference_in_means, "\n")
@@ -500,40 +499,179 @@ After reorientation of the missing value maps to compare to the real map, I then
 
 ```{r, echo = F}
 
-# Calculate and print the mean of dist_phen values
+# remove large databases as no longer needed (unless running cross validation later)
+missing_samples_dists <- NULL
+missing_samples_weight_matrices <- NULL
+met_ord_comparison <- NULL
+
+# Calculate and print the mean and SD of dist_phen values
 mu <- stress_per_point_comparison %>%
   group_by(missing_values) %>%
-  summarize(Mean = mean(dist_phen, na.rm = TRUE))
+  summarize(
+    Mean = round(mean(dist_phen, na.rm = TRUE), 3),
+    SD = round(sd(dist_phen, na.rm = TRUE), 3)
+  )
 
 mean_dist_phen <- round(mu$Mean[1], 3)
 cat("Mean Distance from True Value:", mean_dist_phen, "\n")
 
-# Plot histogram and density plot of dist_phen
-C <- ggplot(filter(stress_per_point_comparison), aes(dist_phen, y = stat(density), colour = missing_values, fill = missing_values)) + 
-  geom_histogram(position = "identity", alpha = 0.45, color = "black") + 
-  geom_freqpoly(bins = 40, stat = "bin") + 
-  theme_bw() + 
-  geom_vline(data = mu, aes(xintercept = Mean, color = missing_values),
-            linetype = "dashed", size = 0.75) +
-  geom_vline(aes(xintercept = 1), color = "black",
-             linetype = "solid", size = 0.5) +
-  scale_x_continuous(breaks = seq(0, 7, 1)) +
-  labs(x = "Distance from true value (MIC units)", y = "Density") +
-  theme(legend.justification = c(0.95, 0.725), legend.position = c(0.95, 0.8),
-        axis.text = element_text(size = 16), 
-        axis.title = element_text(size = 16)) +
-  guides(colour = "none") +
-  guides(fill = guide_legend(title = "Error added")) +
-  scale_colour_manual(values = c("#E41A1C", "darkgrey")) +
-  scale_fill_manual(values = c("#E41A1C", "darkgrey")) +
-  theme(legend.position = "none") 
-C
-# Save the plot as a JPEG file
-ggsave("S_pneumoniae_noise_euc_phen_dist.jpg", C)
 
+# Calculate percentage increase in spp relative to original value
+stress_per_point_comparison <- stress_per_point_comparison %>%
+  mutate(
+    percent_increase_spp = ((spp - stress_per_point_real) / stress_per_point_real) * 100
+  )
+
+# Summarise % increase in spp and dist_phen by number of errors added (n), including SD
+summary_by_n <- stress_per_point_comparison %>%
+  group_by(count_na) %>%
+  summarise(
+    count = n(),
+    mean_percent_increase_spp = mean(percent_increase_spp, na.rm = TRUE),
+    sd_percent_increase_spp = sd(percent_increase_spp, na.rm = TRUE),
+    mean_dist_phen = mean(dist_phen, na.rm = TRUE),
+    sd_dist_phen = sd(dist_phen, na.rm = TRUE)
+  )
+
+cat("\nSummary by number of added MIC errors (n):\n")
+print(summary_by_n)
+
+# Combine summary and SD into long format
+summary_by_n_long <- summary_by_n %>%
+  pivot_longer(cols = c(mean_percent_increase_spp, mean_dist_phen,
+                        sd_percent_increase_spp, sd_dist_phen),
+               names_to = c(".value", "metric"),
+               names_pattern = "(mean|sd)_(.*)")
+
+# Recode the metric labels and calculate SD bounds
+summary_by_n_long <- summary_by_n_long %>%
+  mutate(
+    metric = recode(metric,
+                    percent_increase_spp = "Stress per point increase (%)",
+                    dist_phen = "Distance from true value (MIC units)"),
+    ymin = mean - sd,
+    ymax = mean + sd
+  )
+
+# Plot line chart with SD error bars
+ggplot(summary_by_n_long, aes(x = count_na, y = mean, color = "#E41A1C", group = metric)) +
+  geom_point(size = 3) +
+  geom_line(linewidth = 1) +
+  geom_errorbar(aes(ymin = ymin, ymax = ymax), width = 0.2) +
+  facet_wrap(. ~ metric, scales = 'free') +
+  theme_bw() +
+  labs(
+    x = "Number of MIC Errors Added (n)",
+    y = "Mean Value",
+    title = "Effect of Increasing Error on spp and dist_phen"
+  ) +
+  theme(
+    axis.text = element_text(size = 12),
+    axis.title = element_text(size = 14),
+    legend.position = "none",
+    plot.title = element_text(size = 15, face = "bold")
+  )
+
+# Save the plot
+ggsave("mean_percent_missing_distphen_with_SD_errorbars.jpg", width = 7, height = 5)
 
 ```
 
+
+## Comparing the number of missing values with prediction error
+
+```{r,echo = f}
+library(dplyr)
+library(ggplot2)
+
+# Deduplicate: one row per LABID-dataset pair, keeping count_na and missing_values
+dedup_data <- stress_per_point_comparison %>%
+  group_by(LABID, dataset) %>%
+  summarise(
+    dist_phen = mean(dist_phen, na.rm = TRUE),
+    count_na = mean(count_na, na.rm = TRUE),
+    D1_X = mean(D1_X, na.rm = TRUE),
+    D2_X = mean(D2_X, na.rm = TRUE),
+    missing_values = first(missing_values),
+    .groups = "drop"
+  )
+
+# Plot: Relationship between number of missing values and prediction error
+ggplot(dedup_data, aes(x = as.factor(count_na), y = dist_phen)) +
+  geom_boxplot(aes(fill = as.factor(count_na)), alpha = 0.6) +
+ # geom_jitter(width = 0.2, alpha = 0.1, size = .5) +
+  stat_summary(fun = mean, geom = "point", shape = 18, size = 2.5, color = "black") +
+  theme_bw() +
+  labs(x = "Number of Missing MIC Values", 
+       y = "Distance from True Value (dist_phen)", 
+       fill = "Missing Count") +
+  theme(axis.text = element_text(size = 14),
+        axis.title = element_text(size = 16),
+        legend.position = "none")
+
+# Save plot
+ggsave("dist_phen_vs_missing_count.jpg", width = 7, height = 5)
+
+# Summary statistics per missing count
+summary_stats <- dedup_data %>%
+  group_by(count_na) %>%
+  summarise(
+    n = n(),
+    mean = round(mean(dist_phen, na.rm = TRUE), 3),
+    sd = round(sd(dist_phen, na.rm = TRUE), 3),
+    proportion_below_1 = round(mean(dist_phen < 1, na.rm = TRUE), 3)
+  )
+print(summary_stats)
+
+# Add radial distance from MDS center
+dedup_data <- dedup_data %>%
+  mutate(dist_from_center = sqrt((D1_X - mean(D1_X, na.rm = TRUE))^2 + 
+                                 (D2_X - mean(D2_X, na.rm = TRUE))^2),
+         count_na = as.factor(count_na))  # convert to factor for grouping & plotting
+
+# Bin distance and summarise error by bin and count_na
+summary_by_bin <- dedup_data %>%
+  mutate(dist_bin = cut(dist_from_center, breaks = 10)) %>%
+  group_by(dist_bin) %>%
+  summarise(
+    center = mean(dist_from_center, na.rm = TRUE),
+    mean_dist_phen = mean(dist_phen, na.rm = TRUE),
+    sd_dist_phen = sd(dist_phen, na.rm = TRUE),
+    n = n(),
+    se = sd_dist_phen / sqrt(n),
+    .groups = "drop"
+  )
+
+# Plot mean error by distance and count_na
+ggplot(summary_by_bin, aes(x = center, y = mean_dist_phen)) +
+  geom_point(size = 3) +
+  geom_line(aes()) +
+  geom_errorbar(aes(ymin = mean_dist_phen - se, ymax = mean_dist_phen + se), width = 0.1) +
+  theme_bw() +
+  labs(x = "Distance from mean centroid map position (MIC units)",
+       y = "Mean Prediction Error (dist_phen)",
+       colour = "Missing Values") +
+  theme(
+    axis.text = element_text(size = 12),
+    axis.title = element_text(size = 14),
+    plot.title = element_text(size = 15, face = "bold")
+  )
+
+# Tabulate prediction error summaries by distance and count_na
+summary_dist_center <- dedup_data %>%
+  mutate(dist_bin = cut(dist_from_center, breaks = 10)) %>%
+  group_by(dist_bin) %>%
+  summarise(
+    mean_error = round(mean(dist_phen, na.rm = TRUE), 3),
+    median_error = round(median(dist_phen, na.rm = TRUE), 3),
+    max_error = round(max(dist_phen, na.rm = TRUE), 3),
+    prop_below_1 = round(mean(dist_phen <= 1, na.rm = TRUE), 3),
+    .groups = "drop"
+  )
+print(summary_dist_center)
+
+
+```
 
 
 ### Visually comparing a noise-added map to true values
@@ -544,11 +682,11 @@ I then plotted a map made with missing values and the original map on the same p
 
 
 # Create a scatter plot with segments for missing values
-A <- ggplot(filter(stress_per_point_comparison, missing_values != "No missing values" & dataset == 1), aes(x = D1_X, y = D2_X)) + 
+A1 <- ggplot(filter(stress_per_point_comparison, missing_values != "No missing values" & dataset == 1 & dist_phen <1), aes(x = D1_X, y = D2_X)) + 
   geom_point(data = filter(stress_per_point_comparison, missing_values == "No missing values" & dataset == 1), aes(x = D1_X, y = D2_X), shape = 4, fill = "grey", size = 1.5, alpha = 0.6) +
-  geom_segment(data = filter(stress_per_point_comparison, missing_values != "No missing values" & dataset == 1), aes(x = D1_X, y = D2_X, xend = D1_Y, yend = D2_Y), size = 0.5, colour = "grey") + 
-  geom_point(data = filter(stress_per_point_comparison, missing_values != "No missing values" & dataset == 1), shape = 21, fill = "black", size = 2, colour = "white") + 
-  geom_point(data = filter(stress_per_point_comparison, missing_values != "No missing values" & dataset == 1), aes(x = D1_Y, y = D2_Y), shape = 21, fill = "#E41A1C", size = 2, colour = "white") +
+  geom_segment(data = filter(stress_per_point_comparison, missing_values != "No missing values" & dataset == 1 & dist_phen <1), aes(x = D1_X, y = D2_X, xend = D1_Y, yend = D2_Y), size = 0.5, colour = "grey") + 
+  geom_point(data = filter(stress_per_point_comparison, missing_values != "No missing values" & dataset == 1 & dist_phen <1), shape = 21, fill = "black", size = 2, colour = "white") + 
+  geom_point(data = filter(stress_per_point_comparison, missing_values != "No missing values" & dataset == 1 & dist_phen <1), aes(x = D1_Y, y = D2_Y), shape = 21, fill = "#E41A1C", size = 2, colour = "white") +
   theme_bw() +   
   scale_x_continuous(breaks = seq(min(c(stress_per_point_comparison$D1_Y, stress_per_point_comparison$D1_X), na.rm = TRUE), max(c(stress_per_point_comparison$D1_Y, stress_per_point_comparison$D1_X), na.rm = TRUE) + 1, 1)) +
   scale_y_continuous(breaks = seq(min(c(stress_per_point_comparison$D2_Y, stress_per_point_comparison$D2_X), na.rm = TRUE), max(c(stress_per_point_comparison$D2_Y, stress_per_point_comparison$D2_X), na.rm = TRUE) + 1, 1)) +
@@ -565,10 +703,61 @@ A <- ggplot(filter(stress_per_point_comparison, missing_values != "No missing va
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank(),
         strip.text.x = element_text(size = 14)) +
-  coord_fixed()
-A
+  coord_fixed()+ 
+  annotate(
+  "label", 
+  x = Inf, 
+  y = -Inf, 
+  label = "Errors <1 MIC unit - 86.748%", 
+  fill = "white", 
+  color = "black", 
+  size = 6, 
+  hjust = 1.09, 
+  vjust = -1
+)
+
+
+# Create a scatter plot with segments for missing values
+A2 <- ggplot(filter(stress_per_point_comparison, missing_values != "No missing values" & dataset == 1 & dist_phen >1), aes(x = D1_X, y = D2_X)) + 
+  geom_point(data = filter(stress_per_point_comparison, missing_values == "No missing values" & dataset == 1), aes(x = D1_X, y = D2_X), shape = 4, fill = "grey", size = 1.5, alpha = 0.6) +
+  geom_segment(data = filter(stress_per_point_comparison, missing_values != "No missing values" & dataset == 1 & dist_phen >1), aes(x = D1_X, y = D2_X, xend = D1_Y, yend = D2_Y), size = 0.5, colour = "grey") + 
+  geom_point(data = filter(stress_per_point_comparison, missing_values != "No missing values" & dataset == 1 & dist_phen >1), shape = 21, fill = "black", size = 2, colour = "white") + 
+  geom_point(data = filter(stress_per_point_comparison, missing_values != "No missing values" & dataset == 1 & dist_phen >1), aes(x = D1_Y, y = D2_Y), shape = 21, fill = "#E41A1C", size = 2, colour = "white") +
+  theme_bw() +   
+  scale_x_continuous(breaks = seq(min(c(stress_per_point_comparison$D1_Y, stress_per_point_comparison$D1_X), na.rm = TRUE), max(c(stress_per_point_comparison$D1_Y, stress_per_point_comparison$D1_X), na.rm = TRUE) + 1, 1)) +
+  scale_y_continuous(breaks = seq(min(c(stress_per_point_comparison$D2_Y, stress_per_point_comparison$D2_X), na.rm = TRUE), max(c(stress_per_point_comparison$D2_Y, stress_per_point_comparison$D2_X), na.rm = TRUE) + 1, 1)) +
+  labs(title = "") +
+  labs(x = "MDR distance", y = "MDR distance") + 	
+  theme(axis.text = element_text(size = 16), 
+        axis.title = element_text(size = 16), 
+        panel.grid.major = element_line(colour = "grey", size = 0.3),
+        panel.grid.minor = element_blank(),
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        strip.text.x = element_text(size = 14)) +
+  coord_fixed()+ 
+  annotate(
+  "label", 
+  x = Inf, 
+  y = -Inf, 
+  label = "Errors >1 MIC unit - 13.253%", 
+  fill = "white", 
+  color = "black", 
+  size = 6, 
+  hjust = 1.09, 
+  vjust = -1
+)
+
+A1
+A2
+
 # Save the plot as a JPEG file
-ggsave("S_pneumo_noise_pred_error_map.jpg", A)
+ggsave("S_pneumo_noise_pred_error_map_lessthan1.jpg", A1)
+ggsave("S_pneumo_noise_pred_error_map_lessthan2.jpg", A2)
 
 ```
 
@@ -577,60 +766,61 @@ ggsave("S_pneumo_noise_pred_error_map.jpg", A)
 
 ### Cross-validation analysis - multiple dimensions
 
-Lastly, I made maps in several different dimensions using the same datasets with missing values as before. I also made maps using the true values for each dimension to compare them to. Here, I again calculated the euclidean distance between the 'true' map position and the missing value map position, after reorientation of the maps to overlap. I found that prediction error was lowest at 1 dimension, but that there were marginal increases in error when using more than 2 dimensions. This suggests that using more than two dimensions may overfit the data. Although 1 dimension offered the lowest prediction error here, it was clear from the stress and goodness of fit analyses (previous markdowns) that a minimum of two dimensions was needed to accurately represent the data. 
+Lastly, I made maps in several different dimensions using the same datasets with missing values as before. I also made maps using the true values for each dimension to compare them to. Here, I again calculated the euclidean distance between the 'true' map position and the missing value map position, after reorientation of the maps to overlap. I found that prediction error was lowest at 1 dimension, but that there were only marginal increases in error when using more than 2 dimensions. This suggests that using more than two dimensions may overfit the data. Although 1 dimension offered the lowest prediction error here, it was clear from the stress and goodness of fit analyses (previous markdowns) that a minimum of two dimensions was needed to accurately represent the data. 
 
 Here, I plotted each dimension on the x axis, and the mean prediction error for each missing value dataset on the y axis. The points and error bars show the standard error for the mean of the means for each dataset.
 
 
 ```{r, echo = FALSE}
 
-# Initialize a list to store results for each dimension
-missing_samples_dists_dimensions <- list()
 
-# Create nested lists for each dimension
-for (f in 1:4){
-  missing_samples_dists_dimensions[[f]] <- list()
-}
+### Cross-validation analysis - multiple dimensions
 
-# Set the number of samples
-no_missing_samples <- 1
+# 1. We'll make one list entry per dimension (1 through 4)
+missing_samples_dists_dimensions <- vector("list", 4)
 
-# Set the number of cores to use
-num_cores <- 4  # Change this to the desired number of cores
+# 2. Set the number of samples (the same 100 from earlier)
+no_missing_samples <- 25
 
-# Register parallel backend
+# 3. Register parallel backend
+num_cores <- 4
 registerDoParallel(cores = num_cores)
 
-# Function to perform MDS for a given dimension
-run_mds_dimension <- function(dim) {
-  MDS_missing_samples_dim_test <- list()
-
-  # Loop over samples
-  for (i in 1:no_missing_samples) {
-    # Perform MDS
-    temp_MDS <- mds(missing_samples_dists[[i]], ndim = dim, type = c("ratio"),
-                    weightmat = missing_samples_weight_matrices[[i]], init = "torgerson",
-                    modulus = 1, itmax = 1000, eps = 1e-06)
-
-    # Store MDS results
-    MDS_missing_samples_dim_test[[dim]][[i]] <- list(conf = temp_MDS$conf, stress = temp_MDS$stress, spp = temp_MDS$spp)
-    temp_MDS <- NULL
+# 4. For each dimension, run MDS in parallel over all missing datasets
+for (dim in 1:4) {
+  MDS_dim_list <- foreach(i = 1:no_missing_samples) %dopar% {
+    # Perform MDS with the specified dimension
+    temp_MDS <- mds(
+      missing_samples_dists[[i]],
+      ndim      = dim,
+      type      = "ratio",
+      weightmat = missing_samples_weight_matrices[[i]],
+      init      = "torgerson",
+      modulus   = 1,
+      itmax     = 1000,
+      eps       = 1e-06
+    )
+    
+    # Return a small list of key outputs
+    list(
+      conf   = temp_MDS$conf,
+      stress = temp_MDS$stress,
+      spp    = temp_MDS$spp
+    )
   }
   
-  return(MDS_missing_samples_dim_test)
-}
-26/6
-# Run MDS for each dimension in parallel
-missing_samples_dists_dimensions <- foreach(dim = 1:4, .combine = "c") %dopar% {
-  run_mds_dimension(dim)
+  # Store all missing-sample MDS results for this dimension
+  missing_samples_dists_dimensions[[dim]] <- MDS_dim_list
 }
 
-# Stop parallel processing
+# 5. Stop parallel processing
 registerDoSEQ()
 
-# Save and restore the MDS results
+# 6. Save the MDS results if desired
 saveRDS(missing_samples_dists_dimensions, file = "missing_samples_dists_dimensions_missing_values.rds")
-missing_samples_dists_dimensions <- readRDS(file = "missing_samples_dists_dimensions_missing_values.rds")
+
+# (Later) you can restore for analysis:
+missing_samples_dists_dimensions <- readRDS("missing_samples_dists_dimensions_missing_values.rds")
 
 
 

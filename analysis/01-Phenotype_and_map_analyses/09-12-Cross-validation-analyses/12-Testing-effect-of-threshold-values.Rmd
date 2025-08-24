@@ -22,19 +22,20 @@ library(doParallel)
 library(tidyverse)     # For data manipulation and visualization
 
 # Set the working directory
-setwd("/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#13-19-Cross-validation-analyses/")
+setwd("/Users/ajb306/AMR-cartography/analysis/01-Phenotype_and_map_analyses/09-12-Cross-validation-analyses/")
 
 # Read the MIC table data
-tablemic <- read.csv("/Users/ajb306/AMR-cartography/data/MIC_table_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+tablemic <- read.csv("/Users/ajb306/AMR-cartography-results/data/MIC_table_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
 
 # Read in the relevant meta data
-tablemic_meta <- read.csv("/Users/ajb306/AMR-cartography/data/meta_data_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+tablemic_meta <- read.csv("/Users/ajb306/AMR-cartography-results/data/meta_data_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
 
 # Specify the full path to the data file
-phen_map <- "/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#03-06-Generating-phenotype-and-genotype-maps/Spneumo_3628_PCA_start_2D_METRIC.RData"
+phen_map <- "/Users/ajb306/AMR-cartography-results/data/Spneumo_3628_PCA_start_2D_METRIC.RData"
 
 # Load the pre-computed PCA start 2D metric data
 load(phen_map)
+
 
 
 # Transform the data so that it is easier to work with noise added values later - the relative euclidean distances between the points will remain the same
@@ -302,35 +303,65 @@ To more quantitatively compare the maps, I again used procrustes to rotate and d
 Below, each plot shows that the full map (including the isolates with 6 thresholded values) is essentially the same as the one made without these isolates. This suggests the thresholded values are not having a strong effect on how the maps are positioning the isolates with numerical values. The congruence coefficient results also shows this.  For each the maps here, the estimate is >0.99, suggesting the solutions are essentially the same and the exclusion of isolates without at least two numerical titres is having little effect.
 
 ```{r, echo = F}
-
+# --- Procrustes comparison ---
 met_ord_comparison <- Procrustes(as.matrix(torg_met), as.matrix(torg_thresh))
-met_ord_comparison$congcoef
 
-plot(met_ord_comparison, legend = list(labels = c("Map made with thresholded values", "Map made without")))
-
-
+# --- Extract coordinates and pairwise distances ---
 met_ord_comparison$pairwise_dist <- cbind(met_ord_comparison$X, met_ord_comparison$Yhat)
-
 colnames(met_ord_comparison$pairwise_dist) <- c("D1_X", "D2_X","D1_Y","D2_Y")
 
-met_ord_comparison$pairwise_dist <- as_tibble(met_ord_comparison$pairwise_dist) %>% 
-     mutate(dist_phen = sqrt((D1_X-D1_Y)^2 + (D2_X-D2_Y)^2))
-hist(met_ord_comparison$pairwise_dist$dist_phen)
+# --- Compute Euclidean distances between true and estimated positions ---
+met_ord_comparison$pairwise_dist <- as_tibble(met_ord_comparison$pairwise_dist) %>%
+  mutate(dist_phen = sqrt((D1_X - D1_Y)^2 + (D2_X - D2_Y)^2))
 
+# --- Tidy up comparison dataframe ---
 comparison_PCA_random_start <- met_ord_comparison$pairwise_dist
 colnames(comparison_PCA_random_start) <- c("PCA_D1","PCA_D2","RS_D1","RS_D2", "dist_phen")
 
-
-
+# --- Plot histogram of Euclidean distances ---
 hist_pair_dist <- as_tibble(met_ord_comparison$pairdist)
-colnames(hist_pair_dist)
 
-
-ggplot(hist_pair_dist, aes(x=value)) + 
+ggplot(hist_pair_dist, aes(x = value)) +
   geom_histogram(fill = "#E41A1C", colour = "black", alpha = 0.8) +
-  geom_vline(xintercept=1, linetype="dashed", color = "black", size=.5) +
+  geom_vline(xintercept = 1, linetype = "dashed", color = "black", size = 0.5) +
   theme_bw() +
-  labs( x = "Pairwise distance (MIC units)", y = "Frequency") 
+  labs(x = "Pairwise distance (MIC units)", y = "Frequency")
+
+ggsave("S_pneumo_thresh_comparison_pairwise_distance.jpg")
+
+# --- Optional: visualise arrows showing difference between maps ---
+A <- ggplot(comparison_PCA_random_start, aes(x = PCA_D1, y = PCA_D2)) +
+  geom_segment(aes(xend = RS_D1, yend = RS_D2), size = 0.5, colour = "grey") +
+  geom_point(aes(x = RS_D1, y = RS_D2), shape = 21, size = 2, fill = "black", colour = "white") +
+  geom_point(aes(x = PCA_D1, y = PCA_D2), shape = 21, fill = "#E41A1C", size = 2, colour = "white") +
+  theme_bw() +
+  labs(x = "MDR distance", y = "MDR distance") +
+  theme(
+    axis.text = element_text(size = 16),
+    axis.title = element_text(size = 16),
+    panel.grid.major = element_line(colour = "grey", size = 0.3),
+    panel.grid.minor = element_blank(),
+    axis.title.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.title.y = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    strip.text.x = element_text(size = 14)
+  ) +
+  coord_fixed()
+A
+
+# --- Summary table of stats ---
+summary_table <- comparison_PCA_random_start %>%
+  summarise(
+    Mean_Distance = round(mean(dist_phen, na.rm = TRUE), 3),
+    SD_Distance   = round(sd(dist_phen, na.rm = TRUE), 3)
+  ) %>%
+  mutate(Congruence_Coefficient = round(met_ord_comparison$congcoef, 3))
+
+# --- Display summary table ---
+knitr::kable(summary_table, caption = "Comparison of maps with and without isolates with <2 numerical MIC titres")
 
 
 ```

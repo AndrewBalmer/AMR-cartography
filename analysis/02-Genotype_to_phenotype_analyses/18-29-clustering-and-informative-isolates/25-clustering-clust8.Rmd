@@ -30,17 +30,22 @@ library(factoextra)
 
   
   options(dplyr.summarise.inform = FALSE)
-  
+
 # Set working directory
-setwd("/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#03-06-Generating-phenotype-and-genotype-maps")
+setwd("/Users/ajb306/AMR-cartography/analysis/02-Genotype_to_phenotype_analyses/18-29-clustering-and-informative-isolates/")
+
+# Read the MIC table data
+tablemic <- read.csv("/Users/ajb306/AMR-cartography-results/data/MIC_table_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
 
 # Read in the relevant meta data
-tablemic_meta <- read.csv("/Users/ajb306/AMR-cartography/data/meta_data_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+tablemic_meta <- read.csv("/Users/ajb306/AMR-cartography-results/data/meta_data_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
 
 # Specify the full path to the data file
-phen_map <- "/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#03-06-Generating-phenotype-and-genotype-maps/Spneumo_3628_PCA_start_2D_METRIC.RData"
+phen_map <- "/Users/ajb306/AMR-cartography-results/data/Spneumo_3628_PCA_start_2D_METRIC.RData"
 
+# Load the pre-computed PCA start 2D metric data
 load(phen_map)
+
   res_samp <- torg_met
   theta <- 326*pi/180 ## degrees to radians
   rot <- matrix(c(cos(theta), sin(theta), -sin(theta), cos(theta)), ncol = 2)
@@ -53,11 +58,11 @@ load(phen_map)
                            "2014200662" , "5869-99" , "2513-99")
   
 # Specify the full path to the data file
-gen_map <- "/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#03-06-Generating-phenotype-and-genotype-maps/Spneumo_3628_PCA_start_2D_METRIC_genetic.RData"
-load('/Users/ajb306/AMR-cartography/data/tablemic_pneumo_gen_3628.RData')
+load('/Users/ajb306/AMR-cartography-results/data/Spneumo_3628_PCA_start_2D_METRIC_genetic.RData')
+load('/Users/ajb306/AMR-cartography-results/data/tablemic_pneumo_gen_3628.RData')
 
 # Load the precomputed PCA start 2D metric data
-load(gen_map)
+
 
   genotype_mds <- as.data.frame(torg_met$conf)
   
@@ -128,12 +133,12 @@ theme_MDR_cartography <- function(){
 ```
 
 # Clustering and identifying informative AA combinations
-Here, I have demonstrated a second method of identifying the amino acid substitutions responsible for changes in beta-lactam resistance phenotypes. This method is meant to work in combination with the previous analysis on single AA substitutions, along with the results of the multivariate linear mixed models. This method involves subdividing regions of the genetic and phenotypic maps, and identifying the AA substitutions which cause phenotypic change from one region to the next. In this document, I will refer to these regions as 'clusters', as I use the K-medoids clustering algorithm to pick them out.
+Here, I have demonstrated a second method of identifying the amino acid substitutions responsible for changes in beta-lactam resistance phenotypes. This method is meant to work in combination with the previous analysis on single AA substitutions, along with the results of the multivariate linear mixed models. This method involves subdividing regions of the genetic and phenotypic maps, and identifying the AA substitutions which cause phenotypic change from one region to the next. In this document, I will refer to these regions as 'clusters', as I use the hierarchical clustering algorithm to pick them out.
 
 As with the previous analysis, I have limited the analysis to the transpeptidase regions (TPD) of the three penicillin binding proteins (PBPs): PBP1a, PBP2b and PBP2x, as they are thought to be the main regions which determine variation in beta-lactam resistance phenotype. As with the previous analysis, this technique is one of the methods used to identify causal variations underlying antigenic change in the influenza cartography maps.
 
 ## Clustering isolates based on PBP genetic diversity
-Here, I have subdivided isolates into groups with relatively low PBP genetic diversity. These regions are marked below on the genetic maps. As described previously, the ‘genetic maps’ are a visualisation of the amino acid distance matrix calculated from the concatenated PBP substitutions. I then used the MDS algorithm to position the isolates on the map. The gridlines represent 10 AAs distance between points. The colours on the map represent regions or 'clusters' picked out using the K-medoids algorithm which represent groupings of relatively low PBP genetic diversity. It may be useful to conduct a permutation analysis as the precise boundaries of the clustering may affect the final results.
+Here, I have subdivided isolates into groups with relatively low PBP genetic diversity. These regions are marked below on the genetic maps. As described previously, the ‘genetic maps’ are a visualisation of the amino acid distance matrix calculated from the concatenated PBP substitutions. I then used the MDS algorithm to position the isolates on the map. The gridlines represent 10 AAs distance between points. The colours on the map represent regions or 'clusters' picked out using the hierarchichal algorithm which represent groupings of relatively low PBP genetic diversity. 
 
 
 ```{r, echo = F}
@@ -371,9 +376,9 @@ ggsave("gen_clust_cluster_PBP.jpg")
 
 
 ### Computing median centroids and clustering on phenotypes 
-Given the MIC values were measured by different laboratories over a period of several years, we would expect a high degree of experimental error, potential systemic differences between laboratories, and in some cases mistakenly labelled isolates. How best too deal with these sources error is unclear, and is one motivation for developing the cartography framework.
+Given the MIC values were measured by different laboratories over a period of several years, we would expect a high degree of experimental error, potential systemic differences between laboratories, and in some cases mistakenly labelled isolates. How best to deal with these sources error is unclear, and is one motivation for developing the cartography framework.
 
-Here I have tried to classify the isolates based on their phenotype, however this is difficult in some cases given outliers. I have therefore calculated the median centroid for each genotype on the map, and marked these as a series of crosses (X). The crosses fall roughly into four groupings, as shown below.
+Here I have tried to classify the isolates based on their phenotype, however this is difficult in some cases given outliers. I have therefore calculated the median centroid for each genotype on the map, and marked these as a series of crosses (X). The crosses fall roughly into three groupings as indicated in the screen plots and as shown below.
 
 ```{r, echo =FALSE}
 
@@ -519,9 +524,11 @@ Identifying the causal substitutions behind phenotypic change on the map can be 
 
 Potential “cluster-difference” amino acid substitutions were identified using the following method. A loci variant of X to Y at location L was considered a potential “cluster-difference” variant between clusters A and B if all or all but one isolates in cluster A have variant X at location L, and all or all but one isolate in cluster B have variant Y at location L. 
 
+As in the supplementary information, only substitutions marked as having 'Strong' evidence should be considered relevant in generating a phenotypic change, while weak substitutions are those which may have an effect but it is not possible to show with this method.
+
 ## Example 1 --- comparing phenotype clusters 1 and 2
 
-In this  comparison, there was a difference across 9 amino acid positions between clusters 1 and 2. However, although these differentiated strongly, they were not 100%. Moreover, cluster 2 only had two PBP-types, each of which were only represented by a single isolate. Because of these factors, these substitutions were marked as having 'weak' evidence.
+In this comparison, there was a difference across 9 amino acid positions between clusters 1 and 2. However, although these differentiated strongly, they were not 100%. Moreover, cluster 2 only had two PBP-types, each of which were only represented by a small number of isolates. Because of these factors, these substitutions were marked as having 'weak' evidence only.
 
 ```{r, echo = F}
 
@@ -694,7 +701,7 @@ Cluster_substitutions <- rbind(Cluster_substitutions,temp)
 
 ## Example 3 --- comparing phenotype clusters 2 and 3
 
-In this last comparison, there was a clear difference in amino acid at many positions between clusters 2 and 3. However, in this case, there were only 2 PBP-types in cluster 2, and each of these were only represented by a single isolate. Moreover, the distribution of the next most segregated amino acid positions were only around 50%. Taken together this suggests these amino acids are not being picked out simply as an artefact of the method, and so were not marked as weak or strong evidence. 
+In this last comparison, there was a clear difference in amino acid at many positions between clusters 2 and 3. However, in this case, there were only 2 PBP-types in cluster 2, and each of these were only represented by a low number of isolate. Similarly, there were also less than five pbp-types in cluster 3, and each of these was represented by a low number of isolates. Because of this low sample size the distribution of the next most segregated amino acid positions were only around 50%. This effect is typically seen when there are very low numbers of isolates involved in the comparison. Taken together this suggests that while these amino acids may be associated with the change, in this case these changes are likely coming out simply as an artefact of the method. Although they may therefore require further investigation I did not mark them as having evidence for generating a change.
 
 
 ```{r, echo = F}
@@ -767,11 +774,13 @@ ggarrange(B,C,A,  nrow = 2, ncol = 2, font.label = list(size = 16, face = "bold"
 
 
 
+
+
 ```
 
 
 # Summary
-In total, 13 PBP locations were weakly associated with the phenotypic cluster differences in this subset of isolates. All 9 of these 13 were located in the PBP2b protein, while the remained were located in the 2x protein. 
+In total, 13 PBP locations were weakly associated with the phenotypic cluster differences in this subset of isolates. 
 
 
 ```{r, echo =F} 
@@ -783,7 +792,6 @@ setwd("/Users/ajb306/Google Drive/PhD - Andrew Balmer/Chapters/AMR cartography/M
 write.csv(Potential_substitutions, file = "Sig_AA_subs_Cluster_gen8_S.pneumo.csv", row.names=FALSE)
 Potential_substitutions <- Potential_substitutions %>% distinct(Location, .keep_all = TRUE) 
 
-Potential_substitutions <- AA_matrix_phenotype %>% ungroup() %>% select(D1, D2, G1,G2, gen_cluster, phen_cluster, x_centroid, y_centroid, c(Potential_substitutions$Location))
 
 
 ```

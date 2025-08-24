@@ -22,16 +22,16 @@ library(foreach)
 library(doParallel)
 
 # Set the working directory
-setwd("/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#20-22-Dimensionality-tests/")
+setwd("/Users/ajb306/AMR-cartography/analysis/01-Phenotype_and_map_analyses/13-Dimensionality-tests/")
 
 # Read the MIC table data
-tablemic <- read.csv("/Users/ajb306/AMR-cartography/data/MIC_table_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+tablemic <- read.csv("/Users/ajb306/AMR-cartography-results/data/MIC_table_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
 
 # Read in the relevant meta data
-tablemic_meta <- read.csv("/Users/ajb306/AMR-cartography/data/meta_data_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+tablemic_meta <- read.csv("/Users/ajb306/AMR-cartography-results/data/meta_data_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
 
 # Specify the full path to the data file
-phen_map <- "/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#03-06-Generating-phenotype-and-genotype-maps/Spneumo_3628_PCA_start_2D_METRIC.RData"
+phen_map <- "/Users/ajb306/AMR-cartography-results/data/Spneumo_3628_PCA_start_2D_METRIC.RData"
 
 # Load the pre-computed PCA start 2D metric data
 load(phen_map)
@@ -43,7 +43,7 @@ for (i in 1:ncol(tablemic)) {
 
 set.seed(123)
 
-no_permutations <- 2
+no_permutations <- 100
 
 ```
 
@@ -54,19 +54,59 @@ It is only possible to make phenotype maps because of the strong patterns of cov
 
 ### Permuting a single column at a time
 
-For each dataset, I selected a single drug at random and permuted the MIC values, while keeping the remaining drugs and relative frequencies of each value the same. This allowed me to test whether the observed covariances could likely have arisen under a random process. This is a more informative test of the dimensionality of the map than permuting all columns simultaneously, as it alters the covariance structure less drastically 
+For each dataset, I randomly  permuted the MIC values, while keeping the relative frequencies of MIC values the same. This allowed me to test whether the observed covariances could likely have arisen under a random process. 
 
 ```{r, echo = F}
+# Load libraries
+library(smacof)
+library(doParallel)
+library(doRNG)      # << NEW: Ensures unique RNG state per worker
+library(tidyverse)
 
+# Parameters
+no_permutations <- 100   # Total number of permutations
+batch_size <- 10         # Permutations per batch
+num_cores <- 2           # Adjust for your system
 
-## permutation test (on the raw data matrix)
-single_col_perm <- permtest(torg_met, data = t(tablemic), method.dat = "euclidean", verbose = T, nrep = no_permutations)
+# Create list to collect stress vectors
+all_stressvec <- list()
 
-# Save an object to a file
-#saveRDS(single_col_perm, file = "single_col_perm_spneumo.rds")
+# Run in batches
+for (start in seq(1, no_permutations, by = batch_size)) {
+  
+  end <- min(start + batch_size - 1, no_permutations)
+  this_batch_nrep <- end - start + 1
+  cat("Running permtest batch", start, "to", end, "\n")
+  
+  registerDoParallel(cores = num_cores)
+  
+  # Ensures each permutation is unique (and reproducible if needed)
+  stress_batch <- foreach(i = 1:this_batch_nrep, .packages = "smacof") %dorng% {
+    result <- permtest(torg_met, data = t(tablemic), method.dat = "euclidean", nrep = 1, verbose = FALSE)
+    result$stressvec
+  }
+  
+  stopImplicitCluster()
+  
+  all_stressvec <- c(all_stressvec, stress_batch)
+  gc()
+}
+
+# Combine into final stress vector
+stress_combined <- unlist(all_stressvec)
+
+# Construct object to match original permtest structure
+single_col_perm <- list(
+  stressvec = stress_combined,
+  call = match.call(),
+  nrep = no_permutations
+)
+
+# Save result
+saveRDS(single_col_perm, file = "single_col_perm_spneumo.rds")
 
 # Restore the object
-#single_col_perm <- readRDS(file = "single_col_perm_spneumo.rds")
+single_col_perm <- readRDS(file = "single_col_perm_spneumo.rds")
 
 stressvec <- as_tibble(single_col_perm$stressvec) %>%
   mutate(dimension= 2)
@@ -85,26 +125,30 @@ ggplot(filter(stressvec), aes(x=value)) +
   theme_bw() + 
   geom_vline(data=mu_2, aes(xintercept=Mean), color = "#E41A1C", size = 1,
              linetype="solid") +
-  geom_vline(aes(xintercept=torg_met_dimensions[[2]]$stress), color = "black", size = 1,
+  geom_vline(aes(xintercept=torg_met$stress), color = "black", size = 1,
              linetype="solid") +
   # geom_vline(aes(xintercept=1), color = "black", size = 1,
   #          linetype="solid") +
   #scale_x_continuous(breaks=seq(0, torg_met_dimensions[[2]]$stress, .005)) +
   labs(x = "Stress", y = "Frequency") +
-  coord_fixed(ratio=0.0005)
+  coord_fixed(ratio=0.0005)+
+    theme(axis.text=element_text(size=16), 
+        axis.title=element_text(size=16))
 
 
 
 ggsave("Spneumo_phen_single_column_permutation.jpg")
 
-
 mu_2 <- stressvec %>%
-    group_by(dimension) %>%
-    rename(stress = value) %>%
-    mutate(stress = round((stress- torg_met_dimensions[[2]]$stress)/torg_met_dimensions[[2]]$stress * 100),0) %>%
-    summarize(sd = sd(stress),
-              Mean = mean(stress),
-              Median = median(stress))
+  group_by(dimension) %>%
+  rename(stress = value) %>%
+  summarize(
+    sd = round(sd(stress), 3),
+    Mean = round(mean(stress), 3),
+    Median = round(median(stress), 3),
+    Mean_percent_increase = round(((mean(stress) - torg_met$stress) / torg_met$stress) * 100, 3)
+  )
+
 
 mu_2
 
@@ -121,7 +165,7 @@ For each dataset, I then generated a series of one-dimensional data with experim
 
 ### testing 1-dimensional maps
 ## generate fake data
-
+no_permutations <- 100
 one_dimensional_samples <- NULL
 one_dimensional_samples <- list()
 col_number <- sample(seq(1, 6, by = 1), no_permutations, replace = T)
@@ -143,7 +187,7 @@ for(i in 1:no_permutations) {
   
 }
 
-head(one_dimensional_samples[[2]])
+head(one_dimensional_samples[[1]])
 
 noise <- list()
 sample <- NULL
@@ -219,66 +263,75 @@ for (i in 1:no_permutations){
   one_dim_permutation[[i]] <- list()
 }
 
-for (i in 1:no_permutations){
-  one_dim_permutation[[i]] <- mds(one_dimensional_samples_dists[[i]], ndim = 1, type = c("ratio"), init = "torgerson", modulus = 1, itmax = 1000, eps = 1e-06)
+library(doParallel)
+library(smacof)
+
+batch_size <- 10
+num_cores <- 2
+
+# Prepare distance matrices (already defined earlier)
+# one_dimensional_samples_dists must already exist
+
+one_dim_permutation_stress <- vector("list", no_permutations)
+
+for (start in seq(1, no_permutations, by = batch_size)) {
+  end <- min(start + batch_size - 1, no_permutations)
+  cat("Running 1D MDS batch", start, "to", end, "\n")
+  
+  registerDoParallel(cores = num_cores)
+  
+  stress_batch <- foreach(i = start:end, .packages = "smacof") %dopar% {
+    mds(one_dimensional_samples_dists[[i]],
+        ndim = 1,
+        type = "ratio",
+        init = "torgerson",
+        modulus = 1,
+        itmax = 1000,
+        eps = 1e-06)$stress
+  }
+  
+  stopImplicitCluster()
+  
+  one_dim_permutation_stress[start:end] <- stress_batch
+  saveRDS(stress_batch, paste0("one_dim_mds_stress_batch_", start, "_to_", end, ".rds"))
+  gc()
 }
 
-# Save an object to a file
-#saveRDS(one_dimensional_samples, file = "one_dimensional_samples_high_dim_one_dim_permutation_mds_spneumo.rds")
-#saveRDS(one_dim_permutation, file = "high_dim_one_dim_permutation_mds_spneumo.rds")
+# Save full vector
+saveRDS(one_dim_permutation_stress, "one_dim_permutation_stress_all.rds")
+one_dim_permutation_stress <- readRDS(file = "one_dim_permutation_stress_all.rds")
 
-# Restore the objects
-#one_dimensional_samples <- readRDS(file = "one_dimensional_samples_high_dim_one_dim_permutation_mds_spneumo.rds")
-#one_dim_permutation <- readRDS(file = "high_dim_one_dim_permutation_mds_spneumo.rds")
-
-one_dim_permutation_mds_spp <- list()
-
-for (i in 1:no_permutations) {
-one_dim_permutation_mds_spp[[i]] <- as_tibble(one_dim_permutation[[i]]$spp) 
-one_dim_permutation_mds_spp[[i]]$permutation <- i
-}
-
-one_dim_permutation_mds_spp <- bind_rows(one_dim_permutation_mds_spp)
-one_dim_permutation_mds_stress <- vector()
-
-for (i in 1:no_permutations) {
-one_dim_permutation_mds_stress[i] <- one_dim_permutation[[i]]$stress
-}
-
-one_dim_permutation_mds_stress <- as_tibble(one_dim_permutation_mds_stress)
-
-one_dim_permutation_mds_stress_2 <- one_dim_permutation_mds_stress %>%
-  rename(stress=value) %>%
+# Downstream analysis (same as before)
+one_dim_permutation_mds_stress <- as_tibble(unlist(one_dim_permutation_stress)) %>%
+  rename(stress = value) %>%
   mutate(data = "one dimensional data")
 
-mu <- one_dim_permutation_mds_stress_2 %>%
-     summarize(sd = sd(stress),
-               Mean = mean(stress),
-               Median = median(stress))
+mu <- one_dim_permutation_mds_stress %>%
+  summarize(sd = sd(stress),
+            Mean = mean(stress),
+            Median = median(stress))
 
-torg_met_1D <- mds(dist(tablemic), ndim = 1, type = c("ratio"), init = "torgerson", modulus = 1, itmax = 1000, eps = 1e-06)
+torg_met_1D <- mds(dist(tablemic), ndim = 1, type = "ratio", init = "torgerson", modulus = 1, itmax = 1000, eps = 1e-06)
 
-ggplot(filter(one_dim_permutation_mds_stress_2), aes(x=stress)) + 
-  geom_histogram(position="identity", alpha = 0.6, fill = "#E41A1C", color = "black", bins = 25) +
-  theme_bw() + 
-  geom_vline(data=mu, aes(xintercept=Mean), color = "#E41A1C", size = 1,
-             linetype="solid") +
-  geom_vline(aes(xintercept=torg_met_1D$stress), color = "black", size = 1,
-             linetype="solid") +
-  # geom_vline(aes(xintercept=1), color = "black", size = 1,
-  #          linetype="solid") +
-  #scale_x_continuous(breaks=seq(0, torg_met_1D$stress, .05)) +
-  labs(x = "Stress", y = "Frequency") 
-
+ggplot(one_dim_permutation_mds_stress, aes(x = stress)) + 
+  geom_histogram(position = "identity", alpha = 0.6, fill = "#E41A1C", color = "black", bins = 25) +
+  theme_bw() +
+  geom_vline(data = mu, aes(xintercept = Mean), color = "#E41A1C", size = 1, linetype = "solid") +
+  geom_vline(aes(xintercept = torg_met_1D$stress), color = "black", size = 1, linetype = "solid") +
+  labs(x = "Stress", y = "Frequency")+
+    theme(axis.text=element_text(size=16), 
+        axis.title=element_text(size=16))
 
 ggsave("Spneumo_phen_1D_permutation.jpg")
 
-
-mu_2 <- one_dim_permutation_mds_stress_2 %>%
-    mutate(stress = round((torg_met_1D$stress - stress)/torg_met_1D$stress * 100),0) %>%
-    summarize(sd = sd(stress),
-              Mean = mean(stress),
-              Median = median(stress))
+mu_2 <- one_dim_permutation_mds_stress %>%
+  mutate(perc_diff = round((torg_met_1D$stress - stress) / torg_met_1D$stress * 100, 3)) %>%
+  summarize(
+    sd = round(sd(stress), 3),
+    Mean = round(mean(stress), 3),
+    Median = round(median(stress), 3),
+    Mean_perc_diff = round(mean(perc_diff), 3)
+  )
 
 mu_2
 
@@ -293,8 +346,8 @@ I then further compared the one and two dimensional maps made with real data. He
 
 ```{r, echo = F}
 
-torg_met_2D <- mds(dist(tablemic), ndim = 2, type = c("ratio"), init = "torgerson", modulus = 1, itmax = 1000, eps = 1e-06)
-one_dim_map <- as_tibble(torg_met_1D$conf)
+torg_met_2D <- torg_met
+one_dim_map <- as_tibble(torg_met$conf)
 two_dim_map <- as_tibble(torg_met_2D$conf)
 
 
@@ -339,7 +392,7 @@ one_and_two_dim_map_comp_pairwise_dist <- left_join(one_and_two_dim_map_comp_pai
 
 
 
-torg_met_conf_1D <- as_tibble(cbind(tablemic_meta$LABID, torg_met_2D$spp))
+torg_met_conf_1D <- as_tibble(cbind(tablemic_meta$LABID, torg_met_1D$spp))
 colnames(torg_met_conf_1D) <- c("LABID", "spp_1D")
 
 #head(torg_met_conf_1D)
@@ -385,6 +438,9 @@ A<-ggplot(one_two_dim_comp, aes(x=X_axis_2D_map, y=Y_axis_2D_map,size = spp_1D))
   coord_fixed() 
 
 A
+
+ggsave("Spneumo_phen_1D_procrustes_projection.jpg")
+
 test <- one_two_dim_comp %>% 
   mutate(X_axis_2D_map = round(X_axis_2D_map, 10),
          Y_axis_2D_map = round(Y_axis_2D_map, 10)) %>%
@@ -392,13 +448,13 @@ test <- one_two_dim_comp %>%
   distinct(X_axis_2D_map, Y_axis_2D_map, .keep_all=TRUE)
 
 
-mu <- test %>%
+mu <- one_two_dim_comp %>%
   ungroup() %>%
   summarize(sd = sd(spp_1D),
             Mean = mean(spp_1D))
 
 
-B <- ggplot(filter(test), aes(x=spp_1D)) + 
+B <- ggplot(filter(one_two_dim_comp), aes(x=spp_1D)) + 
   geom_histogram(position="identity", alpha = 0.6, fill = "#E41A1C", color = "black", bins = 25) + 
   theme_bw() + 
   geom_vline(data=mu, aes(xintercept=Mean), color = "#E41A1C", size = 1,
@@ -411,7 +467,7 @@ B <- ggplot(filter(test), aes(x=spp_1D)) +
 
 
 
-mu <- test %>%
+mu <- one_two_dim_comp %>%
   ungroup() %>%
   summarize(sd = sd(dist_phen),
             Mean = mean(dist_phen))
@@ -424,11 +480,22 @@ C <- ggplot(filter(test), aes(x=dist_phen)) +
   # geom_vline(aes(xintercept=1), color = "black", size = 1,
   #          linetype="solid") +
   scale_x_continuous(breaks=seq(0, max(test$dist_phen, na.rm = T) +.5, 1)) +
-  labs(x = "Distance to position on 1D map", y = "Frequency") 
+  labs(x = "Distance to position on 1D map", y = "Frequency") +
+    theme(axis.text=element_text(size=16), 
+        axis.title=element_text(size=16))
 
 
 A
 B
 C
 
+ggsave("Spneumo_phen_1D_procrustes_projection_distances.jpg")
+
+
 ```
+
+```{r,echo = F}
+
+
+```
+

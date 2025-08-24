@@ -8,7 +8,6 @@ output: html_document
 ```{r setup, include=FALSE}
 
 remove(list = ls())
-library(tidyverse)
 library(smacof)
 library(RColorBrewer)
 library(hrbrthemes)
@@ -18,21 +17,22 @@ library(seqinr)
 library(ape)
 library(ggdendro)
 library(boot)
+library(tidyverse)
 
 options(dplyr.summarise.inform = FALSE)
 
 ### ==== Set working directory
-setwd("/Users/ajb306/Google Drive/PhD - Andrew Balmer/Chapters/AMR cartography/MIC data/")
+setwd("/Users/ajb306/AMR-cartography-results/data/")
 
 # Read in genetic distance matrix for the full dataset
-load('/Users/ajb306/AMR-cartography/data/tablemic_pneumo_3628_meta_gen_distance_matrix.RData')
-load('/Users/ajb306/AMR-cartography/data/tablemic_pneumo_gen_3628.RData')
+load('/Users/ajb306/AMR-cartography-results/data/tablemic_pneumo_3628_meta_gen_distance_matrix.RData')
+load('/Users/ajb306/AMR-cartography-results/data/tablemic_pneumo_gen_3628.RData')
 
 # Read in the relevant meta data
-tablemic_meta <- read.csv("/Users/ajb306/AMR-cartography/data/meta_data_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+tablemic_meta <- read.csv("/Users/ajb306/AMR-cartography-results/data/meta_data_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
 
 # Specify the full path to the data file
-phen_map <- "/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#03-06-Generating-phenotype-and-genotype-maps/Spneumo_3628_PCA_start_2D_METRIC.RData"
+phen_map <- "/Users/ajb306/AMR-cartography-results/data/Spneumo_3628_PCA_start_2D_METRIC.RData"
 
 load(phen_map)
 
@@ -44,6 +44,7 @@ theta <- 326*pi/180 ## degrees to radians
 rot <- matrix(c(cos(theta), sin(theta), -sin(theta), cos(theta)), ncol = 2)
 torg_met$conf <- torg_met$conf %*% rot ## rotated configurations
 
+Reference <- readRDS(file = "Reference.rds")
 
 ```
 
@@ -94,7 +95,7 @@ dist_PBPs <- AA_matrix_phenotype %>% select(PBP_type, PBP1A_T371:PBP2X_V587, -PB
   ungroup() %>%
   select(-PBP_type)
 
-## this line generates the amino acid alignment distance matrix without the PBP2B_N656 position, but takes a long time to run. uncomment if you would like to run this.
+## this line generates the amino acid alignment distance matrix without the PBP2B_N656 position, as there is no variation at this position, and this is missing for some isolates, however this line takes a long time to run. uncomment if you would like to run the analysis
 #dist_PBPs <- as.data.frame(as.matrix(dist.gene(dist_PBPs, method ="pairwise", pairwise.deletion = F, variance = F)))
 
 ### ==== Estimate phenotypic distances between PBP types 
@@ -111,6 +112,8 @@ dist_PBPs <- readRDS(file = "dist_PBP_single_subs_pneumo.rds")
 
 
 ```
+
+
 
 
 
@@ -142,20 +145,31 @@ nat_exp_rankings <- bind_cols(dist_PBPs,phen_dist[,3]) %>%
 
 phen_dist <- NULL
 dist_PBPs <- NULL
+sort(as.numeric(c(1,3,4,2,7,6,4)))
 
+
+### the lines below sort the dataframe for substitution analysis, however it takes a long time to run and save, uncomment this line if you would like to run it.
+#Previous method based on for loop (takes a long time)
 Reference <- data.frame(matrix(ncol=2,nrow=0)) 
+for(i in 1:20) {
+Reference[i,] <- sort(as.numeric(nat_exp_rankings[i,2:3]))
+}
 
 
-### the lines below sort the dataframe for substitution analysis, however it takes a long time to run and save, uncoment this line if you would like to run it.
-#for(i in 1:nrow(nat_exp_rankings)) {
-#Reference[i,] <- sort(as.numeric(nat_exp_rankings[i,2:3]))
-#}
+# Function to sort each row numerically
+sort_row <- function(row) {
+  sorted_row <- sort(as.numeric(row))
+  return(sorted_row)
+}
 
-#saveRDS(Reference, file = "Reference.rds")
+# Apply the sorting function to each row of the selected columns
+Reference <- as.data.frame(t(apply(nat_exp_rankings[, 2:3], 1, sort_row)))
+
+saveRDS(Reference, file = "Reference.rds")
 Reference <- readRDS(file = "Reference.rds")
 
 Reference <- Reference %>%
-  rename(Reference_PBP = X1, Comparison_PBP = X2) %>%
+  rename(Reference_PBP = V1, Comparison_PBP = V2) %>%
           unite("Relative_Comparison", Reference_PBP:Comparison_PBP, remove = TRUE) %>%
   select(Relative_Comparison) %>%
       distinct(Relative_Comparison, .keep_all = TRUE)
@@ -431,7 +445,6 @@ ps <- left_join(temp,temp_2, by = c("Relative_Comparison")) %>%
 
 
 ggplot(filter(zoomed_example), aes(x=D1,y=D2)) +
-
    geom_segment(data = ps, mapping = aes(x = D1_1, xend = D1_2, y = D2_1,yend = D2_2), colour = "black", alpha = 0.8) +  
      geom_point(data = filter(AA_matrix_phenotype, PBP_type != c(levels(as.factor(zoomed_example$PBP_type)))[1] &
                                         PBP_type != c(levels(as.factor(zoomed_example$PBP_type)))[2]),
@@ -486,7 +499,7 @@ distinct(Substitution, .keep_all = TRUE)
 
 large_effect_positions <- c(levels(as.factor(large_effect_positions$Location)))
 
-zoomed_example <- zoomed_example %>% filter(Location == large_effect_positions[9])
+zoomed_example <- zoomed_example %>% filter(Location == large_effect_positions[10])
 
 zoomed_example <- zoomed_example %>%
     group_by(PBP_type) %>%
@@ -499,7 +512,7 @@ zoomed_example <- left_join(zoomed_example, AA_matrix_phenotype, by = c("PBP_typ
 
 zoomed_example <- zoomed_example %>%
   ungroup() %>% 
-  select(c(Relative_Comparison:LABID, large_effect_positions[9]))
+  select(c(Relative_Comparison:LABID, large_effect_positions[10]))
 
 zoomed_example <- rename(zoomed_example, AA = 16)
 
@@ -564,9 +577,75 @@ ggplot(filter(zoomed_example), aes(x=D1,y=D2)) +
   scale_fill_manual(values=c( "#E41A1C", "#377EB8","purple"))+
   scale_colour_manual(values=c( "#E41A1C", "#377EB8","purple" ))
 
+
 ggsave("Spneumoniae_2x371_individual_subs_figure.jpg")
 
+
+
+ggplot(filter(zoomed_example), aes(x = D1, y = D2)) +
+  geom_segment(data = ps, mapping = aes(x = D1_1, xend = D1_2, y = D2_1, yend = D2_2), colour = "grey", size = 0.2, alpha = 1) +
+  geom_point(data = filter(AA_matrix_phenotype, PBP_type != c(levels(as.factor(zoomed_example$PBP_type)))[1] &
+                           PBP_type != c(levels(as.factor(zoomed_example$PBP_type)))[2]),
+             aes(color = PBP2X_I371), fill = "#969696", shape = 16, size = 2.5, alpha = 1) +
+  geom_point(shape = 21, size = 5, alpha = 1, aes(fill = Substitution)) +
+  theme(legend.position = 'none') +
+  theme_linedraw() +
+  scale_x_continuous(limits = c(min(AA_matrix_phenotype$D1, na.rm = TRUE), max(AA_matrix_phenotype$D1, na.rm = TRUE)), breaks = seq(min(AA_matrix_phenotype$D1, na.rm = TRUE), max(AA_matrix_phenotype$D1, na.rm = TRUE)+1, 1)) +
+  scale_y_continuous(limits = c(min(AA_matrix_phenotype$D2, na.rm = TRUE), max(AA_matrix_phenotype$D2, na.rm = TRUE)), breaks = seq(min(AA_matrix_phenotype$D2, na.rm = TRUE), max(AA_matrix_phenotype$D2, na.rm = TRUE)+1, 1)) +
+  labs(x = "MDR distance", y = "MDR distance") +
+  theme(axis.text = element_text(size = 16), 
+        axis.title = element_text(size = 16), 
+        panel.grid.major = element_line(colour = "grey", size = (0.3)),
+        panel.grid.minor = element_blank(),
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        legend.position = c(0.75, 0.19),
+        legend.title = element_text(size = 8), 
+        legend.text = element_text(size = 8),
+        legend.key.size = unit(1, 'cm'),
+        legend.background = element_rect(fill = "white", size = 0.15, linetype = "solid", colour = "black")) +
+  coord_fixed() +    
+  scale_fill_manual(values = c("#E41A1C", "#377EB8")) +
+  scale_colour_manual(values = c("#E41A1C", "#377EB8"), guide = "none")
+
+
+c(min(AA_matrix_phenotype$D1, na.rm = TRUE), max(AA_matrix_phenotype$D1, na.rm = TRUE))
+ggplot(filter(zoomed_example), aes(x = D1, y = D2)) +
+  geom_segment(data = ps, mapping = aes(x = D1_1, xend = D1_2, y = D2_1, yend = D2_2), colour = "grey", size = 0.2, alpha = 1) +
+  geom_point(data = filter(AA_matrix_phenotype, PBP_type != c(levels(as.factor(zoomed_example$PBP_type)))[1] &
+                           PBP_type != c(levels(as.factor(zoomed_example$PBP_type)))[2]),
+             aes(color = PBP2X_I371), fill = "#969696", shape = 16, size = 2.5, alpha = 1) +
+  geom_point(shape = 21, size = 5, alpha = 1, aes(fill = Substitution)) +
+  theme(legend.position = 'none') +
+  theme_linedraw() +
+  scale_x_continuous(limits = c(min(AA_matrix_phenotype$D1, na.rm = TRUE), max(AA_matrix_phenotype$D1, na.rm = TRUE)), breaks = seq(min(AA_matrix_phenotype$D1, na.rm = TRUE), max(AA_matrix_phenotype$D1, na.rm = TRUE)+1, 1)) +
+  scale_y_continuous(limits = c(min(AA_matrix_phenotype$D2, na.rm = TRUE), max(AA_matrix_phenotype$D2, na.rm = TRUE)), breaks = seq(min(AA_matrix_phenotype$D2, na.rm = TRUE), max(AA_matrix_phenotype$D2, na.rm = TRUE)+1, 1)) +
+  labs(x = "MDR distance", y = "MDR distance") +
+  theme(axis.text = element_text(size = 16), 
+        axis.title = element_text(size = 16), 
+        panel.grid.major = element_line(colour = "grey", size = (0.3)),
+        panel.grid.minor = element_blank(),
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        legend.position = c(0.75, 0.19),
+        legend.title = element_text(size = 8), 
+        legend.text = element_text(size = 8),
+        legend.key.size = unit(1, 'cm'),
+        legend.background = element_rect(fill = "white", size = 0.15, linetype = "solid", colour = "black")) +
+  coord_fixed() +    
+  scale_fill_manual(values = c("#E41A1C", "#377EB8")) +
+  scale_colour_manual(values = c("#E41A1C", "#377EB8"), guide = "none")
+
 ```
+
 
 
 # Overview of all identified comparisons 
@@ -599,7 +678,7 @@ nat_exp_rankings_summary <- nat_exp_rankings_summary %>%
 nat_exp_rankings_summary %>% filter(median_phenotypic_distance >0.5) %>% group_by(PBP) %>% arrange(Loci) %>% ungroup() %>%
   mutate(Substitution_of_interest=factor(Substitution_of_interest, levels=Substitution_of_interest)) %>%  # This trick will update the factor levels
 
-ggplot(aes(x =  Substitution_of_interest, y = median_phenotypic_distance)) + 
+ggplot(aes(x = Substitution_of_interest, y = median_phenotypic_distance)) + 
     geom_errorbar(aes(ymin=median_phenotypic_distance-se, ymax=median_phenotypic_distance+se), size = .75, width=0, colour = "black") +
        geom_point(size = 3, shape = 21, color='#E41A1C', fill ="#E41A1C", alpha = 0.7) +
         coord_flip()+
@@ -655,5 +734,189 @@ colnames(All_pos) <- c("PBP", "Substitution", "Median phenotypic distance", "SD"
 
 All_pos <- All_pos %>% mutate_at("PBP", str_replace_all, "PBP", "") 
 
+
+
+
   
+```
+
+
+```{r,echo = F}
+
+library(ggplot2)
+library(cowplot)
+library(ggnewscale)  # Make sure this is loaded!
+
+main_plot <- ggplot(filter(zoomed_example), aes(x = D1, y = D2)) +
+  
+  # Background points
+  geom_point(
+    data = filter(AA_matrix_phenotype, 
+                  !PBP_type %in% unique(zoomed_example$PBP_type)),
+    aes(fill = PBP2X_I371),
+    shape = 21,
+    size = 3.5,
+    colour = "white",
+    alpha = 1
+  ) +
+  scale_fill_manual(values = c("#E41A1C", "#377EB8")) +
+
+  # Reset fill scale for the next layer
+  new_scale_fill() +
+
+  # Foreground highlighted substitution points
+  geom_point(
+    data = zoomed_example,
+    aes(fill = Substitution),
+    shape = 21,
+    size = 7,
+    colour = "black",
+    alpha = 1,
+    show.legend = FALSE
+  ) +
+  scale_fill_manual(values = c("#E41A1C", "#377EB8"),  name = "PBP2X I371"  ) +  # reuse colours or set new ones
+  scale_colour_manual(values = c("#E41A1C", "#377EB8"), name = "PBP2X I371") +
+
+  theme_linedraw() +
+  theme(
+    panel.grid.major = element_line(colour = "grey", size = 0.3),
+    panel.grid.minor = element_blank(),
+    axis.title.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.title.y = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    legend.position = c(0.8, 0.15),
+    legend.title = element_text(size = 16), 
+    legend.text = element_text(size = 16),
+    legend.key.size = unit(0.9, 'cm'),
+    legend.background = element_rect(fill = "white", size = 0.4, linetype = "solid", colour = "black")
+  ) +
+  scale_x_continuous(
+    limits = c(min(AA_matrix_phenotype$D1, na.rm = TRUE), max(AA_matrix_phenotype$D1, na.rm = TRUE)),
+    breaks = seq(min(AA_matrix_phenotype$D1, na.rm = TRUE), max(AA_matrix_phenotype$D1, na.rm = TRUE) + 1, 1)
+  ) +
+  scale_y_continuous(
+    limits = c(min(AA_matrix_phenotype$D2, na.rm = TRUE), max(AA_matrix_phenotype$D2, na.rm = TRUE)),
+    breaks = seq(min(AA_matrix_phenotype$D2, na.rm = TRUE), max(AA_matrix_phenotype$D2, na.rm = TRUE) + 1, 1)
+  ) +
+  coord_fixed()
+
+main_plot
+
+# Create a box highlighting the region in the main plot
+boxed_main_plot <- main_plot + geom_rect(xmin = max(AA_matrix_phenotype$D1, na.rm = TRUE) * 0.22,
+                                         xmax = max(AA_matrix_phenotype$D1, na.rm = TRUE) * 0.95,
+                                         ymin = max(AA_matrix_phenotype$D2, na.rm = TRUE) * 0.22,
+                                         ymax = max(AA_matrix_phenotype$D2, na.rm = TRUE) * 0.95,
+                                         fill = NA, size = .5, colour = "black")
+
+boxed_main_plot
+
+    ggsave("Spneumoniae_method_highlight_panel1.jpg")
+
+library(ggforce)
+
+# Calculate centroids for each group
+centroid_group1 <- filter(zoomed_example, Substitution == 'PBP2X_371:I, n=3') %>%
+                    summarise(D1 = mean(D1), D2 = mean(D2))
+centroid_group2 <- filter(zoomed_example, Substitution != 'PBP2X_371:I, n=3') %>%
+                    summarise(D1 = mean(D1), D2 = mean(D2))
+               
+    
+# Define the zoomed-in plot
+zoomed_plot <- ggplot(filter(zoomed_example), aes(x = D1, y = D2)) +
+  
+  # Background points
+  geom_point(data = filter(AA_matrix_phenotype, 
+                           !PBP_type %in% unique(zoomed_example$PBP_type)),
+             aes(fill = PBP2X_I371),
+             colour = 'white', shape = 21, size = 2, alpha = 1,
+    show.legend = FALSE) +
+  scale_fill_manual(values = c("#E41A1C", "#377EB8"), name = "PBP2X I371") +
+  
+  new_scale_fill() +
+  
+  # Foreground points with legend
+  geom_point(data = zoomed_example,
+             aes(fill = Substitution),
+             shape = 21, size = 6, colour = "black", alpha = 1) +
+
+  # Ellipses (drawn *after* points, no legend)
+  geom_mark_ellipse(
+    data = zoomed_example,
+    aes(fill = Substitution),
+    color = NA, alpha = 0.2,
+    show.legend = FALSE
+  ) +
+
+  # Use shared fill scale for points and ellipses
+  scale_fill_manual(values = c("#E41A1C", "#377EB8"), name = "Substitution") +
+
+  # Centroids and connecting lines
+  geom_segment(data = rbind(centroid_group1, centroid_group2),
+               aes(x = D1, y = D2, xend = lead(D1), yend = lead(D2)),
+               color = "black", size = 1, alpha = 0.8) +
+  geom_point(data = centroid_group1, aes(x = D1, y = D2), color = "black", size = 4, shape = 4, stroke = 3) +
+  geom_point(data = centroid_group2, aes(x = D1, y = D2), color = "black", size = 4, shape = 4, stroke = 3) +
+  geom_point(data = centroid_group1, aes(x = D1, y = D2), color = "#E41A1C", size = 4.5, shape = 4, stroke = 2) +
+  geom_point(data = centroid_group2, aes(x = D1, y = D2), color = "#377EB8", size = 4.5, shape = 4, stroke = 2) +
+
+  theme_linedraw() +
+ theme(
+    axis.text = element_text(size = 16),
+    axis.title = element_text(size = 16),
+    panel.grid.major = element_line(colour = "grey", size = 0.3),
+    panel.grid.minor = element_blank(),
+    axis.title.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.title.y = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    legend.position = c(0.8, 0.15),
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 10),
+    legend.key.size = unit(1, 'cm'),
+    legend.background = element_rect(fill = "white", size = 0.25, linetype = "solid", colour = "black")
+  ) +
+
+  # === MATCH THE GRID BREAKS TO THE MAIN PLOT ===
+  scale_x_continuous(
+    limits = c(max(AA_matrix_phenotype$D1, na.rm = TRUE) * 0.200,
+               max(AA_matrix_phenotype$D1, na.rm = TRUE) * .98),
+    breaks = seq(min(AA_matrix_phenotype$D1, na.rm = TRUE),
+                 max(AA_matrix_phenotype$D1, na.rm = TRUE) + 1, 1)
+  ) +
+  scale_y_continuous(
+    limits = c(max(AA_matrix_phenotype$D2, na.rm = TRUE) * 0.200,
+               max(AA_matrix_phenotype$D2, na.rm = TRUE) * .98),
+    breaks = seq(min(AA_matrix_phenotype$D2, na.rm = TRUE),
+                 max(AA_matrix_phenotype$D2, na.rm = TRUE) + 1, 1)
+  ) +
+
+  coord_fixed(
+  xlim = c(max(AA_matrix_phenotype$D1, na.rm = TRUE) * 0.208,
+               max(AA_matrix_phenotype$D1, na.rm = TRUE) * .955),
+  ylim = c(max(AA_matrix_phenotype$D2, na.rm = TRUE) * 0.208,
+               max(AA_matrix_phenotype$D2, na.rm = TRUE) * .95),
+  clip = "off"
+)
+
+
+
+zoomed_plot
+
+
+
+ggsave("Spneumoniae_method_highlight_panel3.jpg")
+
+
+
+```
+
+```{r,echo = F}
+
+
 ```

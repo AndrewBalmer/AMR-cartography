@@ -22,16 +22,16 @@ library(ggExtra)       # For marginal histograms
 library(ggdensity)     # For density distrbutions
 
 # Set the working directory
-setwd("/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#11-12-Mapping-external-variables/results")
+setwd("/Users/ajb306/AMR-cartography-results/data")
 
 # Read the MIC table data
-tablemic <- read.csv("/Users/ajb306/AMR-cartography/data/MIC_table_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+tablemic <- read.csv("/Users/ajb306/AMR-cartography-results/data/MIC_table_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
 
 # Read in the relevant meta data
-tablemic_meta <- read.csv("/Users/ajb306/AMR-cartography/data/meta_data_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+tablemic_meta <- read.csv("/Users/ajb306/AMR-cartography-results/data/meta_data_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
 
 # Specify the full path to the data file
-phen_map <- "/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#03-06-Generating-phenotype-and-genotype-maps/results/Spneumo_3628_PCA_start_2D_METRIC.RData"
+phen_map <- "/Users/ajb306/AMR-cartography-results/data/Spneumo_3628_PCA_start_2D_METRIC.RData"
 
 # Load the precomputed PCA start 2D metric data
 load(phen_map)
@@ -90,6 +90,7 @@ phen_map <- as_tibble(torg_met$conf) %>%
          D2 = V2)
 
 ```
+
 ### Basic plot
 Next we can bring that together into a single plot, where the map is rotated and dilated to an appropriate scale. The gridlines now represent a single MIC dilution in any direction. The opacity (alpha) of points can also be used to show overlapping points.
 
@@ -120,7 +121,7 @@ ggplot(phen_map, aes(x = D1, y = D2)) +
                      breaks = seq(min(phen_map$D2), max(phen_map$D2) + 1, 1)) +
   scale_x_continuous(limits = c(min(phen_map$D1), max(phen_map$D1)),
                      breaks = seq(min(phen_map$D1), max(phen_map$D1) + 1, 1)) +
-    AMRC_phen_theme() +
+      theme_bw() +AMRC_phen_theme() +
     coord_fixed()
 
 
@@ -131,32 +132,46 @@ One simple way of including original variables on the map is to use colour. Here
 
 ```{r, echo = F}
 
-# adjust tablemic_meta to include threshold values
+# Adjust tablemic_meta to include threshold values for multiple columns
 tablemic_meta <- tablemic_meta %>% 
   mutate(
-    Penicillin = ifelse(grepl("^(0.03|64)$", Penicillin),
-                         recode(Penicillin, `0.03` = "<=0.03", `64` = ">=64"),
-                         Penicillin),
-    Amoxicillin = ifelse(grepl("^(0.03|16)$", Amoxicillin),
-                          recode(Amoxicillin, `0.03` = "<=0.03", `16` = ">=16"),
-                          Amoxicillin),
-    Meropenem = ifelse(grepl("^(0.06|2)$", Meropenem),
-                        recode(Meropenem, `0.06` = "<=0.06", `2` = ">=2"),
-                        Meropenem),
-    Cefotaxime = ifelse(grepl("^(0.06|16)$", Cefotaxime),
-                         recode(Cefotaxime, `0.06` = "<=0.06", `16` = ">=16"),
-                         Cefotaxime),
-    Ceftriaxone = ifelse(grepl("^(0.5|8)$", Ceftriaxone),
-                          recode(Ceftriaxone, `0.5` = "<=0.5", `8` = ">=8"),
-                          Ceftriaxone),
-    Cefuroxime = ifelse(grepl("^(0.5|4)$", Cefuroxime),
-                         recode(Cefuroxime, `0.5` = "<=0.5", `4` = ">=4"),
-                         Cefuroxime)
+    Penicillin = case_when(
+      Penicillin == 0.03 ~ "<=0.03",
+      Penicillin == 64 ~ ">64",
+      TRUE ~ as.character(Penicillin)  # Keep the original value for other cases
+    ),
+    Amoxicillin = case_when(
+      Amoxicillin == 0.03 ~ "<=0.03",
+      Amoxicillin == 16 ~ ">=16",
+      TRUE ~ as.character(Amoxicillin)  # Keep the original value for other cases
+    ),
+    Meropenem = case_when(
+      Meropenem == 0.06 ~ "<=0.06",
+      Meropenem == 2 ~ ">=2",
+      TRUE ~ as.character(Meropenem)  # Keep the original value for other cases
+    ),
+    Cefotaxime = case_when(
+      Cefotaxime == 0.06 ~ "<=0.06",
+      Cefotaxime == 16 ~ ">=16",
+      TRUE ~ as.character(Cefotaxime)  # Keep the original value for other cases
+    ),
+    Ceftriaxone = case_when(
+      Ceftriaxone == 0.5 ~ "<=0.5",
+      Ceftriaxone == 8 ~ ">=8",
+      TRUE ~ as.character(Ceftriaxone)  # Keep the original value for other cases
+    ),
+    Cefuroxime = case_when(
+      Cefuroxime == 0.5 ~ "<=0.5",
+      Cefuroxime == 4 ~ ">=4",
+      TRUE ~ as.character(Cefuroxime)  # Keep the original value for other cases
+    )
   )
+
+
 
 # Common ggplot settings
 common_ggplot_settings <- function(plot) {
-  plot + AMRC_phen_theme() +
+  plot +   theme_bw() +AMRC_phen_theme() +
   coord_fixed() +
   scale_y_continuous(
     limits = c(min(phen_map$D2), max(phen_map$D2)),
@@ -171,17 +186,47 @@ common_ggplot_settings <- function(plot) {
 # Create phenotype map with associated meta data attached
 phen_map <- bind_cols(phen_map, tablemic_meta)
 
+nb.cols <- 10
+mycolors <- colorRampPalette(brewer.pal(9, "Reds"))(nb.cols)
+
 # Function to create a plot for a specific antibiotic
 create_antibiotic_plot <- function(data, antibiotic) {
   plot <- ggplot(data, aes(x = D1, y = D2, fill = as.factor({{ antibiotic }}))) +
-    geom_point(shape = 21, size = 3, alpha = 0.6) +
+    geom_point(shape = 21, size = 3.5, alpha = 1) +
     theme_linedraw() +
     labs(fill = sprintf("%s MIC (ug/ml)", colnames(data)[which(colnames(data) == deparse(substitute(antibiotic)))]) ) +
-    coord_fixed()
+    coord_fixed()+
+  scale_fill_manual(values = mycolors) 
 
   plot <- common_ggplot_settings(plot)
   return(plot)
 }
+
+
+order_mic_levels <- function(vec) {
+  unique_vals <- unique(vec)
+  
+  leq_val <- unique_vals[grepl("^<=\\d", unique_vals)]
+  geq_val <- unique_vals[grepl("^>=\\d", unique_vals)]
+  numeric_vals <- unique_vals[!unique_vals %in% c(leq_val, geq_val)]
+  
+  # Convert numeric values to numeric type for proper sorting
+  numeric_vals_sorted <- sort(as.numeric(numeric_vals))
+  
+  # Recombine in desired order
+  ordered_levels <- c(leq_val, as.character(numeric_vals_sorted), geq_val)
+  factor(vec, levels = ordered_levels, ordered = TRUE)
+}
+
+phen_map <- phen_map %>%
+  mutate(
+    Penicillin = order_mic_levels(Penicillin),
+    Amoxicillin = order_mic_levels(Amoxicillin),
+    Meropenem = order_mic_levels(Meropenem),
+    Cefotaxime = order_mic_levels(Cefotaxime),
+    Ceftriaxone = order_mic_levels(Ceftriaxone),
+    Cefuroxime = order_mic_levels(Cefuroxime)
+  )
 
 # Create plots for each antibiotic
 penicillin_plot <- create_antibiotic_plot(phen_map, Penicillin)
@@ -197,6 +242,17 @@ penicillin_plot
 # Arrange the plots one after the other
 gridExtra::grid.arrange(penicillin_plot, amoxicillin_plot, meropenem_plot,
                         cefotaxime_plot, ceftriaxone_plot, cefuroxime_plot, nrow = 3, ncol = 2)
+
+
+# Arrange the plots one after the other
+combined_plot <- gridExtra::arrangeGrob(
+  penicillin_plot, amoxicillin_plot, meropenem_plot,
+  cefotaxime_plot, ceftriaxone_plot, cefuroxime_plot,
+  nrow = 3, ncol = 2
+)
+
+# Save it using ggsave
+ggsave("MIC_spneumo_phen_distribution.jpg", plot = combined_plot, width = 12, height = 10, dpi = 600)
 
 ```
 
@@ -217,9 +273,14 @@ for (i in 1:ncol(tablemic_rescaled)) {
 phen_map <- as.data.frame(cbind(phen_map, tablemic_rescaled))
 tablemic_rescaled <- NULL  # Remove the rescaled tablemic to save memory
 
+
+library(matrixStats)
+
 # Calculate the mean_titre column as the row mean of columns 11 to 16 in phen_map
 phen_map <- phen_map %>%
-  mutate(mean_titre = rowMeans(phen_map[, 11:16], na.rm = TRUE))
+  mutate(mean_titre = rowMedians(as.matrix(phen_map[, 11:16]), na.rm = TRUE))
+
+
 
 # Create a ggplot with a marginal histogram
 p <- ggplot(phen_map, aes(x = D1, y = D2)) +
@@ -230,7 +291,7 @@ p <- ggplot(phen_map, aes(x = D1, y = D2)) +
   geom_point(aes(x = D1, y = D2, colour = mean_titre), shape = 16, alpha = 1, size = 4) +
   geom_point(aes(x = D1, y = D2), shape = 21, alpha = 1, size = 4) +
   scale_colour_gradient(low = "yellow", high = "red") +
-  theme_linedraw() +
+ # theme_linedraw() +
   theme(legend.background = element_rect(fill = "white",
                                          size = 0.25, linetype = "solid",
                                          colour = "black"),
@@ -245,6 +306,9 @@ p1
 # Save the final plot as an image
 ggsave("Mean_MIC_spneumo_phen_distribution.jpg")
 
+
+
+
 ```
 
 
@@ -257,6 +321,41 @@ Importantly, MIC values are a mixture of metric and non-metric (rank) informatio
 Here the vectors show the points which had numeric titres for that drug and their calibrated axis.
 
 ```{r, echo=FALSE}
+
+# Adjust tablemic_meta to include threshold values for multiple columns
+tablemic_meta <- tablemic_meta %>% 
+  mutate(
+    Penicillin = case_when(
+      Penicillin == 0.03 ~ "<=0.03",
+      Penicillin == 64 ~ ">64",
+      TRUE ~ as.character(Penicillin)  # Keep the original value for other cases
+    ),
+    Amoxicillin = case_when(
+      Amoxicillin == 0.03 ~ "<=0.03",
+      Amoxicillin == 16 ~ ">=16",
+      TRUE ~ as.character(Amoxicillin)  # Keep the original value for other cases
+    ),
+    Meropenem = case_when(
+      Meropenem == 0.06 ~ "<=0.06",
+      Meropenem == 2 ~ ">=2",
+      TRUE ~ as.character(Meropenem)  # Keep the original value for other cases
+    ),
+    Cefotaxime = case_when(
+      Cefotaxime == 0.06 ~ "<=0.06",
+      Cefotaxime == 16 ~ ">=16",
+      TRUE ~ as.character(Cefotaxime)  # Keep the original value for other cases
+    ),
+    Ceftriaxone = case_when(
+      Ceftriaxone == 0.5 ~ "<=0.5",
+      Ceftriaxone == 8 ~ ">=8",
+      TRUE ~ as.character(Ceftriaxone)  # Keep the original value for other cases
+    ),
+    Cefuroxime = case_when(
+      Cefuroxime == 0.5 ~ "<=0.5",
+      Cefuroxime == 4 ~ ">=4",
+      TRUE ~ as.character(Cefuroxime)  # Keep the original value for other cases
+    )
+  )
 # Rescale each column of the tablemic dataframe
 Z <- tablemic
 
@@ -309,18 +408,25 @@ slope_original <- (max(calibrated_pen$V2) - min(calibrated_pen$V2)) / (max(calib
 slope_orthogonal <- -1 / slope_original
 
 # Define a point of intersection
-intersection_point <- c(x = 1.07970346, y = 5.6923814)  # the clinical breakpoint of penicillin is 2ug/ml
+intersection_point_nonmeningitis <- c(x = 1.07970346, y = 5.6923814)  # the clinical breakpoint of penicillin is 2ug/ml
+intersection_point_meningitis <- c(x = 0.05811996, y = -0.2522307)  # the clinical breakpoint of penicillin for meningitus isolates is <=0.06ug/ml
+
 
 # Calculate the y-intercept for the orthogonal line
-intercept_orthogonal <- intersection_point[2] - slope_orthogonal * intersection_point[1]
+intercept_orthogonal_nonmeningitis <- intersection_point_nonmeningitis[2] - slope_orthogonal * intersection_point_nonmeningitis[1]
+intercept_orthogonal_meningitis <- intersection_point_meningitis[2] - slope_orthogonal * intersection_point_meningitis[1]
+
+nb.cols <- 10
+mycolors <- colorRampPalette(brewer.pal(8, "Reds"))(nb.cols)
 
 # Create a ggplot object
 ggplot(phen_map, aes(x = D1, y = D2)) +
-  geom_abline(slope = slope_orthogonal, intercept = intercept_orthogonal, linetype = "solid", color = "red") +
-  geom_point(aes(fill = as.factor(Penicillin)), shape = 21, size = 3, alpha = 0.6) +
+  geom_abline(slope = slope_orthogonal, intercept = intercept_orthogonal_nonmeningitis, size = .75, linetype = "solid", color = "red") +
+  geom_abline(slope = slope_orthogonal, intercept = intercept_orthogonal_meningitis, size = .75, linetype = "solid", color = "red", alpha = 0.4) +
+  geom_point(aes(fill = as.factor(Penicillin)), shape = 21, size = 3.75, alpha = 1) +
   theme_linedraw() +
   geom_segment(aes(x = min(calibrated_pen$V1), y = min(calibrated_pen$V2), 
-                   xend = max(calibrated_pen$V1), yend = max(calibrated_pen$V2)), colour = "black") +
+                   xend = max(calibrated_pen$V1), yend = max(calibrated_pen$V2)), size = .75, colour = "black") +
   geom_point(data = calibrated_pen, aes(x = V1, y = V2), shape = 16, size = 2) +
   
   geom_label(data = calibrated_pen,
@@ -331,9 +437,9 @@ ggplot(phen_map, aes(x = D1, y = D2)) +
   scale_y_continuous(limits = c(min(phen_map$D2), max(phen_map$D2)), breaks = seq(min(phen_map$D2), max(phen_map$D2)+1, 1)) +
   scale_x_continuous(limits = c(min(phen_map$D1), max(phen_map$D1)), breaks = seq(min(phen_map$D1), max(phen_map$D1)+1, 1)) +
   labs(fill = "Penicillin MIC (ug/ml)") +
-  AMRC_phen_theme() +
+    theme_bw() +AMRC_phen_theme() +
   coord_fixed() +
-  scale_fill_brewer(palette = "Reds")
+  scale_fill_manual(values = mycolors) 
 
 
 ggsave("Penicillin_S_pneumo_biplot.jpg")
@@ -342,3 +448,786 @@ ggsave("Penicillin_S_pneumo_biplot.jpg")
 ```
 
 
+
+
+
+
+```{r, echo}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(ggExtra)
+library(grid)  # for unit()
+library(ggplot2)
+library(ggnewscale)
+library(dplyr)
+library(tidyr)
+library(ggExtra)
+
+p <- ggplot(phen_map, aes(x = D1, y = D2)) +
+  # HDR contours use a fill based on after_stat(probs)
+  geom_hdr(aes(fill = after_stat(probs)),
+           probs = c(0.95, 0.8, 0.6),
+           size = 0.1,
+           alpha = 0.6) +
+  # First fill scale for the HDR layer
+  scale_fill_manual(values = c("skyblue2", "orange", "firebrick1")) +
+  guides(size = "none", color = "none", fill = "none") +
+  # Add a new fill scale so subsequent layers use a different scale
+  new_scale("fill") +
+  # Points: map fill to mean_titre using a continuous gradient;
+  # shape 21 supports separate color (outline) and fill.
+  geom_point(aes(fill = mean_titre), shape = 21, color = "black", alpha = 1, size = 6) +
+  scale_fill_gradient(low = "yellow", high = "red") +
+  theme_bw() +
+  AMRC_phen_theme() +
+  theme(legend.background = element_rect(fill = "white",
+                                         size = 0.25, linetype = "solid",
+                                         colour = "black"),
+        legend.position = c(0.8, 0.2)) +
+  scale_y_continuous(limits = c(min(phen_map$D2), max(phen_map$D2)),
+                     breaks = seq(min(phen_map$D2), max(phen_map$D2) + 1, 1)) +
+  scale_x_continuous(limits = c(min(phen_map$D1), max(phen_map$D1)),
+                     breaks = seq(min(phen_map$D1), max(phen_map$D1) + 1, 1)) +
+  guides(size = "none", color = "none", fill = guide_legend(override.aes = list(size = 7),
+        title = "Median MIC Step")) +
+   theme(legend.text = element_text(size = 16),
+        legend.title = element_text(size = 16)) +
+  coord_fixed()
+
+#p
+
+p1 <- ggMarginal(common_ggplot_settings(p), size = 10, fill = "#E41A1C", alpha = 0.75, type = "histogram")
+#print(p1)
+
+## --- Part 2: Add Biplot Arrows for Each Drug with Manual Lengths and Individual Label Offsets --- ##
+
+# Rescale the original MIC data from tablemic
+Z <- tablemic
+for(i in 1:ncol(Z)) {
+  Z[, i] <- (Z[, i] - min(Z[, i], na.rm = TRUE)) + 1
+}
+
+# Use the map coordinates from phen_map (columns D1 and D2)
+map_coords <- as.data.frame(phen_map[, 1:2])
+
+# Define manual arrow lengths for each drug (units are arbitrary; adjust as needed)
+arrow_lengths <- c(Penicillin = 5, 
+                   Amoxicillin = 5, 
+                   Meropenem = 5, 
+                   Cefotaxime = 5, 
+                   Ceftriaxone = 5, 
+                   Cefuroxime = 5)
+
+# Define manual label offsets for each drug. Adjust these numbers for precise label positioning.
+label_offsets <- tibble(
+  drug = c("Penicillin", "Amoxicillin", "Meropenem", "Cefotaxime", "Ceftriaxone", "Cefuroxime"),
+  label_x = c(0, 0.85, 1.4, 1.4, 1.4, 1.45),  # horizontal offset from arrow endpoint
+  label_y = c(0.45, 0.4, 0, 0, 0, -.05)   # vertical offset from arrow endpoint
+)
+
+arrow_list <- list()
+
+for(drug in colnames(Z)) {
+  # Combine the map coordinates with the current drug's MIC values; drop rows with missing values.
+  x <- drop_na(cbind(map_coords, Z[, drug]))
+  if(nrow(x) == 0) next
+  
+  # Calculate the origin as the mean of the map coordinates for this subset.
+  orig <- colMeans(x[, 1:2])
+  
+  # Center the data (for map coordinates and the drug MIC values)
+  Xc <- scale(x[, 1:2], center = TRUE, scale = FALSE)
+  yc <- scale(x[, 3], center = TRUE, scale = FALSE)
+  
+  # Compute the least-squares regression coefficient vector:
+  b <- solve(t(Xc) %*% Xc) %*% t(Xc) %*% yc
+  
+  # Normalize the vector so that we have a unit vector.
+  norm_b <- b / sqrt(sum(b^2))
+  
+  # Get the manual arrow length for this drug.
+  this_length <- arrow_lengths[drug]
+  
+  # Compute arrow endpoints.
+  arrow_df_temp <- data.frame(
+    drug   = drug,
+    xstart = orig[1],
+    ystart = orig[2],
+    xend   = orig[1] + as.numeric(this_length) * norm_b[1],
+    yend   = orig[2] + as.numeric(this_length) * norm_b[2]
+  )
+  arrow_list[[drug]] <- arrow_df_temp
+}
+
+arrow_df <- bind_rows(arrow_list)
+
+# Merge with label offsets so we can manually adjust label positions
+arrow_df <- left_join(arrow_df, label_offsets, by = "drug")
+
+# Overlay the arrows and place labels at the manually specified positions using geom_label.
+p_biplot <- p +
+  geom_segment(data = arrow_df, 
+               aes(x = xstart, y = ystart, xend = xend, yend = yend),
+               arrow = arrow(length = unit(0.3, "cm")), 
+               color = "black", size = 1) +
+  geom_label(data = arrow_df, 
+             aes(x = xend + label_x, y = yend + label_y, label = drug),
+             color = "black", fill = "white", size = 7)
+
+# Add marginal histograms to the updated plot.
+p_biplot_marginal <- ggMarginal(p_biplot, size = 10, fill = "#E41A1C", alpha = 0.75, type = "histogram")
+
+# Display the final combined plot.
+print(p_biplot_marginal)
+
+# Save the final combined plot.
+ggsave("Combined_Biplot_Mean_MIC_spneumo_phen_distribution.jpg", 
+       p_biplot_marginal, width = 10, height = 10, dpi = 1200)
+
+```
+
+```{r, echo = F}
+
+
+# Load required packages
+library(RColorBrewer)  # For color palettes
+library(matrixStats)   
+library(ggExtra)       # For marginal histograms
+library(tidyverse)     # For data manipulation and visualization
+library(cluster)
+library(FactoMineR)
+library(ggpubr)
+library(factoextra)
+library(NbClust)
+library(proxy)
+
+  options(dplyr.summarise.inform = FALSE)
+  knitr::opts_chunk$set(message = FALSE)
+  
+# Set working directory
+setwd("/Users/ajb306/AMR-cartography-results/data")
+
+# Read the MIC table data
+tablemic <- read.csv("/Users/ajb306/AMR-cartography-results/data/MIC_table_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+
+# Read in the relevant meta data
+tablemic_meta <- read.csv("/Users/ajb306/AMR-cartography-results/data/meta_data_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+
+
+# Specify the full path to the data file
+phen_map <- "/Users/ajb306/AMR-cartography-results/data/Spneumo_3628_PCA_start_2D_METRIC.RData"
+
+# Load the pre-computed PCA start 2D metric data
+load(phen_map)
+
+
+# Transform the data so that it is easier to work with noise added values later - the relative euclidean distances between the points will remain the same
+for (i in 1:ncol(tablemic)) {
+  tablemic[,i] <- (tablemic[,i] + (-(min(tablemic[,i], na.rm = TRUE))))+1
+}
+
+  res_samp <- torg_met
+  theta <- 326*pi/180 ## degrees to radians
+  rot <- matrix(c(cos(theta), sin(theta), -sin(theta), cos(theta)), ncol = 2)
+  res_samp$conf <- res_samp$conf %*% rot ## rotated configurations
+  
+  
+  ### create a vector of isolates with PBP deletion substitutions and remove them from dataframes  
+  isolates_with_PBP_deletion <- c("20156696" , "20162849", "20151885" ,
+                           "20153985", "20154509", "2013224047", "2013218247",
+                           "2014200662", "5869-99", "2513-99")
+
+  # Specify the full path to the data file
+  gen_map <- "/Users/ajb306/AMR-cartography-results/data/Spneumo_3628_PCA_start_2D_METRIC_genetic.RData"
+  
+  # Load the pre-computed PCA start 2D metric data
+  load(gen_map)
+
+  # Set working directory
+  setwd("/Users/ajb306/AMR-cartography-results/data")
+  
+  genotype_mds <- as.data.frame(torg_met$conf)
+  
+  colnames(genotype_mds) <- c("G1","G2")
+  
+slope <- 0.1842996
+dilation <- 1/slope
+slope
+map_coords <- as.data.frame(res_samp$conf)
+
+map_coords$V1 <- map_coords$V1 * dilation
+map_coords$V2 <- map_coords$V2 * dilation
+
+### create main dataframe of map coordinates and PBP metadata
+## rotate phenotype map
+AA_matrix_phenotype <- bind_cols(map_coords, tablemic_meta) %>%
+                         rename(PBP_type = PT, D1 = V1, D2 = V2) %>%
+                         group_by(PBP_type) %>%
+                         mutate(x_centroid = median(D1), 
+                         y_centroid = median(D2)) %>%
+                         filter(!LABID %in% isolates_with_PBP_deletion) %>%
+                         bind_cols(genotype_mds)
+
+
+## import MDS transformations for phenotype and genotype maps
+gen_slope <- 0.01814108
+
+
+## set up ggplot theme for rest of markdown visualisations
+theme_MDR_cartography <- function(){ 
+    theme(panel.grid.major = element_line(colour="grey", size = (0.3)),
+        panel.grid.minor = element_blank(),
+        axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.title.y=element_blank(), 
+        axis.text.y=element_blank(),
+        axis.ticks.y = element_blank()
+
+    )
+}
+
+
+gen_slope <- 0.01814108
+gen_dilation <- 1/gen_slope
+gen_slope
+
+AA_matrix_phenotype$G1 <- AA_matrix_phenotype$G1 * gen_dilation
+AA_matrix_phenotype$G2 <- AA_matrix_phenotype$G2 * gen_dilation
+
+my_colours <- c("#4DAF4A", "#377EB8", "#E41A1C", "#F781BF", "#FF7F00", "black",
+                             "white", "#7570B3", "#E7298A", "#FFFF33", "#A65628", "cyan",
+                             "#999999", "red","magenta", "purple", "brown","green", "yellow","violet")
+
+
+
+limits_phen_map_x <- c(min(AA_matrix_phenotype$D1, na.rm = T) , 
+                       max(AA_matrix_phenotype$D1, na.rm = T) )
+limits_phen_map_y <- c(min(AA_matrix_phenotype$D2, na.rm = T),
+                       max(AA_matrix_phenotype$D2, na.rm = T) )
+
+breaks_phen_map_x <- seq(min(AA_matrix_phenotype$D1, na.rm = T)- (1), 
+                         max(AA_matrix_phenotype$D1, na.rm = T) + (1), 1)
+breaks_phen_map_y <- seq(min(AA_matrix_phenotype$D2, na.rm = T)- (1), 
+                         max(AA_matrix_phenotype$D2, na.rm = T) + (1), 1)
+
+    
+limits_gen_map_x <- c(min(AA_matrix_phenotype$G1, na.rm = T) - (5), 
+                      max(AA_matrix_phenotype$G1, na.rm = T) + (5))
+limits_gen_map_y <- c(min(AA_matrix_phenotype$G2, na.rm = T) - (5), 
+                      max(AA_matrix_phenotype$G2, na.rm = T) + (5))
+
+breaks_gen_map_x <- seq(min(AA_matrix_phenotype$G1, na.rm = T)- (10), 
+                        max(AA_matrix_phenotype$G1, na.rm = T) + (10), 10)
+breaks_gen_map_y <- seq(min(AA_matrix_phenotype$G2, na.rm = T)- (10), 
+                        max(AA_matrix_phenotype$G2, na.rm = T) + (10), 10)
+
+
+
+
+### As I only want to cluster on distinct PBP types, I 
+gen_clustering <- cbind(select(AA_matrix_phenotype, G1,G2, PBP_type)) %>%
+                  distinct(PBP_type, .keep_all = TRUE) %>% 
+                  ungroup()
+
+
+res.hcpc <- HCPC(select(gen_clustering, G1,G2), nb.clust = 12, consol = T, iter.max = 500, graph = T, order = T)
+
+### scree plot of clustering 
+plot(log(res.hcpc$call$t$inert.gain[c(1:30)]))
+
+### bind the genetic clusters to the genetic map data
+gen_clustering$gen_cluster <- res.hcpc[[1]]$clust
+
+AA_matrix_phenotype <- left_join(AA_matrix_phenotype, select(gen_clustering, PBP_type, gen_cluster), by = "PBP_type")
+
+```
+
+
+
+```{r,echo = F}
+
+library(ggforce)
+
+# Read the MIC table data - https://www.frontiersin.org/journals/microbiology/articles/10.3389/fmicb.2018.02670/full
+tablemic_metadata_MLST <- read.csv("/Users/ajb306/AMR-cartography-results/data/MIC_S.Pneumo_metadata.csv", header=TRUE, sep=",", skip = 0)
+tablemic_metadata_MLST_post2015 <- read.csv("/Users/ajb306/AMR-cartography-results/data/Meta_data_spneumoniae_isolates_post_2015.csv", header=TRUE, sep=",", skip = 0) %>%
+  rename(LABID = Sample,
+         MLST = ST,
+         YEAR = Year.of.isolation,
+         SEROTYPE = WGS_Serotype) %>%
+  mutate(LABID = as.character(LABID))
+
+tablemic_metadata_MLST <- bind_rows(tablemic_metadata_MLST,tablemic_metadata_MLST_post2015) %>%
+                    distinct(LABID, .keep_all = TRUE) 
+
+# Perform initial processing and filtering
+processed_data <- tablemic_metadata_MLST %>%
+  left_join(AA_matrix_phenotype, by = "LABID") %>%
+  drop_na(D1, D2) %>%
+  group_by(MLST) %>%
+  mutate(row_count = n()) %>%
+  group_by(MLST, gen_cluster) %>%
+  ungroup() %>%
+  group_by(MLST) %>%
+  mutate(prop_gen_cluster_3 = mean(gen_cluster == '3')) %>%
+  filter(prop_gen_cluster_3 <= 0.90) %>%
+  mutate(row_count = n(),
+         MLST_with_count = paste0(MLST, " (n = ", row_count, ")")) %>%
+  ungroup()
+
+# Summarize the row counts for each MLST and select the top 12 MLSTs
+top_12_MLSTs <- processed_data %>%
+  group_by(MLST) %>%
+  summarise(row_count = n()) %>%
+  arrange(desc(row_count)) %>%
+  slice(1:12) %>%
+  pull(MLST)
+
+# Filter the processed dataframe to include only these top 12 MLSTs
+tablemic_metadata_MLST <- processed_data %>%
+  filter(MLST %in% top_12_MLSTs)
+# Determine the order of MLST_with_count based on row count
+order_levels <- tablemic_metadata_MLST %>%
+  group_by(MLST_with_count) %>%
+  summarise(MLST_n = n()) %>%
+  arrange(desc(MLST_n)) %>%
+  pull(MLST_with_count)
+
+# Apply the order to MLST_with_count factor levels
+tablemic_metadata_MLST <- tablemic_metadata_MLST %>%
+  mutate(MLST_with_count = factor(MLST_with_count, levels = order_levels))
+levels(as.factor(tablemic_metadata_MLST$MLST))
+
+
+
+
+# Convert MLST_with_count to a factor
+tablemic_metadata_MLST <- tablemic_metadata_MLST %>%
+  mutate(MLST_with_count = as.factor(MLST_with_count))
+
+# Create the base ggplot object
+p <- ggplot(tablemic_metadata_MLST, aes(x = D1, y = D2)) +
+    #  geom_mark_ellipse(aes(x=x_centroid,y=y_centroid, fill = MLST_with_count), color = "NA", expand = unit(1, "mm"),alpha = 0.3) +
+
+  geom_point(data = AA_matrix_phenotype, aes(x=D1,y=D2), colour = "#999999", fill = "#999999", shape = 16, size = 3.5, alpha = .8)+
+  #stat_ellipse(aes(fill = gen_cluster), level = 0.95, alpha = 0.4, colour = "black", linetype = "solid") +
+  geom_point(data = tablemic_metadata_MLST, aes(x=D1,y=D2, fill = MLST_with_count), shape = 21, size = 6, alpha = 1, colour = "black") + 
+  #geom_point(aes(x=x_centroid,y=y_centroid, fill = MLST_with_count), shape = 21,size = 4, alpha = 1, colour = "black") + 
+  scale_x_continuous(limits = limits_phen_map_x, breaks=breaks_phen_map_x) +
+  scale_y_continuous(limits = limits_phen_map_y, breaks=breaks_phen_map_y) +
+  labs(fill = "MLST") +
+    theme_bw() +
+    theme(strip.background = element_rect(fill = "white"),
+          strip.text = element_text(colour = 'black',size = 16),
+    legend.position = "none") +
+  AMRC_phen_theme() +
+  coord_fixed() +
+  scale_fill_manual(values=my_colours)
+
+p
+
+ggsave("Spneumo_MLSTphen_distribution.jpg")
+
+
+```
+
+
+
+```{r, echo = F}
+# Create a ggplot object
+ggplot(tablemic_metadata_MLST, aes(x = x_centroid, y = y_centroid)) +
+  geom_point(data = AA_matrix_phenotype, aes(x=D1,y=D2), colour = "#999999", fill = "#999999", shape = 16, size = 1.5, alpha = .8)+
+  #stat_ellipse(aes(fill = gen_cluster), level = 0.95, alpha = 0.4, colour = "black", linetype = "solid") +
+  geom_point(data = tablemic_metadata_MLST, aes(x=D1,y=D2, fill = MLST_with_count), shape = 21, size = 2.5
+             , alpha = 1, colour = "black") + 
+  #geom_point(aes(fill = MLST_with_count), shape = 21,size = 4, alpha = 1, colour = "black") + 
+  geom_mark_ellipse(aes(fill = MLST_with_count), color = "NA", expand = unit(1, "mm"),alpha = 0.3) +
+  facet_wrap(MLST_with_count ~. ) + 
+  scale_x_continuous(limits = limits_phen_map_x, breaks=breaks_phen_map_x) +
+  scale_y_continuous(limits = limits_phen_map_y, breaks=breaks_phen_map_y) +
+  labs(fill = "MLST") +
+    theme_bw() +
+    theme(strip.background = element_rect(fill = "white"),
+          strip.text = element_text(colour = 'black',size = 12),
+    legend.position = "none") +
+  AMRC_phen_theme() +
+  coord_fixed() +
+  scale_fill_manual(values=my_colours)
+
+
+
+ggsave("Spneumo_MLSTphen_distribution_multipanel.jpg")
+
+# Load necessary libraries
+library(ggplot2)
+library(dplyr)
+library(MASS) # for the mvrnorm function
+
+# Calculate the mean centroids and confidence intervals for each MLST_with_count
+centroid_data <- tablemic_metadata_MLST %>%
+  group_by(MLST_with_count) %>%
+  summarise(
+    mean_D1 = mean(D1),
+    mean_D2 = mean(D2),
+    n = n(),
+    cov_matrix = list(cov(select(cur_data(), D1, D2)))
+  )
+
+# Function to calculate ellipse points for 95% confidence interval around mean centroid
+calc_ellipse <- function(center, cov_matrix, level = 0.95, npoints = 100) {
+  angles <- seq(0, 2 * pi, length.out = npoints)
+  ell_radius <- sqrt(qchisq(level, df = 2))
+  chol_decomp <- chol(cov_matrix)
+  unit_circle <- cbind(cos(angles), sin(angles))
+  ell_points <- t(center + ell_radius * t(unit_circle %*% chol_decomp))
+  ell_df <- data.frame(x = ell_points[, 1], y = ell_points[, 2])
+  return(ell_df)
+}
+
+# Corrected: Generate the ellipse data
+ellipse_data <- do.call(rbind, lapply(1:nrow(centroid_data), function(i) {
+  center <- as.numeric(centroid_data[i, c("mean_D1", "mean_D2")])
+  cov_matrix <- centroid_data$cov_matrix[[i]]
+  ell_df <- calc_ellipse(center, cov_matrix, level = 0.95, npoints = 100)
+  ell_df$MLST_with_count <- centroid_data$MLST_with_count[i]
+  return(ell_df)
+}))
+
+# Create a ggplot object
+p <- ggplot() +
+  geom_point(data = AA_matrix_phenotype, aes(x = D1, y = D2), colour = "#999999", fill = "#999999", shape = 16, size = 1.5, alpha = .8) +
+  geom_polygon(data = ellipse_data, aes(x = x, y = y, fill = MLST_with_count, group = MLST_with_count), alpha = 0.2, color = "black") +
+  geom_point(data = tablemic_metadata_MLST, aes(x = D1, y = D2, fill = MLST_with_count), shape = 21, size = 3.5, alpha = 1, colour = "black") +
+  geom_point(data = centroid_data, aes(x = mean_D1, y = mean_D2, fill = MLST_with_count), shape = 23, size = 4.5, color = "red") + 
+  
+  scale_x_continuous(limits = limits_phen_map_x, breaks = breaks_phen_map_x) +
+  scale_y_continuous(limits = limits_phen_map_y, breaks = breaks_phen_map_y) +
+  labs(fill = "MLST") +
+  facet_wrap(MLST_with_count ~. ) + 
+    theme(strip.background = element_rect(fill = "white")) + 
+  theme(strip.text = element_text(colour = 'black')) +
+  theme_bw() + AMRC_phen_theme() +
+  coord_fixed() +
+  scale_fill_manual(values = my_colours)
+
+# Print the plot
+print(p)
+
+
+
+```
+
+
+
+
+```{r,echo = F}
+# Create a ggplot object
+ggplot(tablemic_metadata_MLST, aes(x = G1, y = G2)) +
+  #geom_mark_ellipse(aes(fill = MLST), color = "black", alpha = 0.2) +
+  geom_point(data = AA_matrix_phenotype, aes(x=G1,y=G2), colour = "#999999", fill = "#999999", shape = 16, size = 1.5, alpha = .8) +
+  geom_point(aes(fill = MLST_with_count), shape = 21,size = 2.5, alpha =1, colour = "black") + 
+  facet_wrap(MLST_with_count ~. ) + 
+  scale_x_continuous(limits = limits_gen_map_x, breaks=breaks_gen_map_x) +
+  scale_y_continuous(limits = limits_gen_map_y, breaks=breaks_gen_map_y) +
+    theme_bw() +AMRC_phen_theme() +
+  coord_fixed() +
+  scale_fill_manual(values=my_colours)
+
+# Create a ggplot object
+ggplot(tablemic_metadata_MLST, aes(x = G1, y = G2)) +
+  geom_point(data = AA_matrix_phenotype, aes(x=G1,y=G2), colour = "#999999", fill = "#999999", shape = 16, size = 1, alpha = .8) +
+    geom_mark_ellipse(aes(fill = MLST_with_count), color = "black", expand = unit(2.5, "mm"),alpha = 0.2) +
+  geom_point(aes(fill = MLST_with_count), shape = 21,size = 2.5, alpha =1, colour = "black") + 
+  facet_wrap(MLST_with_count ~. ) + 
+  scale_x_continuous(limits = limits_gen_map_x, breaks=breaks_gen_map_x) +
+  scale_y_continuous(limits = limits_gen_map_y, breaks=breaks_gen_map_y) +
+    theme_bw() +AMRC_phen_theme() +
+  coord_fixed() +
+  theme(
+    legend.position = "none"#,  # Remove the legend
+    #strip.text = element_text(size = 16)  # Increase font size in panel headings
+  ) +
+ scale_fill_manual(values=my_colours)
+
+ggsave("Spneumo_MLSTgen_distribution.jpg")
+
+
+
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+```{r,echo = F}
+
+colnames(tablemic_metadata_MLST)
+
+centroids_202 <- tablemic_metadata_MLST %>% 
+  filter(PBP_type == "2-0-2") %>%
+  distinct(PBP_type, .keep_all = TRUE) %>% 
+  ungroup() %>%
+  select(x_centroid, y_centroid, G1, G2)
+  
+centroids_202
+   
+tablemic_metadata_MLST <- tablemic_metadata_MLST %>% mutate(phen_centroid_x_202 = centroids_202[c(1), 1], 
+                                  phen_centroid_y_202 = centroids_202[c(1), 2],
+                                  gen_centroid_x_202 = centroids_202[c(1), 3],
+                                  gen_centroid_y_202 = centroids_202[c(1), 4])
+   
+   tablemic_metadata_MLST <- tablemic_metadata_MLST %>% 
+     mutate(phen_dist_between_sample_and_202 = sqrt((D1-phen_centroid_x_202)^2 + (D2-phen_centroid_y_202)^2),
+            gen_dist_between_sample_and_202 =sqrt((G1-gen_centroid_x_202)^2 + (G2-gen_centroid_y_202)^2))
+
+   dist_to_centroid_comparison <- cbind(tablemic_metadata_MLST$phen_dist_between_sample_and_202, tablemic_metadata_MLST$gen_dist_between_sample_and_202)
+   dist_to_centroid_comparison <- as.data.frame(dist_to_centroid_comparison)
+   colnames(dist_to_centroid_comparison) <- c('phen_dist_between_sample_and_202', 'gen_dist_between_sample_and_202')
+
+   dist_to_centroid_comparison <- as.data.frame(dist_to_centroid_comparison)
+   dist_to_centroid_comparison$MLST_with_count <- tablemic_metadata_MLST$MLST_with_count 
+   dist_to_centroid_comparison$MLST_with_count <- as.factor(dist_to_centroid_comparison$MLST_with_count)
+
+
+# Summary table with selected columns and renaming
+summary_table <- dist_to_centroid_comparison %>%
+  group_by(MLST_with_count) %>%
+  summarise(
+    phen_dist_mean = mean(phen_dist_between_sample_and_202),
+    gen_dist_mean = mean(gen_dist_between_sample_and_202)
+  ) %>%
+  mutate(
+    phen_gen_ratio = gen_dist_mean / phen_dist_mean
+  ) %>%
+  rename(
+    "MLST" = MLST_with_count,
+    "Mean Phenotypic distance (MIC units)" = phen_dist_mean,
+    "Mean Genetic distance (AA changes)" = gen_dist_mean,
+    "Phenotypic/Genetic Ratio" = phen_gen_ratio
+  )
+
+# Summary rows for total, average, and standard deviation
+
+
+average_row <- summary_table %>%
+  summarise(
+    "MLST" = "Average",
+    "Mean Phenotypic distance (MIC units)" = mean(`Mean Phenotypic distance (MIC units)`),
+    "Mean Genetic distance (AA changes)" = mean(`Mean Genetic distance (AA changes)`),
+    "Phenotypic/Genetic Ratio" = mean(`Phenotypic/Genetic Ratio`, na.rm = TRUE)
+  )
+
+sd_row <- summary_table %>%
+  summarise(
+    "MLST" = "SD",
+    "Mean Phenotypic distance (MIC units)" = sd(`Mean Phenotypic distance (MIC units)`),
+    "Mean Genetic distance (AA changes)" = sd(`Mean Genetic distance (AA changes)`),
+    "Phenotypic/Genetic Ratio" = sd(`Phenotypic/Genetic Ratio`, na.rm = TRUE)
+  )
+
+# Reorder the rows by increasing genetic distance
+summary_table <- summary_table %>%
+  arrange(`Mean Phenotypic distance (MIC units)`)
+
+# Reorder the factor levels of the gen_cluster column
+summary_table$`MLST` <- factor(summary_table$`MLST`, levels = unique(summary_table$`MLST`))
+
+# Combine summary rows with summary table
+summary_table <- bind_rows(summary_table, average_row, sd_row)%>%
+  mutate(across(c('Mean Phenotypic distance (MIC units)', 'Mean Genetic distance (AA changes)', 'Phenotypic/Genetic Ratio'), round, 1)) 
+
+summary_table
+
+
+```
+
+
+```{r, echo =F}
+library(dplyr)
+library(tidyr)
+library(purrr)
+library(readr)  # for write_csv()
+
+#--------------------------------------------------------------#
+# 1) Identify the "2-0-2" centroid coordinates (single row)
+#--------------------------------------------------------------#
+centroids_202 <- tablemic_metadata_MLST %>%
+  filter(PBP_type == "2-0-2") %>%
+  distinct(PBP_type, .keep_all = TRUE) %>%
+  ungroup() %>%
+  select(x_centroid, y_centroid, G1, G2)
+
+#--------------------------------------------------------------#
+# 2) Attach centroid coords & compute:
+#    - Distances to "2-0-2" (phenotype & genotype)
+#    - Axis-wise diffs for phenotype only
+#--------------------------------------------------------------#
+tablemic_metadata_MLST <- tablemic_metadata_MLST %>%
+  mutate(
+    phen_centroid_x_202 = centroids_202$x_centroid,
+    phen_centroid_y_202 = centroids_202$y_centroid,
+    gen_centroid_x_202  = centroids_202$G1,
+    gen_centroid_y_202  = centroids_202$G2
+  ) %>%
+  mutate(
+    # Euclidean distances to 2-0-2
+    phen_dist_to_202 = sqrt((D1 - phen_centroid_x_202)^2 + (D2 - phen_centroid_y_202)^2),
+    gen_dist_to_202  = sqrt((G1 - gen_centroid_x_202)^2 + (G2 - gen_centroid_y_202)^2),
+
+    # Axis-wise diffs (phenotype only)
+    phen_axis_diff_x_202 = abs(D1 - phen_centroid_x_202),
+    phen_axis_diff_y_202 = abs(D2 - phen_centroid_y_202)
+  )
+
+#--------------------------------------------------------------#
+# 3) Unweighted MLST-level Distances to 2-0-2
+#    => (MLST, PBP_type) means, then average across PBP
+#--------------------------------------------------------------#
+
+#--- 3A) Summaries at PBP_type level ---#
+pbp_summary <- tablemic_metadata_MLST %>%
+  group_by(MLST_with_count, PBP_type) %>%
+  summarise(
+    phen_dist_mean_pbp = mean(phen_dist_to_202, na.rm = TRUE),
+    gen_dist_mean_pbp  = mean(gen_dist_to_202,  na.rm = TRUE),
+
+    phen_x_dist_202_pbp = mean(phen_axis_diff_x_202, na.rm = TRUE),
+    phen_y_dist_202_pbp = mean(phen_axis_diff_y_202, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+#--- 3B) Average these PBP means => final MLST-level means ---#
+mlst_summary <- pbp_summary %>%
+  group_by(MLST_with_count) %>%
+  summarise(
+    phen_dist_mean = mean(phen_dist_mean_pbp, na.rm = TRUE),
+    gen_dist_mean  = mean(gen_dist_mean_pbp,  na.rm = TRUE),
+
+    phen_x_dist_202 = mean(phen_x_dist_202_pbp, na.rm = TRUE),
+    phen_y_dist_202 = mean(phen_y_dist_202_pbp, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    phen_gen_ratio = gen_dist_mean / phen_dist_mean
+  )
+
+#--------------------------------------------------------------#
+# 4) Pairwise distances among PBP centroids => mean + SD
+#    => One centroid per (MLST, PBP_type), then for each MLST
+#       compute dist. among those centroids
+#--------------------------------------------------------------#
+
+## 4A) Create PBP centroids
+pbp_centroids <- tablemic_metadata_MLST %>%
+  group_by(MLST_with_count, PBP_type) %>%
+  summarise(
+    # phenotype centroid
+    D1_mean = mean(D1, na.rm = TRUE),
+    D2_mean = mean(D2, na.rm = TRUE),
+
+    # genotype centroid
+    G1_mean = mean(G1, na.rm = TRUE),
+    G2_mean = mean(G2, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+## 4B) Compute pairwise distances (phen & gen) among these centroids
+mlst_pairwise <- pbp_centroids %>%
+  group_by(MLST_with_count) %>%
+  nest() %>%
+  mutate(
+    phen_distances = map(data, ~ {
+      mat <- as.matrix(dist(.x[, c("D1_mean", "D2_mean")]))
+      mat[upper.tri(mat)]
+    }),
+    gen_distances = map(data, ~ {
+      mat <- as.matrix(dist(.x[, c("G1_mean", "G2_mean")]))
+      mat[upper.tri(mat)]
+    })
+  ) %>%
+  mutate(
+    # If there's 1 or 0 PBP centroids, length(x)=0 => define mean=0, sd=0
+    phen_pairwise_mean = map_dbl(phen_distances, ~ if (length(.x) == 0) 0 else mean(.x, na.rm=TRUE)),
+    phen_pairwise_sd   = map_dbl(phen_distances, ~ if (length(.x) == 0) 0 else sd(.x, na.rm=TRUE)),
+
+    gen_pairwise_mean  = map_dbl(gen_distances, ~ if (length(.x) == 0) 0 else mean(.x, na.rm=TRUE)),
+    gen_pairwise_sd    = map_dbl(gen_distances, ~ if (length(.x) == 0) 0 else sd(.x, na.rm=TRUE))
+  ) %>%
+  ungroup() %>%
+  select(
+    MLST_with_count,
+    phen_pairwise_mean,
+    phen_pairwise_sd,
+    gen_pairwise_mean,
+    gen_pairwise_sd
+  )
+
+#--------------------------------------------------------------#
+# 5) # Unique PBP_types in each MLST
+#--------------------------------------------------------------#
+unique_pbp_counts <- tablemic_metadata_MLST %>%
+  group_by(MLST_with_count) %>%
+  summarise(num_PBP_types = n_distinct(PBP_type), .groups = "drop")
+
+#--------------------------------------------------------------#
+# 6) Combine everything into one final table
+#--------------------------------------------------------------#
+combined_summary <- mlst_summary %>%
+  left_join(mlst_pairwise, by = "MLST_with_count") %>%
+  left_join(unique_pbp_counts, by = "MLST_with_count") %>%
+  rename(
+    MLST = MLST_with_count,
+    "#Unique PBP_types"                               = num_PBP_types,
+    "Mean Phenotypic distance from 2-0-2 (MIC units)" = phen_dist_mean,
+    "Mean Genetic distance (AA changes)"              = gen_dist_mean,
+    "Mean Dist on X Axis"                             = phen_x_dist_202,
+    "Mean Dist on Y Axis"                             = phen_y_dist_202,
+    "Phenotypic/Genetic Ratio"                        = phen_gen_ratio,
+
+    # Pairwise phen
+    "Mean Pairwise dist. within MLST"  = phen_pairwise_mean,
+    "SD Pairwise dist. within MLST"    = phen_pairwise_sd,
+
+    # Pairwise gen
+    "Gen Pairwise Mean"               = gen_pairwise_mean,
+    "Gen Pairwise SD"                 = gen_pairwise_sd
+  ) %>%
+  select(
+    MLST,
+    "#Unique PBP_types",
+    "Mean Phenotypic distance from 2-0-2 (MIC units)",
+    "Mean Dist on X Axis",
+    "Mean Dist on Y Axis",
+    "Mean Pairwise dist. within MLST",
+    "SD Pairwise dist. within MLST",
+    "Mean Genetic distance (AA changes)",
+    "Gen Pairwise Mean",
+    "Gen Pairwise SD",
+    "Phenotypic/Genetic Ratio"
+  ) %>%
+  # Round numeric columns to 2 decimals
+  mutate(across(where(is.numeric), ~ round(.x, 2))) %>%
+  # Sort ascending by ratio
+  arrange(`Phenotypic/Genetic Ratio`)
+
+#--------------------------------------------------------------#
+# 7) Write the final table to CSV
+#--------------------------------------------------------------#
+write_csv(combined_summary, "combined_summary.csv")
+
+# For a quick console preview:
+combined_summary
+
+
+```
