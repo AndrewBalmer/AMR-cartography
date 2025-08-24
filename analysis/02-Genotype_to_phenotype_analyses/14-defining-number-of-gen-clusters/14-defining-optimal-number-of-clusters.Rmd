@@ -26,30 +26,31 @@ library(proxy)
   knitr::opts_chunk$set(message = FALSE)
   
 # Set working directory
-setwd("/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#03-06-Generating-phenotype-and-genotype-maps")
+setwd("/Users/ajb306/AMR-cartography-results/data")
 
 # Read the MIC table data
-tablemic <- read.csv("/Users/ajb306/AMR-cartography/data/MIC_table_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+tablemic <- read.csv("/Users/ajb306/AMR-cartography-results/data/MIC_table_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
 
 # Read in the relevant meta data
-tablemic_meta <- read.csv("/Users/ajb306/AMR-cartography/data/meta_data_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+tablemic_meta <- read.csv("/Users/ajb306/AMR-cartography-results/data/meta_data_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
 
 
 # Specify the full path to the data file
-phen_map <- "/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#03-06-Generating-phenotype-and-genotype-maps/Spneumo_3628_PCA_start_2D_METRIC.RData"
+phen_map <- "/Users/ajb306/AMR-cartography-results/data/Spneumo_3628_PCA_start_2D_METRIC.RData"
 
 # Load the pre-computed PCA start 2D metric data
 load(phen_map)
+
 
 # Transform the data so that it is easier to work with noise added values later - the relative euclidean distances between the points will remain the same
 for (i in 1:ncol(tablemic)) {
   tablemic[,i] <- (tablemic[,i] + (-(min(tablemic[,i], na.rm = TRUE))))+1
 }
 
-  phen_map <- torg_met
+  res_samp <- torg_met
   theta <- 326*pi/180 ## degrees to radians
   rot <- matrix(c(cos(theta), sin(theta), -sin(theta), cos(theta)), ncol = 2)
-  phen_map$conf <- phen_map$conf %*% rot ## rotated configurations
+  res_samp$conf <- res_samp$conf %*% rot ## rotated configurations
   
   
   ### create a vector of isolates with PBP deletion substitutions and remove them from dataframes  
@@ -58,21 +59,29 @@ for (i in 1:ncol(tablemic)) {
                            "2014200662", "5869-99", "2513-99")
 
   # Specify the full path to the data file
-  gen_map <- "/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#03-06-Generating-phenotype-and-genotype-maps/Spneumo_3628_PCA_start_2D_METRIC_genetic.RData"
+  gen_map <- "/Users/ajb306/AMR-cartography-results/data/Spneumo_3628_PCA_start_2D_METRIC_genetic.RData"
   
   # Load the pre-computed PCA start 2D metric data
   load(gen_map)
 
   # Set working directory
-  setwd("/Users/ajb306/AMR-cartography/analysis/#02-Genotype_to_phenotype_analyses/01-defining-number-of-gen-clusters")
+  setwd("/Users/ajb306/AMR-cartography-results/data")
   
   genotype_mds <- as.data.frame(torg_met$conf)
   
   colnames(genotype_mds) <- c("G1","G2")
   
-  ### create main dataframe of map coordinates and PBP metadata
-  ## rotate phenotype map
-  AA_matrix_phenotype <- bind_cols(as.data.frame(phen_map$conf), tablemic_meta) %>%
+slope <- 0.1842996
+dilation <- 1/slope
+slope
+map_coords <- as.data.frame(res_samp$conf)
+
+map_coords$V1 <- map_coords$V1 * dilation
+map_coords$V2 <- map_coords$V2 * dilation
+
+### create main dataframe of map coordinates and PBP metadata
+## rotate phenotype map
+AA_matrix_phenotype <- bind_cols(map_coords, tablemic_meta) %>%
                          rename(PBP_type = PT, D1 = V1, D2 = V2) %>%
                          group_by(PBP_type) %>%
                          mutate(x_centroid = median(D1), 
@@ -82,8 +91,8 @@ for (i in 1:ncol(tablemic)) {
 
 
 ## import MDS transformations for phenotype and genotype maps
-slope <- 0.1843009
 gen_slope <- 0.01814108
+
 
 ## set up ggplot theme for rest of markdown visualisations
 theme_MDR_cartography <- function(){ 
@@ -232,10 +241,10 @@ limits_phen_map_x <- c(min(AA_matrix_phenotype$D1, na.rm = T),
 limits_phen_map_y <- c(min(AA_matrix_phenotype$D2, na.rm = T), 
                        max(AA_matrix_phenotype$D2, na.rm = T))
 
-breaks_phen_map_x <- seq(min(AA_matrix_phenotype$D1, na.rm = T) - (slope), 
-                         max(AA_matrix_phenotype$D1, na.rm = T) + (slope), slope)
-breaks_phen_map_y <- seq(min(AA_matrix_phenotype$D2, na.rm = T) - (slope), 
-                         max(AA_matrix_phenotype$D2, na.rm = T) + (slope), slope)
+breaks_phen_map_x <- seq(min(AA_matrix_phenotype$D1, na.rm = T) - (1), 
+                         max(AA_matrix_phenotype$D1, na.rm = T) + (1), 1)
+breaks_phen_map_y <- seq(min(AA_matrix_phenotype$D2, na.rm = T) - (1), 
+                         max(AA_matrix_phenotype$D2, na.rm = T) + (1), 1)
 
 
 limits_gen_map_x <- c(min(AA_matrix_phenotype$G1, na.rm = T) - (gen_slope * 5), 
@@ -269,31 +278,11 @@ A
 
 #ggsave("spneumo_gen_clust_12_clusters_phenotype_map.jpg")
 
-
-
-
 ggplot(filter(AA_matrix_phenotype), aes(x=D1,y=D2, fill = gen_cluster)) +
      geom_point(data = select(AA_matrix_phenotype, -gen_cluster), aes(x=D1,y=D2), colour = "#999999", fill = "#999999", shape = 16, size = 1.5, alpha = .8)+
-  geom_point(shape = 21,size = 3, alpha = .9, colour = "black") +
-    theme_linedraw() +
-  scale_x_continuous(limits = limits_phen_map_x, breaks=breaks_phen_map_x) +
-  scale_y_continuous(limits = limits_phen_map_y, breaks=breaks_phen_map_y) +
-  facet_wrap(.~ gen_cluster) +
-  theme_MDR_cartography() +
-    guides(fill="none") +
-  theme(strip.background = element_blank(),
-  strip.text.x = element_blank())+
-  coord_fixed() +    
-  scale_fill_manual(values=my_colours)
-
-#ggsave("gen_clust_12_clusters_phenotype_map_pneumo_panel.jpg")
-
-distinct_AA_matrix_phenotype <- AA_matrix_phenotype %>%
-  distinct(PBP_type, .keep_all = T)
-
-ggplot(filter(distinct_AA_matrix_phenotype), aes(x=D1,y=D2, fill = gen_cluster)) +
-     geom_point(data = select(AA_matrix_phenotype, -gen_cluster), aes(x=D1,y=D2), colour = "#999999", fill = "#999999", shape = 16, size = 1.5, alpha = .8)+
-  geom_point(shape = 21,size = 3, alpha = .9, colour = "black") +
+     geom_point(shape = 21,size = 2.5, alpha = .5, colour = "black") +
+     geom_point(filter(AA_matrix_phenotype), mapping = aes(x_centroid, y_centroid, fill = gen_cluster),
+             shape = 21, size = 3.25, alpha = 0.8,show.legend =F) +
     theme_linedraw() +
   scale_x_continuous(limits = limits_phen_map_x, breaks=breaks_phen_map_x) +
   scale_y_continuous(limits = limits_phen_map_y, breaks=breaks_phen_map_y) +
@@ -306,18 +295,13 @@ ggplot(filter(distinct_AA_matrix_phenotype), aes(x=D1,y=D2, fill = gen_cluster))
   coord_fixed() +    
   scale_fill_manual(values=my_colours)
 
-#ggsave("gen_clust_12_clusters_phenotype_map_pneumo_panel_pbp_type.jpg")
+ #ggsave("gen_clust_12_clusters_phenotype_map_pneumo_panel_pbp_type.jpg")
+```
 
 
-my_data <- distinct_AA_matrix_phenotype %>% select(c("D1","D2","gen_cluster","PBP_type"))
+```{r,echo = F}
 
-dilation <- 1/slope
-
-for (f in 1:2) {
-  my_data[,f] <- my_data[,f] * dilation
-}
-
-
+my_data <- AA_matrix_phenotype %>% select(c("D1","D2","gen_cluster","PBP_type"))
 
 # Function to calculate pairwise Euclidean distances between "PBP-type" within each gen_cluster
 calculate_intra_group_distances <- function(cluster_data) {
@@ -379,6 +363,83 @@ summary_df <- hist_data %>%
 summary_df
 
 ```
+
+
+# Running the same analysis but only using distinct PBP-types 
+
+```{r, echo = FALSE}
+
+# Make each PBP type distinct (i.e., one row per PBP type)
+my_data <- AA_matrix_phenotype %>%
+  select(D1, D2, gen_cluster, PBP_type) %>%
+  distinct(PBP_type, .keep_all = TRUE)
+
+# Function to calculate pairwise Euclidean distances within a cluster
+calculate_intra_group_distances <- function(cluster_data) {
+  if (nrow(cluster_data) < 2) return(numeric(0))  # skip if only 1 item
+  dist_matrix <- dist(cluster_data[, c("D1", "D2")])
+  as.vector(dist_matrix)
+}
+
+# Calculate intra-group distances for each cluster
+intra_group_distances <- my_data %>%
+  group_by(gen_cluster) %>%
+  group_map(~ calculate_intra_group_distances(.))
+
+# Function to calculate pairwise Euclidean distances between clusters
+calculate_inter_group_distances <- function(cluster1_data, cluster2_data) {
+  proxy::dist(cluster1_data[, c("D1", "D2")], cluster2_data[, c("D1", "D2")]) %>%
+    as.vector()
+}
+
+# Get inter-group distances across all cluster pairs
+inter_group_distances <- my_data %>%
+  group_split(gen_cluster) %>%
+  combn(2, simplify = FALSE) %>%
+  lapply(function(clusters) calculate_inter_group_distances(clusters[[1]], clusters[[2]])) %>%
+  unlist()
+
+# Summary statistics
+median_intra_distance <- median(unlist(intra_group_distances))
+mean_intra_distance <- mean(unlist(intra_group_distances))
+median_inter_distance <- median(inter_group_distances)
+mean_inter_distance <- mean(inter_group_distances)
+
+# Create long-form histogram data
+hist_data <- data.frame(
+  DistanceType = rep(c("Intra-Group", "Inter-Group"), 
+                     times = c(length(unlist(intra_group_distances)), length(inter_group_distances))),
+  Distance = c(unlist(intra_group_distances), inter_group_distances)
+) %>%
+  add_count(DistanceType)
+
+# Plot histogram
+ggplot(hist_data, aes(x = Distance, fill = DistanceType)) +
+  geom_histogram(binwidth = 1, position = "identity", alpha = 0.6) +
+  labs(x = "Pairwise Distance", y = "Count") +
+  scale_fill_manual(values = c("blue", "red")) +
+  theme_minimal()
+
+# Output summary statistics
+cat("Summary Statistics:\n")
+cat("Median Intra-Group Distance:", median_intra_distance, "\n")
+cat("Mean Intra-Group Distance:", mean_intra_distance, "\n")
+cat("Median Inter-Group Distance:", median_inter_distance, "\n")
+cat("Mean Inter-Group Distance:", mean_inter_distance, "\n")
+
+# Summary dataframe
+summary_df <- hist_data %>%
+  group_by(DistanceType) %>%
+  summarise(
+    mean_distance = round(mean(Distance), 3),
+    median_distance = round(median(Distance), 3)
+  )
+
+summary_df
+
+
+```
+
 
 ### Using 11 clusters
 

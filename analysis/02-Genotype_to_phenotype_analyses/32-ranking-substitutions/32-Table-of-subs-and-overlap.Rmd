@@ -14,28 +14,29 @@ library(stringr)
 library(seqinr)
 library(igraph)
 library(eulerr)
+
 library(FactoMineR)
 
 setwd("/Users/ajb306/Google Drive/PhD - Andrew Balmer/Chapters/AMR cartography/MIC data/Streptococcus pneumoniae analysis/")
 
-#cluster_1 <- read_csv("../Streptococcus pneumoniae analysis/Sig_AA_subs_Cluster_gen1_S.pneumo.csv")
+#cluster_1 <- read_csv("../Streptococcus pneumoniae analysis/Sig_AA_subs_Cluster_gen1_S.pneumo.csv") # no useful information in this cluster
 cluster_2 <- read_csv("../Streptococcus pneumoniae analysis/Sig_AA_subs_Cluster_gen2_S.pneumo.csv")
 cluster_3 <- read_csv("../Streptococcus pneumoniae analysis/Sig_AA_subs_Cluster_gen3_S.pneumo.csv")
 cluster_4 <- read_csv("../Streptococcus pneumoniae analysis/Sig_AA_subs_Cluster_gen4_S.pneumo.csv")
 cluster_5 <- read_csv("../Streptococcus pneumoniae analysis/Sig_AA_subs_Cluster_gen5_S.pneumo.csv")
-#cluster_6 <- read_csv("../Streptococcus pneumoniae analysis/Sig_AA_subs_Cluster_gen6_S.pneumo.csv")
+#cluster_6 <- read_csv("../Streptococcus pneumoniae analysis/Sig_AA_subs_Cluster_gen6_S.pneumo.csv") # no useful information in this cluster
 cluster_7 <- read_csv("../Streptococcus pneumoniae analysis/Sig_AA_subs_Cluster_gen7_S.pneumo.csv")
 cluster_8 <- read_csv("../Streptococcus pneumoniae analysis/Sig_AA_subs_Cluster_gen8_S.pneumo.csv")
-#cluster_9 <- read_csv("../Streptococcus pneumoniae analysis/Sig_AA_subs_Cluster_gen9_S.pneumo.csv")
+#cluster_9 <- read_csv("../Streptococcus pneumoniae analysis/Sig_AA_subs_Cluster_gen9_S.pneumo.csv") # no useful information in this cluster
 cluster_10 <- read_csv("../Streptococcus pneumoniae analysis/Sig_AA_subs_Cluster_gen10_S.pneumo.csv")
-#cluster_11 <- read_csv("../Streptococcus pneumoniae analysis/Sig_AA_subs_Cluster_gen11_S.pneumo.csv")
+#cluster_11 <- read_csv("../Streptococcus pneumoniae analysis/Sig_AA_subs_Cluster_gen11_S.pneumo.csv") # no useful information in this cluster
 cluster_12 <- read_csv("../Streptococcus pneumoniae analysis/Sig_AA_subs_Cluster_gen12_S.pneumo.csv")
 
 #read in data file
 single_subs <- read_csv("../Streptococcus pneumoniae analysis/Single_subs_all_S.pneumo.csv")
-mv_lmm <- read_csv("../Streptococcus pneumoniae analysis/Sub_effect_sizes_mv_pneumo.csv")
-mv_lmm_epi_all <- read_csv("../Streptococcus pneumoniae analysis/Sig_AA_subs_all_epistatic_interactions_incl_nonsig_S.pneumo.csv")
-mv_lmm_epi <- read_csv("../Streptococcus pneumoniae analysis/Sig_AA_subs_all_epistatic_interactions_S.pneumo.csv")
+mv_lmm <- read_csv("/Users/ajb306/Google Drive/PhD - Andrew Balmer/Chapters/AMR cartography/MIC data/Streptococcus pneumoniae analysis/Sub_effect_sizes_mv_pneumo.csv")
+mv_lmm_epi_all <- read_csv("/Users/ajb306/Google Drive/PhD - Andrew Balmer/Chapters/AMR cartography/MIC data/Streptococcus pneumoniae analysis/Sig_AA_subs_all_epistatic_interactions_incl_nonsig_S.pneumo.csv")
+mv_lmm_epi <- read_csv("/Users/ajb306/Google Drive/PhD - Andrew Balmer/Chapters/AMR cartography/MIC data/Streptococcus pneumoniae analysis/Sig_AA_subs_all_epistatic_interactions_S.pneumo.csv")
 
 
 ```
@@ -44,35 +45,58 @@ mv_lmm_epi <- read_csv("../Streptococcus pneumoniae analysis/Sig_AA_subs_all_epi
 
 ```{r,echo = F}
 
-mv_lmm_effsizes <- mv_lmm %>% select(PBP_AA_location, effsize_V1, effsize_V2, effsize_se_V1, effsize_se_V2, pv20_adj_galwey, Joint_effsize) %>% mutate(LMM = "mvLMM")
+mv_lmm_effsizes <- mv_lmm %>% select(PBP_AA_location, effsize_D1, effsize_D2, effsize_se_D1, effsize_se_D2, pv20_adj_galwey, Joint_effsize) %>% mutate(LMM = "mvLMM")
 
-mv_lmm_effsizes_epi <- mv_lmm_epi_all %>% select(PBP_AA_location, effsize_env1_V1, effsize_env1_V2, effsize_se_env1_V1, effsize_se_env1_V2, pv20_adj_galwey, joint_effect_size) %>% mutate(LMM = "Epistatic")
+mv_lmm_effsizes_epi <- mv_lmm_epi_all %>% select(PBP_AA_location, effsize_env1_D1, effsize_env1_D2, effsize_se_env1_D1, effsize_se_env1_D2, pv20_adj_galwey, joint_effect_size) %>% mutate(LMM = "Epistatic")
 
-mv_lmm_effsizes_epi <- mv_lmm_effsizes_epi %>% rename(effsize_V1 = effsize_env1_V1,
-                               effsize_V2 = effsize_env1_V2,
-                               effsize_se_V1 = effsize_se_env1_V1,
-                               effsize_se_V2 = effsize_se_env1_V2,
+mv_lmm_effsizes_epi <- mv_lmm_effsizes_epi %>% rename(effsize_D1 = effsize_env1_D1,
+                               effsize_D2 = effsize_env1_D2,
+                               effsize_se_D1 = effsize_se_env1_D1,
+                               effsize_se_D2 = effsize_se_env1_D2,
                                Joint_effsize = joint_effect_size)
 
-mv_lmm_effsizes <- filter(mv_lmm_effsizes, pv20_adj_galwey <= 0.001 )
-mv_lmm_effsizes_epi <- filter(mv_lmm_effsizes_epi, pv20_adj_galwey <= 9.72e-06 )
+mv_lmm_effsizes <- filter(mv_lmm_effsizes, pv20_adj_galwey <= 0.000588 )
+mv_lmm_effsizes_epi <- filter(mv_lmm_effsizes_epi, pv20_adj_galwey <= 0.000762 )
 
 effect_sizes <- bind_rows(mv_lmm_effsizes, mv_lmm_effsizes_epi)
 
 
 test <- effect_sizes %>%
-  mutate(category_V1 = case_when((effsize_V1 < -1) ~ "-",
-         (effsize_V1 < 1 & effsize_V1 > -1 ) ~ "/",
-         (effsize_V1 > 1 ) ~ "+")) %>% 
-   mutate(category_V2 = case_when((effsize_V2 < -1) ~ "-",
-         (effsize_V2 < 1 & effsize_V2 > -1 ) ~ "/",
-         (effsize_V2 > 1 ) ~ "+"))
+  mutate(category_V1 = case_when((effsize_D1 < -1) ~ "-",
+         (effsize_D1 < 1 & effsize_D1 > -1 ) ~ "/",
+         (effsize_D1 > 1 ) ~ "+")) %>% 
+   mutate(category_V2 = case_when((effsize_D2 < -1) ~ "-",
+         (effsize_D2 < 1 & effsize_D2 > -1 ) ~ "/",
+         (effsize_D2 > 1 ) ~ "+"))
 
 test_n <- as.data.frame(t(as.data.frame.matrix(table(test$category_V1, test$category_V2))))
 test_prop <- as.data.frame(t(as.data.frame.matrix(prop.table(table(test$category_V1, test$category_V2))*100)))
 test_prop <- round(test_prop, 2)
+test_prop[c(2),3]
 
-ggplot(filter(effect_sizes, LMM == "mvLMM"), aes(x=effsize_V1, y = effsize_V2)) + 
+#positive effects on penicillin above 1 unit
+test_n[c(3),1] + test_n[c(3),2] + test_n[c(3),3]
+test_prop[c(3),1] + test_prop[c(3),2] + test_prop[c(3),3]
+
+#positive effects on cephalosporins above 1 unit
+test_n[1,3] + test_n[2,3] + test_n[3,3] 
+test_prop[1,3] + test_prop[2,3] + test_prop[3,3] 
+
+
+# positive effects on penicillin and cephalosporins
+test_n[c(3),3] 
+test_prop[c(3),3] 
+
+#negative effects on penicillin above 1 unit
+test_n[c(1),1] + test_n[c(1),2] + test_n[c(1),3]
+test_prop[c(1),1] + test_prop[c(1),2] + test_prop[c(1),3]
+
+
+#positive effects on cephalosporins above 1 unit
+test_n[1,1] + test_n[2,1] + test_n[3,1] 
+test_prop[1,1] + test_prop[2,1] + test_prop[3,1] 
+
+ggplot(filter(effect_sizes, LMM == "mvLMM"), aes(x=effsize_D1, y = effsize_D2)) + 
     geom_vline(xintercept=1, size = .2) +
     geom_vline(xintercept=-1, size = .2) +
     geom_hline(yintercept=1, size = .2) +
@@ -97,66 +121,114 @@ ggplot(filter(effect_sizes, LMM == "mvLMM"), aes(x=effsize_V1, y = effsize_V2)) 
   scale_colour_manual(values=c( "#E41A1C" )) +
   scale_shape_manual(values=c( 16 , 21))+
   
-  geom_label(inherit.aes=FALSE, size = 2.5, aes(x = -3.5, y = -4,label=paste(test_n[c(1),1]," - ",test_prop[c(1),1], "%"))) +
-  geom_label(inherit.aes=FALSE, size = 2.5, aes(x = -3.5, y = -.75,label=paste(test_n[c(2),1]," - ",test_prop[c(2),1], "%"))) +
-  geom_label(inherit.aes=FALSE, size = 2.5, aes(x = -3.5, y = 3,label=paste(test_n[c(3),1]," - ",test_prop[c(3),1], "%"))) +
+  geom_label(inherit.aes=FALSE, size = 3.5, aes(x = -3.5, y = -4,label=paste(test_n[c(1),1]," - ",test_prop[c(1),1], "%"))) +
+  geom_label(inherit.aes=FALSE, size = 3.5, aes(x = -3.5, y = -.75,label=paste(test_n[c(2),1]," - ",test_prop[c(2),1], "%"))) +
+  geom_label(inherit.aes=FALSE, size = 3.5, aes(x = -3.5, y = 3,label=paste(test_n[c(3),1]," - ",test_prop[c(3),1], "%"))) +
   
-  geom_label(inherit.aes=FALSE, size = 2.5, aes(x = -0, y = -4,label=paste(test_n[c(1),2]," - ",test_prop[c(1),2], "%"))) +
-  geom_label(inherit.aes=FALSE, size = 2.5, aes(x = -0, y = -.75,label=paste(test_n[c(2),2]," - ",test_prop[c(2),2], "%"))) +
-  geom_label(inherit.aes=FALSE, size = 2.5, aes(x = -0, y = 3,label=paste(test_n[c(3),2]," - ",test_prop[c(3),2], "%"))) +
-  
-  geom_label(inherit.aes=FALSE, size = 2.5, aes(x = 4.5, y = -4,label=paste(test_n[c(1),3]," - ",test_prop[c(1),3], "%"))) +
-  geom_label(inherit.aes=FALSE, size = 2.5, aes(x = 4.5, y = -.75,label=paste(test_n[c(2),3]," - ",test_prop[c(2),3], "%"))) +
-  geom_label(inherit.aes=FALSE, size = 2.5, aes(x = 4.5, y = 3,label=paste(test_n[c(3),3]," - ",test_prop[c(3),3], "%"))) 
+  geom_label(inherit.aes=FALSE, size = 3.5, aes(x = -0, y = -4,label=paste(test_n[c(1),2]," - ",test_prop[c(1),2], "%"))) +
+  geom_label(inherit.aes=FALSE, size = 3.5, aes(x = -0, y = -.75,label=paste(test_n[c(2),2]," - ",test_prop[c(2),2], "%"))) +
+  geom_label(inherit.aes=FALSE, size = 3.5, aes(x = -0, y = 3,label=paste(test_n[c(3),2]," - ",test_prop[c(3),2], "%"))) +
 
-#ggsave("effect_sizes_S.pneumo.jpg")
+  geom_label(inherit.aes=FALSE, size = 3.5, aes(x = 4.5, y = -4,label=paste(test_n[c(1),3]," - ",test_prop[c(1),3], "%"))) +
+  geom_label(inherit.aes=FALSE, size = 3.5, aes(x = 4.5, y = -.75,label=paste(test_n[c(2),3]," - ",test_prop[c(2),3], "%"))) +
+  geom_label(inherit.aes=FALSE, size = 3.5, aes(x = 4.5, y = 3,label=paste(test_n[c(3),3]," - ",test_prop[c(3),3], "%"))) 
+
+
+ggsave("effect_sizes_S.pneumo.jpg")
 
 
 mv_lmm_effsizes_epi_table <- mv_lmm_effsizes_epi %>%
-  mutate(category_V1 = case_when((effsize_V1 < -1) ~ "-",
-         (effsize_V1 < 1 & effsize_V1 > -1 ) ~ "0",
-         (effsize_V1 > 1 ) ~ "+")) %>% 
-   mutate(category_V2 = case_when((effsize_V2 < -1) ~ "-",
-         (effsize_V2 < 1 & effsize_V2 > -1 ) ~ "0",
-         (effsize_V2 > 1 ) ~ "+"))
+  mutate(category_V1 = case_when((effsize_D1 < -1) ~ "-",
+         (effsize_D1 < 1 & effsize_D1 > -1 ) ~ "0",
+         (effsize_D1 > 1 ) ~ "+")) %>% 
+   mutate(category_V2 = case_when((effsize_D2 < -1) ~ "-",
+         (effsize_D2 < 1 & effsize_D2 > -1 ) ~ "0",
+         (effsize_D2 > 1 ) ~ "+"))
 
 table(mv_lmm_effsizes_epi_table$category_V1, mv_lmm_effsizes_epi_table$category_V2)
 prop.table(table(mv_lmm_effsizes_epi_table$category_V1, mv_lmm_effsizes_epi_table$category_V2))*100
+test_prop[c(2),3]
+colnames(mv_lmm_effsizes)
 
 mv_lmm_effect_size_table <- mv_lmm_effsizes %>%
-  mutate(category = case_when((effsize_V1 < -1 & effsize_V2 < -1) ~ "-/-",
-         (effsize_V1 < -1 & effsize_V2 < 1 & effsize_V2 > -1 ) ~ "-/0",
-         (effsize_V1 < -1 & effsize_V2 > 1 ) ~ "-/+",
+  mutate(category = case_when((effsize_D1 < -1 & effsize_D2 < -1) ~ "-/-",
+         (effsize_D1 < -1 & effsize_D2 < 1 & effsize_D2 > -1 ) ~ "-/0",
+         (effsize_D1 < -1 & effsize_D2 > 1 ) ~ "-/+",
 
-         (effsize_V1 < 1 & effsize_V1 > -1 & effsize_V2 < -1) ~ "0/-",
-         (effsize_V1 < 1 & effsize_V1 > -1 & effsize_V1 < 1 & effsize_V1 > -1 ) ~ "0/0",
-         (effsize_V1 < 1 & effsize_V1 > -1 & effsize_V2 > 1) ~ "0/+",
+         (effsize_D1 < 1 & effsize_D1 > -1 & effsize_D2 < -1) ~ "0/-",
+         (effsize_D1 < 1 & effsize_D1 > -1 & effsize_D2 < 1 & effsize_D2 > -1 ) ~ "0/0",
+         (effsize_D1 < 1 & effsize_D1 > -1 & effsize_D2 > 1) ~ "0/+",
                               
-         (effsize_V1 > 1 & effsize_V2 < -1 ) ~ "+/-",
-         (effsize_V1 > 1 & effsize_V2 < 1 & effsize_V2 > -1 ) ~ "+/0",
-         (effsize_V1 > 1 & effsize_V2 > 1 ) ~ "+/+"))
+         (effsize_D1 > 1 & effsize_D2 < -1 ) ~ "+/-",
+         (effsize_D1 > 1 & effsize_D2 < 1 & effsize_D2 > -1 ) ~ "+/0",
+         (effsize_D1 > 1 & effsize_D2 > 1 ) ~ "+/+"))
        
 table(mv_lmm_effect_size_table$category)
 prop.table(table(mv_lmm_effect_size_table$category))*100
 
-
+test_n
+test_prop
 ```
 
+```{r,echo = F}
+# Plot effect sizes with compass visualization
+ggplot(filter(effect_sizes, LMM == "mvLMM"), aes(x = effsize_D1, y = effsize_D2)) + 
+  geom_vline(xintercept = 1, size = 0.2) +
+  geom_vline(xintercept = -1, size = 0.2) +
+  geom_hline(yintercept = 1, size = 0.2) +
+  geom_hline(yintercept = -1, size = 0.2) +
+  geom_segment(x = -2.5, y = 0, xend = 2.5, yend = 0, size = 0.3, linetype = "solid", color = "black") +  # Horizontal line
+  geom_segment(x = 0, y = -2.5, xend = 0, yend = 2.5, size = 0.3, linetype = "solid", color = "black") +  # Vertical line
+  geom_segment(x = 0, y = 0, xend = sqrt(3), yend = sqrt(3), size = 0.3, linetype = "dashed", color = "black") +  # Diagonal line
+  geom_segment(x = 0, y = 0, xend = sqrt(-3), yend = sqrt(3), size = 0.3, linetype = "dashed", color = "black") +  # Diagonal line
+  geom_label(aes(x = sqrt(3) + 0.2, y = sqrt(3) + 0.2, label = "45°"), size = 3, color = "black")  +# Label at 45 degrees
 
+  geom_path(data = data.frame(x = 2 * cos(seq(0, 2 * pi, length.out = 100)), 
+                              y = 2 * sin(seq(0, 2 * pi, length.out = 100))),
+            aes(x, y), color = "black", size = 0.35, linetype = "solid") +
+  geom_point(data = filter(effect_sizes, LMM != "mvLMM"), shape = 16, alpha = 0.25, colour = "#E41A1C", size = 1.5) +
+  geom_point(shape = 21, size = 2.5, alpha = 0.8, colour = "black", fill = "#E41A1C") +
+  theme(legend.position = 'none') +
+  theme_linedraw() +
+  scale_x_continuous(limits = c(-4, 5), breaks = seq(-4, 5, 1)) +
+  scale_y_continuous(limits = c(-4, 3), breaks = seq(-4, 3, 1)) +
+  labs(x = "Effect size (Map axis 1 - Cephalosporins)", y = "Effect size (Map axis 2 - Penicillin)") + 	
+  theme_bw() +
+  coord_fixed() + 
+  theme(axis.text = element_text(size = 12), axis.title = element_text(size = 12)) +
+  scale_colour_manual(values = c("#E41A1C")) +
+  scale_shape_manual(values = c(16, 21)) +
+  geom_label(inherit.aes = FALSE, size = 3.5, aes(x = -3.5, y = -4, label = paste(test_n[c(1), 1], " - ", test_prop[c(1), 1], "%"))) +
+  geom_label(inherit.aes = FALSE, size = 3.5, aes(x = -3.5, y = -0.75, label = paste(test_n[c(2), 1], " - ", test_prop[c(2), 1], "%"))) +
+  geom_label(inherit.aes = FALSE, size = 3.5, aes(x = -3.5, y = 3, label = paste(test_n[c(3), 1], " - ", test_prop[c(3), 1], "%"))) +
+  geom_label(inherit.aes = FALSE, size = 3.5, aes(x = 0, y = -4, label = paste(test_n[c(1), 2], " - ", test_prop[c(1), 2], "%"))) +
+  geom_label(inherit.aes = FALSE, size = 3.5, aes(x = 0, y = -0.75, label = paste(test_n[c(2), 2], " - ", test_prop[c(2), 2], "%"))) +
+  geom_label(inherit.aes = FALSE, size = 3.5, aes(x = 0, y = 3, label = paste(test_n[c(3), 2], " - ", test_prop[c(3), 2], "%"))) +
+  geom_label(inherit.aes = FALSE, size = 3.5, aes(x = 4.5, y = -4, label = paste(test_n[c(1), 3], " - ", test_prop[c(1), 3], "%"))) +
+  geom_label(inherit.aes = FALSE, size = 3.5, aes(x = 4.5, y = -0.75, label = paste(test_n[c(2), 3], " - ", test_prop[c(2), 3], "%"))) +
+  geom_label(inherit.aes = FALSE, size = 3.5, aes(x = 4.5, y = 3, label = paste(test_n[c(3), 3], " - ", test_prop[c(3), 3], "%"))) +
+  geom_label(aes(x = 0, y = 2.5, label = "0°"), size = 3, color = "black")  +# Label at 45 degrees
+  geom_label(aes(x = 0, y = -2.5, label = "-180/180°"), size = 3, color = "black")  +# Label at 45 degrees
+  geom_label(aes(x = 2.5, y = 0, label = "90°"), size = 3, color = "black")  +# Label at 45 degrees
+  geom_label(aes(x = -2.5, y = 0, label = "-90°"), size = 3, color = "black")  # Label at 45 degrees
+
+ggsave("effect_sizes_S.pneumo.jpg")
+
+```
 
 ```{r, echo = F}
 
   options(dplyr.summarise.inform = FALSE)
   
   # Set working directory
-  setwd("/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#03-06-Generating-phenotype-and-genotype-maps")
+  setwd("/Users/ajb306/AMR-cartography-results/data/")
   
   # Specify the full path to the data file
-  phen_map <- "/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#03-06-Generating-phenotype-and-genotype-maps/Spneumo_3628_PCA_start_2D_METRIC.RData"
+  phen_map <- "/Users/ajb306/AMR-cartography-results/data/Spneumo_3628_PCA_start_2D_METRIC.RData"
   
  
 # Read in the relevant meta data
-tablemic_meta <- read.csv("/Users/ajb306/AMR-cartography/data/meta_data_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+tablemic_meta <- read.csv("/Users/ajb306/AMR-cartography-results/data/meta_data_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
 
   
   # Read in phenotype map data and rotate to make it more readable
@@ -165,16 +237,17 @@ tablemic_meta <- read.csv("/Users/ajb306/AMR-cartography/data/meta_data_Spneumon
   theta <- 326*pi/180 ## degrees to radians
   rot <- matrix(c(cos(theta), sin(theta), -sin(theta), cos(theta)), ncol = 2)
   res_samp$conf <- res_samp$conf %*% rot ## rotated configurations
-  plot(res_samp)
+  
   
   
   ### create a vector of isolates with PBP deletion substitutions and remove them from dataframes  
   isolates_with_PBP_deletion <- c("20156696" , "20162849" , "20151885" ,
                            "20153985" , "20154509" , "2013224047" , "2013218247" ,
                            "2014200662" , "5869-99" , "2513-99")
+  
   # Specify the full path to the data file
-  gen_map <- "/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#03-06-Generating-phenotype-and-genotype-maps/Spneumo_3628_PCA_start_2D_METRIC_genetic.RData"
-  load('/Users/ajb306/AMR-cartography/data/tablemic_pneumo_gen_3628.RData')
+  gen_map <- "/Users/ajb306/AMR-cartography-results/data/Spneumo_3628_PCA_start_2D_METRIC_genetic.RData"
+  load('/Users/ajb306/AMR-cartography-results/data/tablemic_pneumo_gen_3628.RData')
   
   # Load the precomputed PCA start 2D metric data
   load(gen_map)
@@ -201,13 +274,12 @@ AA_matrix_phenotype <- bind_cols(map_coords, tablemic_meta) %>%
                          filter(!LABID %in% isolates_with_PBP_deletion) %>%
                          bind_cols(genotype_mds)
 
-## import MDS transformations for phenoptype and genotype maps
-gen_slope <- 0.01814108
 
 ### As I only want to cluster on distinct PBP types, I 
 gen_clustering <- cbind(dplyr::select(AA_matrix_phenotype, G1,G2, PBP_type)) %>%
                   distinct(PBP_type, .keep_all = TRUE) %>% 
                   ungroup()
+
 
 
 res.hcpc <- HCPC(select(gen_clustering, G1,G2), nb.clust = 12, consol = T, iter.max = 500, graph = T, order = T)
@@ -221,6 +293,13 @@ gen_clustering$gen_cluster <- res.hcpc[[1]]$clust
 AA_matrix_phenotype <- left_join(AA_matrix_phenotype, select(gen_clustering, PBP_type, gen_cluster), by = "PBP_type") %>% bind_cols(PBPseq)%>% ungroup 
 
 
+gen_slope <- 0.01814108
+gen_dilation <- 1/gen_slope
+gen_slope
+
+
+AA_matrix_phenotype$G1 <- AA_matrix_phenotype$G1 * gen_dilation
+AA_matrix_phenotype$G2 <- AA_matrix_phenotype$G2 * gen_dilation
 
 genotype_mds <- NULL
 tablemic <- NULL
@@ -266,6 +345,25 @@ breaks_phen_map_y <- seq(min(AA_matrix_phenotype$D2, na.rm = T) - (1),
 
 ```{r, echo = F}
 
+genetic_clusters_per_location <- bind_rows(cluster_2,
+                        cluster_3,
+                        cluster_4,
+                        cluster_5,
+                        cluster_7,
+                        cluster_8,
+                        cluster_10,
+                        cluster_12) %>%
+   arrange(Confidence, .by_group = TRUE)  %>%
+  filter(Confidence == "Strong") %>%
+  distinct(Location, Genetic_cluster) %>%  # unique combinations
+  count(Location, name = "num_unique_clusters") %>%
+  mutate(
+    PBP = str_sub(Location, 4, 5),
+    Location = str_sub(Location, 7)  
+  ) %>%
+  select(PBP, Location, num_unique_clusters)  # reorder columns
+
+
 clustering <- bind_rows(cluster_2,
                         cluster_3,
                         cluster_4,
@@ -275,10 +373,12 @@ clustering <- bind_rows(cluster_2,
                         cluster_10,
                         cluster_12) %>%
    arrange(Confidence, .by_group = TRUE)  %>%
-  distinct(Location, .keep_all = TRUE)
+   distinct(Location, .keep_all = TRUE)
 strong_clustering <- filter(clustering, Confidence == "Strong")
+weak_clustering <- filter(clustering, Confidence == "Weak")
 
 
+  
 top_cluster_hits <- AA_matrix_phenotype %>% 
   ungroup() %>% 
   select(D1, D2, all_of(c(strong_clustering$Location))) %>%
@@ -288,7 +388,7 @@ top_cluster_hits$Location <- str_replace_all(top_cluster_hits$Location, "_", " "
 
 
 ggplot(filter(top_cluster_hits), aes(x=D1,y=D2, fill = AA)) +
-    geom_point(shape = 21,size = 1.75, alpha = 1, colour = "white") +
+    geom_point(shape = 21,size = 1.5, alpha = 1, colour = "white") +
   facet_wrap(~ Location) + 
   theme_linedraw() +
 scale_x_continuous(limits = limits_phen_map_x, breaks=breaks_phen_map_x) +
@@ -301,8 +401,68 @@ theme_MDR_cartography() +
                              "#1B9E77", "#D95F02", "#7570B3", "#E7298A", "#66A61E", "#E6AB02", "#A6761D", "#666666")) +
   scale_colour_manual(values=c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "grey", "#A65628", "#F781BF", "#999999",
                              "#1B9E77", "#D95F02", "#7570B3", "#E7298A", "#66A61E", "#E6AB02", "#A6761D", "#666666"))
+ggsave("clustering_results_S.pneumo.jpg")
 
-ggsave("specific_effect_sizes_S.pneumo.jpg")
+```
+
+
+
+
+
+
+```{r, echo = F}
+
+
+choice_of_positions<- c('PBP2X_E320', 'PBP2X_M343', 'PBP2X_T490', 'PBP2X_A369')
+
+top_cluster_hits <- AA_matrix_phenotype %>% 
+  ungroup() %>% 
+  select(D1, D2, all_of(choice_of_positions)) %>%
+  pivot_longer(cols = starts_with("PBP"), names_to = "Location", values_to = "AA")
+
+
+# Define the new labels for the factor levels
+new_labels <- c("PBP2X E320K", "PBP2X M343T", "PBP2X T490S", "PBP2X A491V")
+
+# Convert Location to a factor and change the levels
+top_cluster_hits <- top_cluster_hits %>%
+  mutate(Location = fct_recode(Location, !!!setNames(choice_of_positions, new_labels)))
+
+
+top_cluster_hits$Location <- factor(top_cluster_hits$Location, 
+                                    levels = c("PBP2X E320K",
+                                               "PBP2X M343T",
+                                               "PBP2X T490S",
+                                               "PBP2X A491V"))
+
+
+ggplot(filter(top_cluster_hits), aes(x = D1, y = D2, fill = AA, colour = AA)) +
+  geom_point(shape = 21, size = 1.75, alpha = 1, colour = "white") +
+  facet_grid(. ~ Location) +  
+  theme_linedraw() +
+  scale_x_continuous(limits = limits_phen_map_x, breaks = breaks_phen_map_x) +
+  scale_y_continuous(limits = limits_phen_map_y, breaks = breaks_phen_map_y) +
+  theme_MDR_cartography() +
+  coord_fixed() +   
+  theme(strip.background = element_rect(fill = "white")) + 
+  theme(strip.text = element_text(colour = 'black')) +
+  theme(
+    legend.position = "bottom",  # Legend at the bottom
+    legend.direction = "horizontal",  # Horizontal layout
+    legend.box = "horizontal",  # Display legend items next to each other
+    legend.text = element_text(size = 8),
+    legend.margin = margin(t = -0.2, r = 0, b = -0.2, l = 0),  # Reduce legend margin
+    plot.margin = margin(0, 0, 0, 0, "cm")  # Reduce overall plot margins
+  ) +
+  guides(fill = guide_legend(title = "Amino Acid", nrow = 1, override.aes = list(size = 3.5))) +
+  scale_fill_manual(values = c("#984EA3", "#999999", "#A65628", "#F781BF", "#FF7F00", "#377EB8", "#4DAF4A", "#F781BF", "#999999",
+                               "#1B9E77", "#D95F02", "#7570B3", "#E7298A", "#66A61E", "#E6AB02", "#A6761D", "#666666")) +
+  scale_colour_manual(values = c("#984EA3", "#999999", "#A65628", "#F781BF", "#FF7F00", "#377EB8", "#4DAF4A", "#F781BF", "#999999",
+                                 "#1B9E77", "#D95F02", "#7570B3", "#E7298A", "#66A61E", "#E6AB02", "#A6761D", "#666666"))
+
+
+  ggsave("Spneumoniae_method_highlight_panel4.jpg")
+
 
 ```
 
@@ -340,11 +500,20 @@ mv_lmm <- mv_lmm %>%
 
 table_of_subs <- full_join(single_subs, mv_lmm, by = c("Location" = "Location", "PBP" = "PBP"))
 
+## separate_rows to count the total number of locations (i.e. remove the #)
 table_of_subs <- table_of_subs %>%  separate_rows(Location, sep ="/",convert = TRUE)
+
+effect_size_ratio_comparison <- table_of_subs
+
 table_of_subs$Loci <- substr(table_of_subs$Location,1,nchar(table_of_subs$Location)-1)
 
 table_of_subs <- full_join(clustering, table_of_subs, by = c("Loci" = "Loci", "PBP" = "PBP"))
 
+# Replace NA values in the Location column with values from the Loci column
+table_of_subs <- table_of_subs %>%
+  mutate(Location = ifelse(is.na(Location), Loci, Location))
+
+## separate_rows to count the total number of locations (i.e. remove the #)
 mv_lmm_epi_2 <- mv_lmm_epi %>%  separate_rows(Location, sep ="/",convert = TRUE)
 
 mv_lmm_epi_2 <- mv_lmm_epi_2 %>%
@@ -361,6 +530,8 @@ table_of_subs <- full_join(mv_lmm_epi_2, table_of_subs, by = c("Location" = "Loc
              Confidence,
              pv20_adj_galwey_mv_LMM,
              Joint_effsize_mv_LMM,
+             effsize_D1_mv_LMM,
+             effsize_D2_mv_LMM,
              PBP_AA_location_mv_LMM_epistatic, 
              PBP_count_mv_LMM_epistatic,
              pv20_adj_galwey_mv_LMM_epistatic,
@@ -371,16 +542,16 @@ table_of_subs <- full_join(mv_lmm_epi_2, table_of_subs, by = c("Location" = "Loc
 
 
 table_of_subs <- table_of_subs %>% 
-  mutate(LMM_Significant = case_when((pv20_adj_galwey_mv_LMM <= 0.001)    ~ "Significant at <0.001",
-                (pv20_adj_galwey_mv_LMM > 0.001)    ~ "Not Significant")) %>%
-  mutate(LMM_epi_Significant = case_when((pv20_adj_galwey_mv_LMM_epistatic <= 9.72e-06) ~ "Significant below permutation cutoff",
-                (pv20_adj_galwey_mv_LMM_epistatic >= 9.72e-06) & (pv20_adj_galwey_mv_LMM_epistatic <= 0.001) ~ "Significant at <0.001",
+  mutate(LMM_Significant = case_when((pv20_adj_galwey_mv_LMM <=0.000588)  ~ "Significant at <0.001",
+                (pv20_adj_galwey_mv_LMM >0.000588)  ~ "Not Significant")) %>%
+  mutate(LMM_epi_Significant = case_when((pv20_adj_galwey_mv_LMM_epistatic <= 0.000762) ~ "Significant below permutation cutoff",
+                  (pv20_adj_galwey_mv_LMM_epistatic >= 0.000762) & (pv20_adj_galwey_mv_LMM_epistatic <= 0.001) ~ "Significant at <0.001",
                 (pv20_adj_galwey_mv_LMM_epistatic > 0.001)    ~ "Not Significant"))
 
 
 table_of_subs$Single_subs_evidence <- as.numeric(ifelse(table_of_subs$median_phenotypic_distance >= 1, 1, 0))
 table_of_subs$Clustering_evidence <- as.numeric(ifelse(table_of_subs$Confidence == "Strong", 1, 0))
-table_of_subs$LMM_evidence <- as.numeric(ifelse(table_of_subs$pv20_adj_galwey_mv_LMM <= 0.001 & table_of_subs$Joint_effsize_mv_LMM >= 1, 1, 0))
+table_of_subs$LMM_evidence <- as.numeric(ifelse(table_of_subs$pv20_adj_galwey_mv_LMM <=0.000588 & table_of_subs$Joint_effsize_mv_LMM >= 1, 1, 0))
 table_of_subs$LMM_epi_evidence <- as.numeric(ifelse(table_of_subs$PBP_count_mv_LMM_epistatic >= 1, 1, 0))
 
 
@@ -405,8 +576,15 @@ table_of_subs$Joint_effsize_mv_LMM <- round(as.numeric(table_of_subs$Joint_effsi
 table_of_subs$pv20_adj_galwey_mv_LMM <- formatC(as.numeric(table_of_subs$pv20_adj_galwey_mv_LMM), format = "e")
 
 
+table_of_subs <- table_of_subs %>%
+  rename(effect_size_axis1 = effsize_D1_mv_LMM,
+         effect_size_axis2 = effsize_D2_mv_LMM) %>%
+    mutate(effect_size_axis1 = round(effect_size_axis1, 3),
+         effect_size_axis2 = round(effect_size_axis2, 3))
+
+
 # Define the columns to be modified
-columns_to_modify <- c("median_phenotypic_distance", "se", "Confidence", "pv20_adj_galwey_mv_LMM", "Joint_effsize_mv_LMM", "PBP_count_mv_LMM_epistatic")
+columns_to_modify <- c("median_phenotypic_distance", "se", "Confidence", "pv20_adj_galwey_mv_LMM", "Joint_effsize_mv_LMM", "PBP_count_mv_LMM_epistatic", "effect_size_axis1", "effect_size_axis2")
 
 # Apply the modifications to the specified columns
 table_of_subs <- table_of_subs %>%
@@ -424,13 +602,14 @@ table_of_subs_no_evidence <- table_of_subs %>%
     #select(-total)
   
 table_of_subs_weak <- table_of_subs %>% 
-  filter(total == 1 & LMM_Significant != "Significant at <0.001" & Joint_effsize_mv_LMM < 1) %>%
+  filter(total == 1 #& LMM_Significant != "Significant at <0.001" & Joint_effsize_mv_LMM < 1
+         ) %>%
   mutate(Evidence = "Weak") #%>%
    # select(-total)
   
 table_of_subs_moderate <- table_of_subs %>% 
-  filter(total == 1 & LMM_Significant == "Significant at <0.001" & Joint_effsize_mv_LMM > 1 |
-         total == 1 & PBP_count_mv_LMM_epistatic > 1 |
+  filter(#total == 1 & LMM_Significant == "Significant at <0.001" & Joint_effsize_mv_LMM > 1 |
+         #total == 1 & PBP_count_mv_LMM_epistatic > 1 |
          total == 2) %>%
   mutate(Evidence = "Moderate") #%>%
    # select(-total)
@@ -439,7 +618,6 @@ table_of_subs_strong <- table_of_subs %>%
   filter(total == 3) %>%
   mutate(Evidence = "Strong") #%>%
     #select(-total)
-
   
 table_of_subs_very_strong <- table_of_subs %>% 
   filter(total == 4) %>%
@@ -456,13 +634,26 @@ table_of_subs_very_strong <- table_of_subs %>%
  #               total == 4 ~ "Very Strong")) %>%
   #              select(-total) 
 
-table_of_subs <- bind_rows(#table_of_subs_no_evidence,  
+table_of_subs <- bind_rows(table_of_subs_no_evidence,  
                            table_of_subs_weak,
                            table_of_subs_moderate,
                            table_of_subs_strong,
                            table_of_subs_very_strong)
+colnames(table_of_subs)
 
-saveRDS(table_of_subs, "table_of_sig_subs_pneumo.rds")
+table_of_subs <- table_of_subs %>%
+  mutate(
+    LMM_Significant = ifelse(LMM_Significant == "NA", NA, LMM_Significant),
+    pv20_adj_galwey_mv_LMM = ifelse(pv20_adj_galwey_mv_LMM == "NA", NA, pv20_adj_galwey_mv_LMM)
+  ) %>%
+  mutate(
+    LMM_Significant = replace_na(as.character(LMM_Significant), "Not Tested Due to Low Sample Size"),
+    pv20_adj_galwey_mv_LMM = replace_na(as.character(pv20_adj_galwey_mv_LMM), "Not Tested Due to Low Sample Size")
+  )
+
+
+saveRDS(table_of_subs, "table_of_all_sig_subs_pneumo.rds")
+write.csv(table_of_subs, "table_of_all_sig_subs_pneumo.csv", row.names = FALSE)
 
 
 table_of_subs$PBP <- recode(table_of_subs$PBP, "PBP1A" = "1A", "PBP2B" = "2B", "PBP2X" = "2X")
@@ -476,10 +667,196 @@ table_of_subs <- table_of_subs %>% rename("Phenotypic Distance" = median_phenoty
   relocate(Evidence) %>%
   select(-LMM_Significant)
 
-table_of_subs_evidence <- table_of_subs %>%
-  filter(Evidence == "Very Strong" | Evidence == "Strong"| Evidence == "Moderate" )
 
-write.csv(table_of_subs_evidence, file = "Table_of_subs_Spneumoniae.csv", row.names=FALSE)
+# count number of distinct substitutions
+filtered_df <- table_of_subs %>%
+  filter(Evidence == "Very Strong" | Evidence == "Strong"| Evidence == "Moderate"| Evidence == "Weak" ) %>%
+  mutate(Loci = substr(Location,2,5)) %>%
+  distinct(PBP, Loci,  .keep_all = T) 
+nrow(filtered_df)
+
+# count number of distinct locations
+filtered_df <- table_of_subs %>%
+  filter(Evidence == "Very Strong" | Evidence == "Strong"| Evidence == "Moderate"| Evidence == "Weak" ) %>%
+  mutate(Loci = substr(Location,2,4)) %>%
+  distinct(PBP, Loci,  .keep_all = T) 
+nrow(filtered_df)
+
+## 147 of 285  variant positions were associated with some evidence of phenotypic effects 
+147 /285 *100
+ 
+# Filter rows where 'Adj. p-value' < 0.05 and 'No. Sig. interactions' does not contain '-'
+filtered_df <- table_of_subs %>%
+  filter(Evidence == "Very Strong" | Evidence == "Strong"| Evidence == "Moderate"| Evidence == "Weak" ) %>%
+  filter(as.numeric(`Adj. p-value`) < 0.000588, `No. Sig. interactions` != '-')
+nrow(filtered_df)
+
+# Calculate the proportion with additive and epistatic effects
+proportion <- nrow(filtered_df) / nrow(table_of_subs)
+proportion
+
+
+table_of_subs_evidence <- table_of_subs %>%
+  filter(Evidence == "Very Strong" | Evidence == "Strong"| Evidence == "Moderate")
+
+range_value <- max(as.numeric(table_of_subs_evidence$Joint_effsize_mv_LMM), na.rm = TRUE) - min(as.numeric(table_of_subs_evidence$Joint_effsize_mv_LMM), na.rm = TRUE)
+range_value
+
+# calculate range of phenotypic effects
+max(as.numeric(table_of_subs_evidence$Joint_effsize_mv_LMM), na.rm = TRUE) 
+min(as.numeric(table_of_subs_evidence$Joint_effsize_mv_LMM), na.rm = TRUE)
+
+
+table_of_subs_evidence <- table_of_subs_evidence %>%
+  arrange(desc(total), desc(Joint_effsize_mv_LMM))
+colnames(table_of_subs_evidence)
+write.csv(table_of_subs_evidence, file = "Final_Table_of_subs_for_Spneumoniae.csv", row.names=FALSE)
+
+comparison_all <- read.csv("/Users/ajb306/PycharmProjects/pythonProject1/comparison_all_output.csv") %>%
+  rename(Location = Substitution) %>%
+  select(PBP,Location, mv_sig, uv_sig) %>%
+  separate_rows(Location, sep = "/")
+
+colnames(comparison_all)
+
+combined_table <- left_join(table_of_subs_evidence, comparison_all, by = c("PBP" = "PBP", "Location" = "Location")) %>%
+  mutate(
+    mv_sig = replace_na(mv_sig, "No"),
+    uv_sig_count = replace_na(as.numeric(uv_sig), 0),
+    uv_sig = if_else(uv_sig_count > 0, "Yes", "No"),
+    sig_summary = paste0(mv_sig, "/", uv_sig, " (", uv_sig_count, ")")
+  ) %>%
+  select(-mv_sig, -uv_sig, -uv_sig_count)
+
+# Step 1: Ensure it's numeric (suppress warnings just in case of "<1e-16" or other non-numeric strings)
+combined_table$`Adj. p-value` <- suppressWarnings(as.numeric(combined_table$`Adj. p-value`))
+
+# Step 2: Format very small values as "<1e-16", rest as scientific notation
+combined_table$`Adj. p-value` <- ifelse(
+  is.na(combined_table$`Adj. p-value`), NA,
+  ifelse(combined_table$`Adj. p-value` < 1e-16,
+         "<1e-16",
+         formatC(combined_table$`Adj. p-value`, format = "e", digits = 3))
+)
+
+
+
+
+
+
+# table for main manuscript
+table_of_subs_evidence_top20 <- combined_table 
+
+# Rename the columns
+colnames(table_of_subs_evidence_top20) <- c("Evidence", "PBP", "Substitution", 
+                                      "Phenotypic Distance", "SE", 
+                                      "No. isolates", "Confidence", 
+                                      "β Joint", "Adj. p-value", 
+                                      "Effect Size Axis 1", "Effect Size Axis 2", 
+                                      "No. Sig. interactions", "total", "Sig. mvLMM/uvLMM (No. drugs")
+
+
+write.csv(head(table_of_subs_evidence_top20, 20), file = "Abbreviated_top20_Final_Table_of_subs_for_Spneumoniae.csv", row.names=FALSE)
+
+
+
+
+combined_table <- left_join(table_of_subs, comparison_all, by = c("PBP" = "PBP", "Location" = "Location")) %>%
+  mutate(
+    mv_sig = replace_na(mv_sig, "No"),
+    uv_sig_count = replace_na(as.numeric(uv_sig), 0),
+    uv_sig = if_else(uv_sig_count > 0, "Yes", "No"),
+    sig_summary = paste0(mv_sig, "/", uv_sig, " (", uv_sig_count, ")")
+  ) %>%
+  select(-mv_sig, -uv_sig, -uv_sig_count)
+
+# Step 1: Ensure it's numeric (suppress warnings just in case of "<1e-16" or other non-numeric strings)
+combined_table$`Adj. p-value` <- suppressWarnings(as.numeric(combined_table$`Adj. p-value`))
+
+# Step 2: Format very small values as "<1e-16", rest as scientific notation
+combined_table$`Adj. p-value` <- ifelse(
+  is.na(combined_table$`Adj. p-value`), NA,
+  ifelse(combined_table$`Adj. p-value` < 1e-16,
+         "<1e-16",
+         formatC(combined_table$`Adj. p-value`, format = "e", digits = 3))
+) 
+combined_table$`Adj. p-value`[is.na(combined_table$`Adj. p-value`)] <- 
+  "Not Tested Due to Low Sample Size"
+
+
+
+
+
+
+# supplementary file 1
+supp_file_1 <- combined_table 
+
+# Rename the columns
+colnames(supp_file_1) <- c("Evidence", "PBP", "Substitution", 
+                                      "Phenotypic Distance", "SE", 
+                                      "No. isolates", "Confidence", 
+                                      "β Joint", "Adj. p-value", 
+                                      "Effect Size Axis 1", "Effect Size Axis 2", 
+                                      "No. Sig. interactions", "total", "Sig. mvLMM/uvLMM (No. drugs")
+
+
+write.csv(supp_file_1, file = "Supplementary_file_1.csv", row.names=FALSE)
+
+
+
+# Filter rows where 'Adj. p-value' < 0.05 and 'No. Sig. interactions' does not contain '-'
+filtered_df <- table_of_subs_evidence %>%
+  filter(as.numeric(`Adj. p-value`) < 0.000588, `No. Sig. interactions` != '-')
+
+# Calculate the proportion with additive and epistatic effects of those with evidence from multiple methods
+proportion <- nrow(filtered_df) / nrow(table_of_subs_evidence)
+proportion
+
+library(dplyr)
+
+# Categorize based on effect size
+test <- table_of_subs_evidence %>%
+  mutate(
+    effect_size_axis1 = as.numeric(as.character(effect_size_axis1)),
+    effect_size_axis2 = as.numeric(as.character(effect_size_axis2))
+  ) %>%
+  mutate(
+    category_V1 = case_when(
+      (effect_size_axis1 < -1) ~ "-",
+      (effect_size_axis1 < 1 & effect_size_axis1 > -1) ~ "/",
+      (effect_size_axis1 > 1) ~ "+"
+    ),
+    category_V2 = case_when(
+      (effect_size_axis2 < -1) ~ "-",
+      (effect_size_axis2 < 1 & effect_size_axis2 > -1) ~ "/",
+      (effect_size_axis2 > 1) ~ "+"
+    )
+  )
+
+# Create contingency tables with specified order for overall data
+test_n <- as.data.frame(
+  t(as.data.frame.matrix(table(factor(test$category_V1, levels = c("-", "/", "+")),
+                               factor(test$category_V2, levels = c("-", "/", "+")))))
+)
+test_prop <- as.data.frame(
+  t(as.data.frame.matrix(prop.table(table(factor(test$category_V1, levels = c("-", "/", "+")),
+                                         factor(test$category_V2, levels = c("-", "/", "+")))) * 100))
+)
+test_prop <- round(test_prop, 2)
+
+# Display the results
+print("Counts Table:")
+print(test_n)
+print("Proportion Table (%):")
+print(test_prop)
+
+
+#specific effects
+test_prop[2,1] + test_prop[3,2] + test_prop[2,3]
+
+# Common effects
+test_prop[3,3] + test_prop[3,1]
+
 
 
 test <- table_of_subs_evidence %>% 
@@ -489,12 +866,15 @@ test <- table_of_subs_evidence %>%
 test <- test %>% mutate(Loci = substr(Location,2,4)) 
 
 test <- test %>% 
-  distinct(PBP, Loci,  .keep_all = T) 
+  distinct(PBP, Location,  .keep_all = T) 
 
-
+# get a list of locations and which ones are in each protein
 table_of_subs_location <- table_of_subs_evidence %>% mutate(Loci = substr(Location,2,4)) 
+nrow(table_of_subs_location)
+
 table_of_subs_location <- table_of_subs_location %>%
   distinct(PBP, Loci,  .keep_all = T) 
+nrow(table_of_subs_location)
 
 PBP1a <- table_of_subs_location %>%
   filter(PBP == "1A")
@@ -507,6 +887,243 @@ PBP2x <- table_of_subs_location %>%
 
 
 ```{r, echo = F}
+# Load necessary libraries
+library(ggplot2)
+library(dplyr)
+library(circular)
+
+# Clean data to remove rows with missing values and calculate angles
+table_of_subs_evidence_clean <- table_of_subs %>%
+  filter(!is.na(as.numeric(effect_size_axis1)) & !is.na(as.numeric(effect_size_axis2)) & !is.na(PBP)) %>%
+  mutate(angle = atan2(as.numeric(effect_size_axis2), as.numeric(effect_size_axis1)), # Angle in radians
+         angle_deg = angle * (180 / pi)) # Convert angle to degrees
+
+# Convert angles to circular data for circular statistics
+table_of_subs_evidence_clean <- table_of_subs_evidence_clean %>%
+  mutate(angle_circular = circular(angle_deg, units = "degrees", modulo = "2pi"))
+
+# Perform the Watson-Williams test for differences in mean angles among PBP groups
+watson_test <- watson.williams.test(angle_circular ~ PBP, data = table_of_subs_evidence_clean)
+print(watson_test)
+
+# Plot angles by PBP group for visualization
+ggplot(table_of_subs_evidence_clean, aes(x = PBP, y = angle_deg, fill = PBP)) +
+  geom_boxplot() +
+  labs(x = "PBP", y = "Effect Angle (degrees)", title = "Distribution of Effect Angles by PBP") +
+  theme_minimal()
+
+# Scatter plot with gridlines every 0.5 units for context
+ggplot(table_of_subs_evidence, aes(x = as.numeric(effect_size_axis1), y = as.numeric(effect_size_axis2), color = PBP)) +
+  geom_point() +
+  labs(x = "Effect Size Axis 1", y = "Effect Size Axis 2", color = "PBP") +
+  theme_minimal() +
+  scale_x_continuous(breaks = seq(min(as.numeric(table_of_subs_evidence$effect_size_axis1), na.rm = TRUE), 
+                                  max(as.numeric(table_of_subs_evidence$effect_size_axis1), na.rm = TRUE), by = 0.5)) +
+  scale_y_continuous(breaks = seq(min(as.numeric(table_of_subs_evidence$effect_size_axis2), na.rm = TRUE), 
+                                  max(as.numeric(table_of_subs_evidence$effect_size_axis2), na.rm = TRUE), by = 0.5))
+
+
+
+```
+
+
+
+```{r, echo = F}
+
+choice_of_positions <- table_of_subs_evidence %>% 
+  mutate(PBP_location = paste0("PBP", PBP, "_", str_sub(Location, 1, -2),"_",
+                               str_sub(Location, -1, -1))) %>%
+  select(PBP_location) 
+
+
+library(fastDummies)
+dummy_gen <- AA_matrix_phenotype %>% select(PBP1A_T371:PBP2X_V587)
+
+dummy_gen <- na.omit(dummy_gen)
+ncol(dummy_gen)
+ncol(dummy_gen[, sapply(dummy_gen, function(col) length(unique(col))) > 1])
+
+dummy_gen <- dummy_cols(dummy_gen, remove_selected_columns = T)
+
+dummy_gen <- cbind(select(AA_matrix_phenotype,PBP_type,D1,D2,G1,G2,x_centroid,y_centroid), dummy_gen)
+
+centroids_202 <- dummy_gen %>% 
+  filter(PBP_type == "2-0-2") %>%
+  distinct(PBP_type, .keep_all = TRUE) %>% 
+  ungroup() %>%
+  select(x_centroid, y_centroid, G1, G2)
+  
+
+   
+dummy_gen <- dummy_gen %>% mutate(phen_centroid_x_202 = centroids_202[c(1), 1], 
+                                  phen_centroid_y_202 = centroids_202[c(1), 2],
+                                  gen_centroid_x_202 = centroids_202[c(1), 3],
+                                  gen_centroid_y_202 = centroids_202[c(1), 4])
+   
+dummy_gen <- dummy_gen %>% 
+     mutate(phen_dist_between_sample_and_202 = sqrt((D1-phen_centroid_x_202)^2 + (D2-phen_centroid_y_202)^2),
+            gen_dist_between_sample_and_202 =sqrt((G1-gen_centroid_x_202)^2 + (G2-gen_centroid_y_202)^2))
+
+
+top_cluster_hits <- dummy_gen %>% 
+  ungroup() %>% 
+  select(D1,D2,
+         G1,G2,
+         phen_dist_between_sample_and_202,
+         gen_dist_between_sample_and_202,
+         x_centroid,y_centroid, all_of(choice_of_positions$PBP_location)) %>%
+  pivot_longer(cols = starts_with("PBP"), names_to = "Location", values_to = "AA") %>%
+  filter(AA == 1) %>%
+  distinct(Location, .keep_all = TRUE) 
+
+
+
+
+# Summary table with selected columns and renaming
+summary_table <- top_cluster_hits %>%
+  group_by(Location) %>%
+  summarise(
+    phen_dist_mean = mean(phen_dist_between_sample_and_202),
+    gen_dist_mean = mean(gen_dist_between_sample_and_202)
+  ) %>%
+  mutate(
+    phen_gen_ratio = gen_dist_mean / phen_dist_mean
+  ) %>%
+  rename(
+    "Location" = Location,
+    "Mean Phenotypic distance (MIC units)" = phen_dist_mean,
+    "Mean Genetic distance (AA changes)" = gen_dist_mean,
+    "Phenotypic/Genetic Ratio" = phen_gen_ratio
+  )
+
+# Summary rows for total, average, and standard deviation
+
+
+# Reorder the rows by increasing genetic distance
+summary_table <- summary_table %>%
+  arrange(`Mean Genetic distance (AA changes)`)
+
+# Reorder the factor levels of the gen_cluster column
+summary_table$`Location` <- factor(summary_table$`Location`, levels = unique(summary_table$`Location`))
+
+# Combine summary rows with summary table
+summary_table <- summary_table%>%
+  mutate(across(c('Mean Phenotypic distance (MIC units)', 'Mean Genetic distance (AA changes)', 'Phenotypic/Genetic Ratio'), round, 3)) 
+
+summary_table
+
+
+
+   
+   mapvtable <- lm(phen_dist_between_sample_and_202 ~ gen_dist_between_sample_and_202, data = top_cluster_hits)
+   summary(mapvtable)
+
+
+   
+   ggplot(filter(top_cluster_hits), aes(x=gen_dist_between_sample_and_202, y=phen_dist_between_sample_and_202))+ 
+    
+     geom_point(size=4.5, shape = 21, alpha =0.6, position=position_jitter(width=0,height=0)) +
+     guides(fill = "none") +
+     scale_x_continuous(limits = c( 0, 120), breaks=seq(0, 120, 10)) +
+     scale_y_continuous(limits = c( 0, 16), breaks=seq(0, 16,2)) +
+     theme_bw() + 
+     labs( x = "Genetic distance (No. AA substitutions from 2-0-2)", y = "Median map distance (MIC units from 2-0-2)", fill = "Genetic group") +
+     theme(axis.text=element_text(size=12), 
+           axis.title=element_text(size=14)) +
+     theme(aspect.ratio=1)+
+     scale_fill_manual(values=my_colours) + 
+  geom_label(inherit.aes=FALSE, size = 4.5, aes(x = 60, y = 16,label=paste("rho = 0.815, p-value < 0.001")))
+
+```
+   
+   
+   
+```{r, echo = F}
+
+# Print the selected rows
+#PBP1A_T420_S is a possible one - clump in centre of high MIC isolates
+
+choice_of_positions<- c('PBP2B_T489', 
+                        'PBP2X_N444',
+                        'PBP1A_T371',
+                        'PBP2X_M339')
+
+top_cluster_hits <- AA_matrix_phenotype %>% 
+  ungroup() %>% 
+  select(D1, D2, all_of(choice_of_positions)) %>%
+  pivot_longer(cols = starts_with("PBP"), names_to = "Location", values_to = "AA")
+
+
+# Define the new labels for the factor levels
+new_labels <- c('PBP2B T489 - A/S', 
+                'PBP2X N444 - S',
+                'PBP1A T371 - S',
+                'PBP2X M339 - F')
+#2X_M343_T
+# Convert Location to a factor and change the levels
+top_cluster_hits <- top_cluster_hits %>%
+  mutate(Location = fct_recode(Location, !!!setNames(choice_of_positions, new_labels)))
+
+   
+top_cluster_hits$Location <- factor(top_cluster_hits$Location, 
+                                    levels = c('PBP2B T489 - A/S', 
+                                               'PBP2X N444 - S',
+                                               'PBP1A T371 - S',
+                                               'PBP2X M339 - F'))
+
+
+ggplot(filter(top_cluster_hits), aes(x = D1, y = D2, fill = AA, colour = AA)) +
+  geom_point(shape = 21, size = 1.75, alpha = 1, colour = "white") +
+  facet_grid(. ~ Location) +  
+  theme_linedraw() +
+  scale_x_continuous(limits = limits_phen_map_x, breaks = breaks_phen_map_x) +
+  scale_y_continuous(limits = limits_phen_map_y, breaks = breaks_phen_map_y) +
+  theme_MDR_cartography() +
+  coord_fixed() +   
+  theme(strip.background = element_rect(fill = "white")) + 
+  theme(strip.text = element_text(colour = 'black')) +
+  theme(
+    legend.position = "bottom",  # Legend at the bottom
+    legend.direction = "horizontal",  # Horizontal layout
+    legend.box = "horizontal",  # Display legend items next to each other
+    legend.text = element_text(size = 8),
+    legend.margin = margin(t = -0.2, r = 0, b = -0.2, l = 0),  # Reduce legend margin
+    plot.margin = margin(0, 0, 0, 0, "cm")  # Reduce overall plot margins
+  ) +
+  guides(fill = guide_legend(title = "Amino Acid", nrow = 1, override.aes = list(size = 3.5))) +
+  #scale_fill_manual(values = c("#984EA3", "#999999", "#A65628", "#F781BF", "#FF7F00", "#377EB8", "#4DAF4A", "#F781BF", "#999999",
+  #                             "#1B9E77", "#D95F02", "#7570B3", "#E7298A", "#66A61E", "#E6AB02", "#A6761D", "#666666")) 
+  scale_fill_manual(values=c("#FF7F00", #1 
+                             "#4DAF4A", #2
+                             "#984EA3", #3
+                             "darkgrey", #4
+                             "#E41A1C", #5
+                             "#377EB8", #6
+                             "#A65628", #7 
+                             "#F781BF"))
+
+  ggsave("Spneumoniae_method_highlight_panel4.jpg")
+
+
+# Get the ColorBrewer "Set1" palette
+set1_palette <- brewer.pal(n = 9, name = "Set1")
+
+# Print the hexadecimal color codes
+print(set1_palette)
+
+
+```
+
+
+```{r, echo = F}
+
+table_of_subs_evidence <- table_of_subs %>%
+  filter(Evidence == "Very Strong" | Evidence == "Strong"| Evidence == "Moderate" 
+         #| Evidence == "Weak"
+         )%>%
+  mutate(Loci = substr(Location,2,5)) %>%
+  distinct(PBP, Loci,  .keep_all = T) 
+
 
 ### euler plot of overlap
 setwd("/Users/ajb306/Google Drive/PhD - Andrew Balmer/Chapters/AMR cartography/MIC data/Streptococcus pneumoniae analysis/")
@@ -530,7 +1147,7 @@ table_of_subs_evidence$Location <- as.factor(table_of_subs_evidence$Location)
 table_of_subs_evidence$Cartography <- TRUE
 
 
-euler_plot <- full_join(filter(table_of_subs_evidence, Evidence != "Weak/No evidence"), CDC_GWAS_overlap, by = c("PBP" = "PBP", "Location" = "Location"))
+euler_plot <- full_join(filter(table_of_subs_evidence), CDC_GWAS_overlap, by = c("PBP" = "PBP", "Location" = "Location"))
 
 euler_plot <- euler_plot %>% replace_na(list(Cartography = FALSE, CDC = FALSE, GWAS = FALSE, Laboratory = FALSE))
   
@@ -554,12 +1171,200 @@ laboratory <- subset(euler_plot, Laboratory == "TRUE")$PBP_position
 
 ```
 
-# for some reason the venn disgram code wont work within a markdown chunk.
-myV <- plotVenn(list(GWAS=gwas, CDC = cdc, Laboratory = laboratory), nCycles = 10000, showPlot = T)
+library(nVennR)
+
+
+jpeg("Spneumo_method_overlap.jpg")
+myV <- plotVenn(list(Cartography=cartography_methods, GWAS=gwas, CDC = cdc, Laboratory = laboratory), nCycles = 7000, showPlot = T, opacity = .4, borderWidth = 2, labelRegions = F, fontScale = 2, setColors = c("#E41A1C",  "#4DAF4A", "#FFFF33", "#377EB8"))
+dev.off()
+
+
+
+
+```{r, echo = F}
+
+table_of_subs_evidence <- table_of_subs %>%
+  filter(Evidence == "Very Strong" | Evidence == "Strong"| Evidence == "Moderate" 
+         | Evidence == "Weak"
+         )%>%
+  mutate(Loci = substr(Location,2,5)) %>%
+  distinct(PBP, Loci,  .keep_all = T) 
+
+
+
+### euler plot of overlap
+setwd("/Users/ajb306/Google Drive/PhD - Andrew Balmer/Chapters/AMR cartography/MIC data/Streptococcus pneumoniae analysis/")
+
+
+CDC_GWAS_overlap <- read.csv(file = "CDC_GWAS_overlap_TPD.csv")
+
+CDC_GWAS_overlap$CDC <- recode(CDC_GWAS_overlap$CDC, Yes = TRUE, No = FALSE) 
+CDC_GWAS_overlap$GWAS <- recode(CDC_GWAS_overlap$GWAS, Yes = TRUE, No = FALSE) 
+CDC_GWAS_overlap$Laboratory <- recode(CDC_GWAS_overlap$Laboratory, Yes = TRUE, No = FALSE) 
+
+
+### euler plot of overlap
+CDC_GWAS_overlap$PBP <- recode(CDC_GWAS_overlap$PBP, "1a" = "1A", 
+            "2b" = "2B",
+            "2x" = "2X")
+CDC_GWAS_overlap$Location <- as.factor(CDC_GWAS_overlap$Position)
+table_of_subs_evidence$Location <- str_sub(table_of_subs_evidence$Location, 2, 4)
+table_of_subs_evidence$Location <- as.factor(table_of_subs_evidence$Location)
+
+table_of_subs_evidence$Cartography <- TRUE
+
+
+euler_plot <- full_join(filter(table_of_subs_evidence), CDC_GWAS_overlap, by = c("PBP" = "PBP", "Location" = "Location"))
+
+euler_plot <- euler_plot %>% replace_na(list(Cartography = FALSE, CDC = FALSE, GWAS = FALSE, Laboratory = FALSE))
+  
+euler_plot <- euler_plot %>% unite("PBP_position", c(PBP,Location), remove = FALSE) %>%
+distinct(PBP, Location,  .keep_all = T) 
+
+
+library(eulerr)
+library(Rcpp)
+
+euler_plot$Cartography <- as.logical(euler_plot$Cartography)
+euler_plot$GWAS <- as.logical(euler_plot$GWAS)
+euler_plot$CDC <- as.logical(euler_plot$CDC)
+euler_plot$Laboratory <- as.logical(euler_plot$Laboratory)
+
+cartography_methods <- subset(euler_plot, Cartography == "TRUE")$PBP_position
+gwas <- subset(euler_plot, GWAS == "TRUE")$PBP_position
+cdc <- subset(euler_plot, CDC == "TRUE")$PBP_position
+laboratory <- subset(euler_plot, Laboratory == "TRUE")$PBP_position
+
+
+```
+
+
+library(nVennR)
 
 myV <- plotVenn(list(Cartography=cartography_methods, GWAS=gwas, CDC = cdc, Laboratory = laboratory), nCycles = 70000, showPlot = T, opacity = .4, borderWidth = 2, labelRegions = F, fontScale = 2)
 
-jpeg("Spneumo_method_overlap.jpg")
+jpeg("Spneumo_method_overlap_and_weak.jpg")
 myV <- plotVenn(list(Cartography=cartography_methods, GWAS=gwas, CDC = cdc, Laboratory = laboratory), nCycles = 70000, showPlot = T, opacity = .4, borderWidth = 2, labelRegions = F, fontScale = 2, setColors = c("#E41A1C",  "#4DAF4A", "#FFFF33", "#377EB8"))
 dev.off()
 
+
+```{r, echo = F}
+
+
+# Include all cartography evidence
+table_of_subs_evidence <- table_of_subs %>%
+  filter(Evidence %in% c("Very Strong", "Strong", "Moderate", "Weak")) %>%
+  mutate(Loci = substr(Location, 2, 5)) %>%
+  distinct(PBP, Loci, .keep_all = TRUE) %>%
+  mutate(Cartography = TRUE)
+
+# Load CDC/GWAS data
+setwd("/Users/ajb306/Google Drive/PhD - Andrew Balmer/Chapters/AMR cartography/MIC data/Streptococcus pneumoniae analysis/")
+CDC_GWAS_overlap <- read.csv(file = "CDC_GWAS_overlap_TPD.csv")
+
+CDC_GWAS_overlap <- CDC_GWAS_overlap %>%
+  mutate(
+    CDC = recode(CDC, Yes = TRUE, No = FALSE),
+    GWAS = recode(GWAS, Yes = TRUE, No = FALSE),
+    Laboratory = recode(Laboratory, Yes = TRUE, No = FALSE),
+    PBP = recode(PBP, "1a" = "1A", "2b" = "2B", "2x" = "2X"),
+    Location = as.factor(Position)
+  )
+
+# Format locations
+table_of_subs_evidence$Location <- str_sub(table_of_subs_evidence$Location, 2, 4)
+table_of_subs_evidence$Location <- as.factor(table_of_subs_evidence$Location)
+
+# Merge sources
+euler_plot <- full_join(table_of_subs_evidence, CDC_GWAS_overlap,
+                        by = c("PBP" = "PBP", "Location" = "Location")) %>%
+  replace_na(list(Cartography = FALSE, CDC = FALSE, GWAS = FALSE, Laboratory = FALSE)) %>%
+  unite("PBP_position", c(PBP, Location), remove = FALSE) %>%
+  distinct(PBP_position, .keep_all = TRUE)
+
+# Convert to logical
+euler_plot <- euler_plot %>%
+  mutate(across(c(Cartography, GWAS, CDC, Laboratory), as.logical))
+
+# Define sets: Weak is outer, Strong+ is nested
+cartography_weak <- subset(euler_plot, Cartography == TRUE)$PBP_position
+cartography_strong <- subset(euler_plot, Cartography == TRUE & Evidence != "Weak")$PBP_position
+
+# Define external sources
+gwas <- subset(euler_plot, GWAS == TRUE)$PBP_position
+cdc <- subset(euler_plot, CDC == TRUE)$PBP_position
+laboratory <- subset(euler_plot, Laboratory == TRUE)$PBP_position
+
+
+```
+
+library(nVennR)
+
+jpeg("Spneumo_method_overlap_nested_strong.jpg", width = 1200, height = 1000)
+
+myV <- plotVenn(
+  list(
+    `Cartography (Weak)` = cartography_weak,
+    `Cartography (Moderate+)` = cartography_strong,
+    `GWAS` = gwas,
+    `CDC` = cdc,
+    `Laboratory` = laboratory       
+  ),
+  nCycles = 70000,
+  showPlot = TRUE,
+  opacity = 0.4,
+  borderWidth = 2,
+  labelRegions = FALSE,
+  fontScale = 2,
+  setColors = c(
+    "#FBB4AE",  # Cartography Weak (outer red)
+    "#E41A1C",  # Cartography Moderate+ (nested deep red)
+    "#4DAF4A",  # GWAS
+    "#FFFF33",  # CDC
+    "#377EB8"   # Laboratory
+  )
+)
+
+dev.off()
+
+```{r, echo = F}
+
+
+# Step 1: Generate expected PBP column names from PBP_position
+pbp_position_raw <- external_only_df$PBP_position
+pbp_colnames <- paste0("PBP", pbp_position_raw)  # e.g. PBP1A_539
+
+# Step 2: Clean AA_matrix_phenotype column names by removing the character after the underscore
+# E.g., PBP1A_T539 → PBP1A_539
+aa_colnames_clean <- gsub("^(PBP\\d+[A-Z])_[A-Z](\\d+)$", "\\1_\\2", colnames(AA_matrix_phenotype))
+
+# Step 3: Match cleaned colnames to those in pbp_colnames
+col_match_idx <- which(aa_colnames_clean %in% pbp_colnames)
+pbp_cols_present <- colnames(AA_matrix_phenotype)[col_match_idx]
+
+# Step 4: Subset AA_matrix_phenotype
+pbp_data <- AA_matrix_phenotype[, pbp_cols_present, drop = FALSE]
+
+# Step 5: Check for variation and compute frequencies only for variable columns
+variant_summary <- lapply(pbp_data, function(col) {
+  if (length(unique(col)) > 1) {
+    return(table(col))  # Frequency table
+  } else {
+    return(NULL)  # Not variant
+  }
+})
+
+# Step 6: Remove NULLs (invariant columns)
+variant_summary <- variant_summary[!sapply(variant_summary, is.null)]
+
+# Step 7: Count how many columns were variant
+num_variant <- length(variant_summary)
+cat("\nNumber of variant columns:", num_variant, "\n")
+
+# Step 8: Print frequency tables for each variant column
+for (i in seq_along(variant_summary)) {
+  cat("\n", names(variant_summary)[i], ":\n", sep = "")
+  print(variant_summary[[i]])
+}
+
+```

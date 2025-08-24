@@ -1,0 +1,42 @@
+# macOS cruft
+.DS_Store
+
+# R session files
+.Rhistory
+.RData
+.RDataTmp
+.Ruserdata
+.Rproj.user/
+
+# R markdown side-products
+*_cache/
+*_files/
+
+# Jupyter notebooks
+.ipynb_checkpoints/
+
+# Data/results (ignore all by default; whitelist later if needed)
+*.rds
+*.RDS
+*.RData
+*.rda
+*.csv
+*.tsv
+*.feather
+*.parquet
+
+# Figures and plots
+*.png
+*.jpg
+*.jpeg
+*.tiff
+*.pdf
+*.svg
+
+# Archives/backups
+*.gz
+*.zip
+*.tar
+*.tar.gz
+*.bak
+

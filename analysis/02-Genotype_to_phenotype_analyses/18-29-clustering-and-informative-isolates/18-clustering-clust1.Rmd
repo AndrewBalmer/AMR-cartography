@@ -30,17 +30,22 @@ library(factoextra)
 
   
   options(dplyr.summarise.inform = FALSE)
-  
-# Set working directory
-setwd("/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#03-06-Generating-phenotype-and-genotype-maps")
+
+# Set the working directory
+setwd("/Users/ajb306/AMR-cartography/analysis/01-Phenotype_and_map_analyses/09-12-Cross-validation-analyses/")
+
+# Read the MIC table data
+tablemic <- read.csv("/Users/ajb306/AMR-cartography-results/data/MIC_table_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
 
 # Read in the relevant meta data
-tablemic_meta <- read.csv("/Users/ajb306/AMR-cartography/data/meta_data_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+tablemic_meta <- read.csv("/Users/ajb306/AMR-cartography-results/data/meta_data_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
 
 # Specify the full path to the data file
-phen_map <- "/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#03-06-Generating-phenotype-and-genotype-maps/Spneumo_3628_PCA_start_2D_METRIC.RData"
+phen_map <- "/Users/ajb306/AMR-cartography-results/data/Spneumo_3628_PCA_start_2D_METRIC.RData"
 
+# Load the pre-computed PCA start 2D metric data
 load(phen_map)
+
   res_samp <- torg_met
   theta <- 326*pi/180 ## degrees to radians
   rot <- matrix(c(cos(theta), sin(theta), -sin(theta), cos(theta)), ncol = 2)
@@ -53,11 +58,11 @@ load(phen_map)
                            "2014200662" , "5869-99" , "2513-99")
   
 # Specify the full path to the data file
-gen_map <- "/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#03-06-Generating-phenotype-and-genotype-maps/Spneumo_3628_PCA_start_2D_METRIC_genetic.RData"
-load('/Users/ajb306/AMR-cartography/data/tablemic_pneumo_gen_3628.RData')
+load('/Users/ajb306/AMR-cartography-results/data/Spneumo_3628_PCA_start_2D_METRIC_genetic.RData')
+load('/Users/ajb306/AMR-cartography-results/data/tablemic_pneumo_gen_3628.RData')
 
 # Load the precomputed PCA start 2D metric data
-load(gen_map)
+
 
   genotype_mds <- as.data.frame(torg_met$conf)
   
@@ -128,12 +133,12 @@ theme_MDR_cartography <- function(){
 ```
 
 # Clustering and identifying informative AA combinations
-Here, I have demonstrated a second method of identifying the amino acid substitutions responsible for changes in beta-lactam resistance phenotypes. This method is meant to work in combination with the previous analysis on single AA substitutions, along with the results of the multivariate linear mixed models. This method involves subdividing regions of the genetic and phenotypic maps, and identifying the AA substitutions which cause phenotypic change from one region to the next. In this document, I will refer to these regions as 'clusters', as I use the K-medoids clustering algorithm to pick them out.
+Here, I have demonstrated a second method of identifying the amino acid substitutions responsible for changes in beta-lactam resistance phenotypes. This method is meant to work in combination with the previous analysis on single AA substitutions, along with the results of the multivariate linear mixed models. This method involves subdividing regions of the genetic and phenotypic maps, and identifying the AA substitutions which cause phenotypic change from one region to the next. In this document, I will refer to these regions as 'clusters', as I use the hierarchical clustering algorithm to pick them out.
 
 As with the previous analysis, I have limited the analysis to the transpeptidase regions (TPD) of the three penicillin binding proteins (PBPs): PBP1a, PBP2b and PBP2x, as they are thought to be the main regions which determine variation in beta-lactam resistance phenotype. As with the previous analysis, this technique is one of the methods used to identify causal variations underlying antigenic change in the influenza cartography maps.
 
 ## Clustering isolates based on PBP genetic diversity
-Here, I have subdivided isolates into groups with relatively low PBP genetic diversity. These regions are marked below on the genetic maps. As described previously, the ‘genetic maps’ are a visualisation of the amino acid distance matrix calculated from the concatenated PBP substitutions. I then used the MDS algorithm to position the isolates on the map. The gridlines represent 10 AAs distance between points. The colours on the map represent regions or 'clusters' picked out using the K-medoids algorithm which represent groupings of relatively low PBP genetic diversity. It may be useful to conduct a permutation analysis as the precise boundaries of the clustering may affect the final results.
+Here, I have subdivided isolates into groups with relatively low PBP genetic diversity. These regions are marked below on the genetic maps. As described previously, the ‘genetic maps’ are a visualisation of the amino acid distance matrix calculated from the concatenated PBP substitutions. I then used the MDS algorithm to position the isolates on the map. The gridlines represent 10 AAs distance between points. The colours on the map represent regions or 'clusters' picked out using the hierarchical algorithm which represent groupings of relatively low PBP genetic diversity. 
 
 
 ```{r, echo = F}
@@ -192,6 +197,11 @@ coord_fixed() +
 
 ```
 
+
+# Choice of clustering
+
+Most of the variation in cluster 1 could be explained in 2 clusters, as indicated by the sharp elbow on the scree plot at 2 clusters. However, there was very little phenotypic variation within this group generally, making it difficult to pick out substitutions which vary between groups. Similarly, there was a low number of PBP-types, and the low number of isolates within each PBP-type. This is reflected in the output of this file, as no substitutions were clearly associated with the phenotypic distance between the isolates in this group. 
+
 ```{r, echo=FALSE}
 
 ## centroids
@@ -201,7 +211,7 @@ PBPclustering <- AA_matrix_phenotype %>%
   ungroup()
 
 # Compute hierarchical clustering on MDS axes
-phen_cluster_MDS <- HCPC(select(PBPclustering, x_centroid, y_centroid), nb.clust = 3, consol = T, iter.max = 500, graph = T, order = T)
+phen_cluster_MDS <- HCPC(select(PBPclustering, x_centroid, y_centroid), nb.clust = 2, consol = T, iter.max = 500, graph = T, order = T)
 
 plot(phen_cluster_MDS$call$t$inert.gain[c(1:7)])
 
@@ -214,39 +224,39 @@ AA_matrix_phenotype <- left_join(AA_matrix_phenotype, PBPclustering, by = c("PBP
 
 AA_matrix_phenotype$phen_cluster <- as.factor(AA_matrix_phenotype$phen_cluster)
 
-cluster_5 <- filter(AA_matrix_phenotype, gen_cluster == 1)
+cluster_1 <- filter(AA_matrix_phenotype, gen_cluster == 1)
 
 
 
 ## Pull out the AA sequences for the isolates
-PBP_positions <- cluster_5 %>% 
+PBP_positions <- cluster_1 %>% 
   ungroup() %>%
   select(starts_with("PBP"), phen_cluster) %>%
   select(-PBP_type)
 
     
-limits_phen_map_x_cluster <- c(min(cluster_5$D1, na.rm = T), 
-                       max(cluster_5$D1, na.rm = T))
-limits_phen_map_y_cluster <- c(min(cluster_5$D2, na.rm = T), 
-                       max(cluster_5$D2, na.rm = T))
+limits_phen_map_x_cluster <- c(min(cluster_1$D1, na.rm = T), 
+                       max(cluster_1$D1, na.rm = T))
+limits_phen_map_y_cluster <- c(min(cluster_1$D2, na.rm = T), 
+                       max(cluster_1$D2, na.rm = T))
 
-breaks_phen_map_x_cluster <- seq(min(cluster_5$D1, na.rm = T) - (1), 
-                         max(cluster_5$D1, na.rm = T) + (1), 1)
-breaks_phen_map_y_cluster <- seq(min(cluster_5$D2, na.rm = T) - (1), 
-                         max(cluster_5$D2, na.rm = T) + (1), 1)
+breaks_phen_map_x_cluster <- seq(min(cluster_1$D1, na.rm = T) - (1), 
+                         max(cluster_1$D1, na.rm = T) + (1), 1)
+breaks_phen_map_y_cluster <- seq(min(cluster_1$D2, na.rm = T) - (1), 
+                         max(cluster_1$D2, na.rm = T) + (1), 1)
 
 
-limits_gen_map_x_cluster <- c(min(cluster_5$G1, na.rm = T) - (gen_slope * 5), 
-                      max(cluster_5$G1, na.rm = T) + (gen_slope * 5))
-limits_gen_map_y_cluster <- c(min(cluster_5$G2, na.rm = T) - (gen_slope * 5), 
-                      max(cluster_5$G2, na.rm = T)+ (gen_slope * 5))
+limits_gen_map_x_cluster <- c(min(cluster_1$G1, na.rm = T) - (gen_slope * 5), 
+                      max(cluster_1$G1, na.rm = T) + (gen_slope * 5))
+limits_gen_map_y_cluster <- c(min(cluster_1$G2, na.rm = T) - (gen_slope * 5), 
+                      max(cluster_1$G2, na.rm = T)+ (gen_slope * 5))
 
-breaks_gen_map_x_cluster <- seq(min(cluster_5$G1, na.rm = T)- (gen_slope * 10), 
-                        max(cluster_5$G1, na.rm = T) + (gen_slope * 10), gen_slope * 10)
-breaks_gen_map_y_cluster <- seq(min(cluster_5$G2, na.rm = T)- (gen_slope * 10), 
-                        max(cluster_5$G2, na.rm = T) + (gen_slope * 10), gen_slope * 10)
+breaks_gen_map_x_cluster <- seq(min(cluster_1$G1, na.rm = T)- (gen_slope * 10), 
+                        max(cluster_1$G1, na.rm = T) + (gen_slope * 10), gen_slope * 10)
+breaks_gen_map_y_cluster <- seq(min(cluster_1$G2, na.rm = T)- (gen_slope * 10), 
+                        max(cluster_1$G2, na.rm = T) + (gen_slope * 10), gen_slope * 10)
 
-ggplot(filter(cluster_5, gen_cluster == 1 ), aes(x=D1,y=D2, fill = gen_cluster)) +
+ggplot(filter(cluster_1, gen_cluster == 1 ), aes(x=D1,y=D2, fill = gen_cluster)) +
     geom_point(data = select(all_isolates, -gen_cluster), colour = "#969696", fill = "#969696", shape = 16, size = 2.5, alpha = 1)+
   geom_point(shape = 21,size = 5, alpha = .6) +
   theme_linedraw() +
@@ -264,27 +274,15 @@ coord_fixed() +
 
 ```
 
-```{r, echo = F, include = F}
-
-PBPclustering <- AA_matrix_phenotype %>% 
-  filter(gen_cluster == 1 ) %>% 
-  distinct(PBP_type, .keep_all = TRUE) %>% 
-  ungroup()
-
-
-nb <- NbClust(data = select(PBPclustering, x_centroid, y_centroid), distance = "euclidean",
-        min.nc = 2, max.nc = 5, method = "ward.D")
-```
 
 
 ## Identifying phenotype clusters on phenotype map.
 
-Here, I have plotted the isolates of cluster 9 on the phenotype map. Each colour represents a different genotype. The CDC uses a PBP typing scheme, where the genotype of each of the three PBPs is given a number. The labels represent the particular genotype combination for each of the three proteins.
 
 ```{r, echo = F}
 
 
-ggplot(filter(cluster_5, gen_cluster == 1 ), aes(x=x_centroid,y=y_centroid, fill = PBP_type)) +
+ggplot(filter(cluster_1, gen_cluster == 1 ), aes(x=x_centroid,y=y_centroid, fill = PBP_type)) +
   geom_point(data = select(all_isolates, -gen_cluster), colour = "#969696", fill = "#969696", shape = 16, size = 2.5, alpha = 1)+
   geom_point(shape = 21,size = 4, alpha = 1) +
   guides() +
@@ -305,7 +303,7 @@ theme_MDR_cartography() +
                                 "#999999" ))
 
 
-ggplot(filter(cluster_5, gen_cluster == 1 ), aes(x=G1,y=G2, fill = PBP_type)) +
+ggplot(filter(cluster_1, gen_cluster == 1 ), aes(x=G1,y=G2, fill = PBP_type)) +
     geom_point(data = select(all_isolates, -gen_cluster), colour = "#969696", fill = "#969696", shape = 16, size = 2.5, alpha = 1)+
   geom_point(shape = 21,size = 5, alpha = .6) +
   theme_linedraw() +
@@ -333,7 +331,7 @@ ggsave("gen_clust_cluster_PBP.jpg")
 ### Computing median centroids and clustering on phenotypes 
 Given the MIC values were measured by different laboratories over a period of several years, we would expect a high degree of experimental error, potential systemic differences between laboratories, and in some cases mistakenly labelled isolates. How best too deal with these sources error is unclear, and is one motivation for developing the cartography framework.
 
-Here I have tried to classify the isolates based on their phenotype, however this is difficult in some cases given outliers. I have therefore calculated the median centroid for each genotype on the map, and marked these as a series of crosses (X). The crosses fall roughly into four groupings, as shown below.
+Here I have tried to classify the isolates based on their phenotype, however this is difficult in some cases given outliers. I have therefore calculated the median centroid for each genotype on the map, and marked these as a series of crosses (X). In this cluster, this method has limited resolution, because the PBP-types are so similar in phenotype. Because of this, there will be limited information from this cluster. For a better example of the method and its uses, look at the script for cluster 12. 
 
 
 
@@ -342,7 +340,7 @@ Here I have tried to classify the isolates based on their phenotype, however thi
 ggplot(filter(AA_matrix_phenotype, gen_cluster == 1 ), aes(x=D1,y=D2, fill = PBP_type)) +
   geom_point(data = select(AA_matrix_phenotype, -gen_cluster), colour = "#969696", fill = "#969696", shape = 16, size = 2.5, alpha = 1)+
   geom_point(shape = 21,size = 4, alpha = 1) +
-  geom_point(cluster_5, mapping = aes(x_centroid, y_centroid, colour = "#000000"),
+  geom_point(cluster_1, mapping = aes(x_centroid, y_centroid, colour = "#000000"),
              shape = 4, size = 4, stroke = 2, show.legend =F) +
   guides() +
   theme_linedraw() +
@@ -362,14 +360,14 @@ ggplot(filter(AA_matrix_phenotype, gen_cluster == 1 ), aes(x=D1,y=D2, fill = PBP
                                 "#999999" ))
 ```
 
-I then used the hierarchical clustering algorithm on the centroid positions to pick out the 3 regions which have different phenotypes within this group of low PBP genetic diversity. Here, the centroids and the isolates which belong to that centroid are coloured by their phenotype cluster.
+I then used the hierarchical clustering algorithm on the centroid positions to pick out  regions which have different phenotypes within this group of low PBP genetic diversity. Here, the centroids and the isolates which belong to that centroid are coloured by their phenotype cluster.
 
 ```{r, echo =F}
 
-ggplot(filter(cluster_5), aes(x=D1,y=D2, fill = phen_cluster)) +
+ggplot(filter(cluster_1), aes(x=D1,y=D2, fill = phen_cluster)) +
   geom_point(data = select(all_isolates, -gen_cluster), colour = "#969696", fill = "#969696", shape = 16, size = 2.5, alpha = 1)+
     geom_point(shape = 21,size = 4, alpha = 1) +
-  geom_point(cluster_5, mapping = aes(x_centroid, y_centroid, colour = phen_cluster),
+  geom_point(cluster_1, mapping = aes(x_centroid, y_centroid, colour = phen_cluster),
              shape = 4, size = 4, stroke = 2, show.legend =F) + guides() +
 
   theme_linedraw() +
@@ -480,13 +478,7 @@ Identifying the causal substitutions behind phenotypic change on the map can be 
 
 Potential “cluster-difference” amino acid substitutions were identified using the following method. A loci variant of X to Y at location L was considered a potential “cluster-difference” variant between clusters A and B if all or all but one isolates in cluster A have variant X at location L, and all or all but one isolate in cluster B have variant Y at location L. 
 
-## Example 1 --- comparing phenotype clusters 1 and 2
-
-Below is an example of this method. The first plot shows the AA positions of the three PBPs on the X axis. The Y axis shows the absolute proportion change in frequency of an amino acid residue at that position. In this simple case, there is one location: PBP2X_I371, where 100% of the isolates in cluster 2 have isoleucine at this position, whereas 100% of isolates of cluster 1 have Threonine at this position. The phenotypic difference between the two clusters can then be attributed to the variation at this position. Notably, this position was also picked out in the 'Identifying single substitutions' analysis, where it generated a phenotypic distance of 4.43. Isolates of cluster 9 which belong to the other phenotype clusters are marked as large grey points.
-
-
-## Example 2 - comparing clusters 2 and 4
-Here is a second, slightly more complex example, where there are four locations which vary by 100% between the clusters 2 and 4. The two combinations are marked out below on the map. In this case, it may be one or all of the four substitutions which induce the phenotypic change between the two clusters. It may be possble to infer which of the four are more likely to be causal substitutions when looking at other areas of the genotype map. Alternatively, experimental work or searching for isolates with different AA combinations at these four positions, may make it possible to pick out which of the four are causal.
+As stated above, the limited phenotypic diversity within this cluster gave very limited information on the amino acid differences between clusters, as it is difficult to establish any robust comparison between the groups.
 
 ```{r, echo = F}
 
@@ -502,7 +494,7 @@ cluster_1_cluster_2_difference <- cluster_1_cluster_2_difference %>%
   unite("Profile_clusters_1_2", 10:ncol(cluster_1_cluster_2_difference), remove = F) 
 
 
-cluster_5_diff <- left_join(cluster_5, select(cluster_1_cluster_2_difference, LABID, Profile_clusters_1_2), by = c("LABID")) %>% ungroup()
+cluster_1_diff <- left_join(cluster_1, select(cluster_1_cluster_2_difference, LABID, Profile_clusters_1_2), by = c("LABID")) %>% ungroup()
 
 
 
@@ -538,8 +530,8 @@ coord_fixed() +
   scale_fill_manual(values=my_colours ) +
   scale_colour_manual(values=my_colours )
 
-C <- ggplot(filter(cluster_5_diff, phen_cluster == 2 | phen_cluster == 1), aes(x=G1,y=G2, fill = Profile_clusters_1_2)) +
-    geom_point(data = select(cluster_5_diff, -gen_cluster), colour = "#969696", fill = "#969696", shape = 16, size = 2.5, alpha = 1)+
+C <- ggplot(filter(cluster_1_diff, phen_cluster == 2 | phen_cluster == 1), aes(x=G1,y=G2, fill = Profile_clusters_1_2)) +
+    geom_point(data = select(cluster_1_diff, -gen_cluster), colour = "#969696", fill = "#969696", shape = 16, size = 2.5, alpha = 1)+
   geom_point(data = cluster_1_cluster_2_difference, colour = "#969696", fill = "#969696", shape = 16, size = 2.5, alpha = 1)+
   geom_point(shape = 21,size = 5, alpha = .6) +
   theme(legend.position='none') +
@@ -556,84 +548,21 @@ coord_fixed() +
 ggarrange(B,C,A,  nrow = 2, ncol = 2, font.label = list(size = 16, face = "bold"))
 
 
-#Cluster_substitutions <- NULL
-#Cluster_substitutions <- as.vector(Cluster_substitutions)
-#Cluster_substitutions <- as.data.frame(c(Cluster_substitutions, colnames(cluster_1_cluster_4_difference[,11:ncol(cluster_1_cluster_4_difference)])))
-#colnames(Cluster_substitutions) <- "Location"
+Cluster_substitutions <- NULL
+Cluster_substitutions <- as.vector(Cluster_substitutions)
+Cluster_substitutions <- as.data.frame(c(Cluster_substitutions, colnames(cluster_1_cluster_2_difference[,11:ncol(cluster_1_cluster_2_difference)])))
+colnames(Cluster_substitutions) <- "Location"
 
-#Cluster_substitutions$Genetic_cluster <- "1"
-#Cluster_substitutions$Phenotypic_cluster <- "1_4"
-#Cluster_substitutions$Confidence <- "Strong"
+Cluster_substitutions$Genetic_cluster <- "1"
+Cluster_substitutions$Phenotypic_cluster <- "1_2"
 
 
 ```
 
+## Summary
 
-# Summary
-In total, 6 PBP locations were strongly associated with the phenotypic cluster differences in this subset of isolates. All 6 were located in the PBP2x protein. 
+As none of the substitutions were clearly associated with the difference between phenotypic clusters. None were marked as being associated with phenotypic change.
 
-However, cluster 1 represents a low number of PBP-types, which are not phenotypically distinct. In this case, the method will struggle to pick out substitutions which are strongly associated with phenotypic change. In this cluster, I identified several substitutions which were associated with the phenotypic change between clusters, however these were marked as having only weak evidence, because the pbp-types were mostly overlapping in their phenotypic distributions. 
-
-## Visualising the identified substitutions
-Below I have plotted the 6 cluster-difference locations from within genetic cluster 9. Each of these locations appears strongly associated with particular areas of the map. One possible exception is PBP2X_T230, which was the cluster difference location between clusters 4 and 1, which was less clear from the analysis above. 
-
-```{r, echo =F} 
-
-Potential_substitutions <- Cluster_substitutions
-
-setwd("/Users/ajb306/Google Drive/PhD - Andrew Balmer/Chapters/AMR cartography/MIC data/Streptococcus pneumoniae analysis/")
-
-#write.csv(Potential_substitutions, file = "Sig_AA_subs_Cluster_gen1_S.pneumo.csv", row.names=FALSE)
-Potential_substitutions <- Potential_substitutions %>% distinct(Location, .keep_all = TRUE) 
-
-Potential_substitutions <- AA_matrix_phenotype %>% ungroup() %>% select(D1, D2, G1,G2, gen_cluster, phen_cluster, x_centroid, y_centroid, c(Potential_substitutions$Location))
-
-
-## pivot to longer dataframe to calculate frequency changes
-Potential_substitutions <- Potential_substitutions %>%
-  pivot_longer(!D1:y_centroid, names_to = "Location", values_to = "AA")  %>% 
-  separate(Location, c("PBP","Loci"), remove = F)
-
-
-ggplot(filter(Potential_substitutions, gen_cluster == 1 ), 
-       aes(x=D1,y=D2, fill = AA)) +
-    geom_point(data = AA_matrix_phenotype, 
-             colour = "#969696", fill = "#969696", shape = 16, size = 2.5, alpha = 1) +
-      geom_point(shape = 21,size = 4.5, alpha = 1) +
-  facet_wrap(.~ Location) + 
-  theme_linedraw() +
-  scale_x_continuous(limits = limits_phen_map_x_cluster, breaks=breaks_phen_map_x_cluster) +
-  scale_y_continuous(limits = limits_phen_map_y_cluster, breaks=breaks_phen_map_y_cluster) +
-  theme_MDR_cartography() + 
-           theme(legend.title = element_text(size=10), 
-         legend.text = element_text(size=10),
-         legend.key.size = unit(1, 'cm'),
-          legend.background = element_rect(fill="white",
-                                  size=0.35, linetype="solid", 
-                                  colour ="white") )+
-coord_fixed() +  
-  scale_fill_manual(values=my_colours)+
-  scale_colour_manual(values=c( "#E41A1C", "#377EB8" ))
-
-
-ggplot(filter(Potential_substitutions, gen_cluster == 1 ), 
-       aes(x=G1,y=G2, fill = AA)) +
-    geom_point(data = AA_matrix_phenotype, 
-             colour = "#969696", fill = "#969696", shape = 16, size = 2.5, alpha = 1) +
-      geom_point(shape = 21,size = 4.5, alpha = 1) +
-  facet_wrap(.~ Location) + 
-  theme_linedraw() +
-  scale_x_continuous(limits = limits_gen_map_x_cluster, breaks=breaks_gen_map_x_cluster) +
-  scale_y_continuous(limits = limits_gen_map_y_cluster, breaks=breaks_gen_map_y_cluster) +
-  theme_MDR_cartography() +
-           theme(legend.title = element_text(size=10), 
-         legend.text = element_text(size=10),
-         legend.key.size = unit(1, 'cm'),
-          legend.background = element_rect(fill="white",
-                                  size=0.35, linetype="solid", 
-                                  colour ="white") )+
-  coord_fixed() +  
-  scale_fill_manual(values=my_colours)
+```{r,echo=F}
 
 ```
-

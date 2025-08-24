@@ -17,17 +17,17 @@ library(broom)
 library(vcd)
 options(dplyr.summarise.inform = FALSE)
 
-# Set working directory
-setwd("/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#03-06-Generating-phenotype-and-genotype-maps")
+# Set the working directory
+setwd("/Users/ajb306/AMR-cartography/analysis/01-Phenotype_and_map_analyses/13-Dimensionality-tests/")
 
-# Read in genetic distance matrix for the full dataset
-load('/Users/ajb306/AMR-cartography/data/tablemic_pneumo_gen_3628.RData')
+# Read the MIC table data
+tablemic <- read.csv("/Users/ajb306/AMR-cartography-results/data/MIC_table_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
 
 # Read in the relevant meta data
-tablemic_meta <- read.csv("/Users/ajb306/AMR-cartography/data/meta_data_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+tablemic_meta <- read.csv("/Users/ajb306/AMR-cartography-results/data/meta_data_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
 
 # Specify the full path to the data file
-phen_map <- "/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#03-06-Generating-phenotype-and-genotype-maps/Spneumo_3628_PCA_start_2D_METRIC.RData"
+phen_map <- "/Users/ajb306/AMR-cartography-results/data/Spneumo_3628_PCA_start_2D_METRIC.RData"
 
 # Load the pre-computed PCA start 2D metric data
 load(phen_map)
@@ -37,71 +37,76 @@ plot(torg_met, main = "Classical start metric", label.conf = list(label = FALSE)
 
 ```
 
-```{r,echo=F}
+
+```{r, echo=F}
 
 # Rotate configuration by 326 degrees
 theta <- 326 * pi / 180 ## degrees to radians
 rot <- matrix(c(cos(theta), sin(theta), -sin(theta), cos(theta)), ncol = 2)
 torg_met$conf <- torg_met$conf %*% rot ## rotated configurations
 
-### Turn map coordinates into dataframe and rename
+# Turn map coordinates into dataframe and rename
 AA_matrix_phenotype <- bind_cols(tablemic_meta, as.data.frame(torg_met$conf)) 
 
-
-samples_to_exclude <- c("20156696", "20162849", "20151885", "20153985", "20154509", "2013224047", "2013218247", "2014200662", "5869-99", "2513-99")
+samples_to_exclude <- c("20156696", "20162849", "20151885", "20153985", "20154509", 
+                        "2013224047", "2013218247", "2014200662", "5869-99", "2513-99")
 
 # Exclude samples
 AA_matrix_phenotype <- AA_matrix_phenotype %>%
   filter(!LABID %in% samples_to_exclude)
 
-AA_matrix_phenotype <- bind_cols(AA_matrix_phenotype, PBPseq)
-
 slope <- 0.1842996
-dilation <- 1/slope
+dilation <- 1 / slope
 
 AA_matrix_phenotype$D1 <- AA_matrix_phenotype$V1 * dilation
 AA_matrix_phenotype$D2 <- AA_matrix_phenotype$V2 * dilation
 
-AA_matrix_phenotype <- rename(AA_matrix_phenotype, PBP_type = PT) %>%
-  group_by(PBP_type) %>%
-  mutate(x_centroid = mean(D1), 
-         y_centroid = mean(D2))
+AA_matrix_phenotype <- rename(AA_matrix_phenotype, PBP_type = PT)
 
-
-
-AA_matrix_phenotype <- AA_matrix_phenotype %>% 
+# Count PBP types
+AA_matrix_phenotype <- AA_matrix_phenotype %>%
   add_count(PBP_type) %>%
-  select(D1,D2,PBP_type, n)
+  select(D1, D2, PBP_type, n)
 
+# Get top 10 PBP types
+top_pbp <- AA_matrix_phenotype %>%
+  count(PBP_type, sort = TRUE) %>%
+  slice_head(n = 15) %>%
+  pull(PBP_type)
 
-All_isolates <- AA_matrix_phenotype %>%  ungroup %>%  select(D1,D2)
+# Filter only top 10 types BEFORE relabeling
+plot_data <- AA_matrix_phenotype %>%
+  filter(PBP_type %in% top_pbp) %>%
+  mutate(PBP_type = paste0(PBP_type, " (n = ", n, ")"))
 
-AA_matrix_phenotype <- AA_matrix_phenotype %>% 
-  mutate(PBP_type = paste0(PBP_type, " (n = ", n(), ")")) 
+All_isolates <- AA_matrix_phenotype %>%
+  ungroup() %>%
+  select(D1, D2)
 
+# Get axis limits based on just the filtered data
+xlims <- range(AA_matrix_phenotype$D1, na.rm = TRUE)
+ylims <- range(AA_matrix_phenotype$D2, na.rm = TRUE)
 
-ggplot(filter(AA_matrix_phenotype, n >100), aes(x=D1,y=D2)) +
-     geom_point(data = All_isolates, colour = "#999999", fill = "#999999", shape = 16, size = 1, alpha = .8)+
- geom_point(shape = 21,
-               size = 2.5, 
-               alpha = 1, 
-            colour = "white",
-               fill = "#E41A1C") +
-      facet_wrap(~ PBP_type, ncol = 5)+
-      theme_linedraw() +
+ggplot(plot_data, aes(x = D1, y = D2)) +
+  geom_point(data = All_isolates, colour = "#999999", fill = "#999999", shape = 16, size = 1, alpha = .8) +
+  geom_point(shape = 21, size = 2.5, alpha = 1, colour = "white", fill = "#E41A1C") +
+  facet_wrap(~ PBP_type, ncol = 5) +
+  theme_linedraw() +
   scale_x_continuous(limits = c(min(AA_matrix_phenotype$D1, na.rm = T), max(AA_matrix_phenotype$D1, na.rm = T)), breaks=seq(min(AA_matrix_phenotype$D1, na.rm = T), max(AA_matrix_phenotype$D1, na.rm = T), 1)) +
     scale_y_continuous(limits = c(min(AA_matrix_phenotype$D2, na.rm = T), max(AA_matrix_phenotype$D2, na.rm = T)), breaks=seq(min(AA_matrix_phenotype$D2, na.rm = T), max(AA_matrix_phenotype$D2, na.rm = T), 1)) + 
-    theme(panel.grid.major = element_line(colour="grey", size = (0.3)),
-          panel.grid.minor = element_blank(),
-          axis.title.x=element_blank(),
-          axis.text.x=element_blank(),
-          axis.ticks.x=element_blank(),
-          axis.title.y=element_blank(),
-          axis.text.y=element_blank(),
-          axis.ticks.y = element_blank(),
-          strip.background =element_rect(fill='#D7301F'),
-          strip.text = element_text(colour = 'white'))+
-    coord_fixed()  
+  theme(panel.grid.major = element_line(colour = "grey", size = 0.3),
+        panel.grid.minor = element_blank(),
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        strip.background = element_rect(fill = '#D7301F'),
+        strip.text = element_text(colour = 'white')) +
+  coord_fixed()
+
+ggsave("Spneumo_phen_top_PBP_types.jpg")
 
 
 ```
@@ -109,53 +114,52 @@ ggplot(filter(AA_matrix_phenotype, n >100), aes(x=D1,y=D2)) +
 
 ```{r, echo = F}
 
-distances <- AA_matrix_phenotype %>% ungroup %>% select(D1,D2)
-distances <- as.data.frame(distances)
+# Extract map coordinates and PBP types
+my_data <- AA_matrix_phenotype %>%
+  select(D1, D2, PBP_type)
 
-data_id2 <- AA_matrix_phenotype %>%  # Create ID by group
+# Keep only PBP types with more than 1 isolate
+pbp_groups <- my_data %>%
   group_by(PBP_type) %>%
-  dplyr::mutate(ID = cur_group_id())
-head(data_id2)
+  filter(n() > 1) %>%
+  select(PBP_type, D1, D2)
 
-library(fpc)
+# Compute within-PBP-type median distances
+median_distances <- pbp_groups %>%
+  group_by(PBP_type) %>%
+  summarise(
+    median_distance = median(as.vector(dist(cbind(D1, D2)))),
+    n = n()
+  ) %>%
+  ungroup()
 
-## the following line is commented out as it takes a long time to run, but this step estimates the within group variance for each PBP type
-distances <- cluster.stats(dist(distances), data_id2$ID, 
-                           noisecluster=FALSE,
-                              silhouette = FALSE, G2 = FALSE, G3 = FALSE,
-                              wgap=FALSE, sepindex=FALSE, 
-                              sepwithnoise=FALSE,
-                              compareonly = FALSE,
-                              aggregateonly = FALSE)
+mean(median_distances$median_distance)
 
-saveRDS(distances, file = "cluster_median_distances.rds")
-distances <- readRDS(file = "cluster_median_distances.rds")
+# Save to file (optional)
+saveRDS(median_distances, file = "cluster_median_distances_fast.rds")
 
-no_cluster <- as.data.frame(distances$cluster.size) %>%
-  rename(n = 1) %>%
-  filter(n > 1) 
+# % of PBP-types with median distance < 1 MIC unit
+pct_below_1 <- round(mean(median_distances$median_distance < 1) * 100, 1)
+cat(pct_below_1, "% of PBP-types have median within-group distance < 1 MIC unit\n")
 
-distances <- as.data.frame(distances$median.distance)
-distances <- na.omit(distances)
-distances[is.na(distances)] <- 0
-colnames(distances) <- "median.distance"
-distances$median.distance  <- distances$median.distance 
-round((nrow(filter(distances, median.distance <1 )) / nrow(distances) * 100) ,1)
-
-
-ggplot(distances, aes(x=median.distance)) + 
- geom_histogram(fill = "#E41A1C", colour="black", alpha = 0.85, bins = 20) +
-  geom_vline(aes(xintercept=1),
-    color="black", linetype="solid") +
-   geom_vline(aes(xintercept=mean(median.distance)),
-            color="red", linetype="dashed", size=1) +
-    labs( x = "Median within-group distance (MIC units)", y = "Frequency") + 	
-  scale_x_continuous( breaks=seq( 0,12, 1)) +
-    theme_bw()  +
+# Plot histogram
+ggplot(median_distances, aes(x = median_distance)) + 
+  geom_histogram(fill = "#E41A1C", colour = "black", alpha = 0.85, bins = 20) +
+  geom_vline(aes(xintercept = 1),
+             color = "black", linetype = "solid") +
+  geom_vline(aes(xintercept = mean(median_distance)),
+             color = "red", linetype = "dashed", size = 1) +
+  labs(x = "Median within-group distance (MIC units)", y = "Frequency") +
+  scale_x_continuous(breaks = seq(0, 12, 1)) +
+  theme_bw() +
   theme(axis.text = element_text(size = 18),
         axis.title = element_text(size = 18)) +
-  coord_fixed(ratio = .08)
+  coord_fixed(ratio = 0.08)
+
+ggsave("Spneumo_phen_within_PBP_type_distances.jpg")
 
 ```
 
+```{r,echo = F}
 
+```

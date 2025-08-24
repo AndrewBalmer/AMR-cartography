@@ -1,4 +1,4 @@
----
+----
 title: "09-Combining-MIC-and-disc-diffusion-analysis"
 author: "Andrew Balmer"
 date: "2024-01-28"
@@ -22,19 +22,23 @@ library(foreach)
 library(doParallel)
 
 # Set the working directory
-setwd("/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#13-19-Cross-validation-analyses/results/")
+setwd("/Users/ajb306/AMR-cartography/analysis/01-Phenotype_and_map_analyses/09-12-Cross-validation-analyses/")
 
 # Read the MIC table data
-tablemic <- read.csv("/Users/ajb306/AMR-cartography/data/MIC_table_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+tablemic <- read.csv("/Users/ajb306/AMR-cartography-results/data/MIC_table_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
 
 # Read in the relevant meta data
-tablemic_meta <- read.csv("/Users/ajb306/AMR-cartography/data/meta_data_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+tablemic_meta <- read.csv("/Users/ajb306/AMR-cartography-results/data/meta_data_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
 
 # Specify the full path to the data file
-phen_map <- "/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#03-06-Generating-phenotype-and-genotype-maps/results/Spneumo_3628_PCA_start_2D_METRIC.RData"
+phen_map <- "/Users/ajb306/AMR-cartography-results/data/Spneumo_3628_PCA_start_2D_METRIC.RData"
 
 # Load the pre-computed PCA start 2D metric data
 load(phen_map)
+
+colnames(tablemic_meta) <- c("LABID", "PT", "Penicillin_MIC", "Amoxicillin_MIC", "Meropenem_MIC", "Cefotaxime_MIC", "Ceftriaxone_MIC", "Cefuroxime_MIC")
+colnames(tablemic)
+
 
 ```
 
@@ -48,10 +52,10 @@ no_bootstraps <- 100
 bootstrap_samples <- list()
 
 for(i in 1:no_bootstraps) {
-  bootstrap_samples[[i]] <- cbind(tablemicgon_meta[,1], tablemicgon)
+  bootstrap_samples[[i]] <- cbind(tablemic_meta[,1], tablemic)
   bootstrap_samples[[i]] <- bootstrap_samples[[i]] %>%
     rename(LABID = 1)
-  bootstrap_samples[[i]] <- left_join(bootstrap_samples[[i]], temp, by = "LABID")
+  bootstrap_samples[[i]] <- left_join(bootstrap_samples[[i]], tablemic_meta, by = "LABID")
 }
 
 disc_diffusion_samples <- list()
@@ -77,6 +81,7 @@ bootstrap_samples[[i]] <- bootstrap_samples[[i]]  %>%
 
 disc_diffusion_samples[[i]] <- sample_n(filter(bootstrap_samples[[i]], n != 1), nrow(filter(bootstrap_samples[[i]], n != 1))*10/100)
 
+
 bootstrap_samples[[i]] <- bootstrap_samples[[i]]  %>% 
   select(!n) %>%
   filter(!LABID %in% as.vector(disc_diffusion_samples[[i]]$LABID)) 
@@ -87,13 +92,13 @@ combinations[[i]] <- bootstrap_samples[[i]]  %>%
 
 disc_diffusion_samples[[i]] <- left_join(disc_diffusion_samples[[i]], combinations[[i]], by = "res_comb") %>%
   select(LABID, most_common_comb) %>%
-  separate(most_common_comb, c("Penicillin", "Amoxicillin", "Meropenem", "Cefotaxime", "Ceftriaxone", "Cefuroxime"))
+  separate(most_common_comb, c("Penicillin", "Amoxicillin", "Meropenem", "Cefotaxime", "Ceftriaxone", "Cefuroxime"), "_")
 
 bootstrap_samples[[i]] <- bootstrap_samples[[i]] %>%
   select(LABID, Penicillin:Cefuroxime) 
 
 bootstrap_samples[[i]] <- rbind(bootstrap_samples[[i]], disc_diffusion_samples[[i]])
-bootstrap_samples[[i]] <- left_join(select(tablemicgon_meta, LABID), bootstrap_samples[[i]], by = "LABID") 
+bootstrap_samples[[i]] <- left_join(select(tablemic_meta, LABID), bootstrap_samples[[i]], by = "LABID") 
 
 }
 
@@ -115,6 +120,7 @@ temp_weight_bootstrap_samples[[i]] <- dissWeights(bootstrap_samples_dists[[i]], 
 }
 
 bootstrap_samples_values <- list()
+
 for (i in 1:no_bootstraps) {
 bootstrap_samples_values[[i]] <- bootstrap_samples[[i]]
 }
@@ -130,20 +136,20 @@ bootstrap_samples_values[[i]] <- rbind(bootstrap_samples_values[[i]], disc_diffu
 bootstrap_samples_values[[i]] <- bootstrap_samples_values[[i]] %>% pivot_longer(!LABID, names_to = "drug", values_to = "MIC_value")
 }
 
-tablemicgon_real_values <- cbind(tablemicgon_meta[,1], tablemicgon)
+tablemic_real_values <- cbind(tablemic_meta[,1], tablemic)
 
-tablemicgon_real_values <- tablemicgon_real_values %>% 
+tablemic_real_values <- tablemic_real_values %>% 
   rename(LABID = 1)
 
-tablemicgon_real_values <- tablemicgon_real_values %>% pivot_longer(!LABID, names_to = "drug", values_to = "true_value")
+tablemic_real_values <- tablemic_real_values %>% pivot_longer(!LABID, names_to = "drug", values_to = "true_value")
 
 for (i in 1:no_bootstraps) {
 bootstrap_samples_values[[i]]$LABID <- as.character(bootstrap_samples_values[[i]]$LABID)
-bootstrap_samples_values[[i]] <- left_join(bootstrap_samples_values[[i]], tablemicgon_real_values, by = c("LABID" = "LABID", "drug" = "drug")) %>%
+bootstrap_samples_values[[i]] <- left_join(bootstrap_samples_values[[i]], tablemic_real_values, by = c("LABID" = "LABID", "drug" = "drug")) %>%
   mutate(dataset = i)
 }
 
-dist_pne <- dist(tablemicgon)
+dist_pne <- dist(tablemic)
 
 
 
@@ -160,7 +166,7 @@ bootstrap_samples_2[[i]] <- bootstrap_samples[[i]] %>%
 
 disc_diffusion_samples[[i]][,2:7] <- NA
 bootstrap_samples_2[[i]] <- rbind(bootstrap_samples_2[[i]], disc_diffusion_samples[[i]])
-bootstrap_samples_2[[i]] <- left_join(select(tablemicgon_meta, LABID), bootstrap_samples_2[[i]], by = "LABID") 
+bootstrap_samples_2[[i]] <- left_join(select(tablemic_meta, LABID), bootstrap_samples_2[[i]], by = "LABID") 
 
 }
 
@@ -171,7 +177,7 @@ test <- rowCounts(as.matrix(bootstrap_samples_2[[i]][,2:7]), value = NA, na.rm =
 test <- (test * -1)
 test <- test + -min(test, na.rm = T) +1
 
-bootstrap_samples_weight_matrices[[i]] <- matrix(1, nrow(tablemicgon),nrow(tablemicgon))
+bootstrap_samples_weight_matrices[[i]] <- matrix(1, nrow(tablemic),nrow(tablemic))
 
 #dist_pne <- as.matrix(dist_pne)
 
@@ -199,9 +205,9 @@ bootstrap_samples_weight_matrices[[i]] <- bootstrap_samples_weight_matrices[[i]]
 }
 
 
-
+# a check to make sure the weighting worked:
 for (i in 1:no_bootstraps) {
-temp_weight_bootstrap_samples[[i]] <- bootstrap_samples_weight_matrices[[i]] * temp_weight_bootstrap_samples[[i]]
+temp_weight_bootstrap_samples[[i]] <- bootstrap_samples_weight_matrices[[i]] * as.matrix(temp_weight_bootstrap_samples[[i]])
 }
 
 x <- as.data.frame(as.matrix(bootstrap_samples_weight_matrices[[1]]))
@@ -285,28 +291,77 @@ e.g. isolate 1 has 0 MIC values (+1), isolate 2 has 6(+1), so the weight for tha
 
 ```{r, echo = FALSE}
 
-
 bootstrap_samples_dists_mds <- list()
 
-for (i in 1:100) {
-temp_MDS <- mds(bootstrap_samples_dists[[i]], ndim = 2, type = c("ratio"), weightmat = bootstrap_samples_weight_matrices[[i]], init = "torgerson", modulus = 1, itmax = 1000, eps = 1e-06)
-
-bootstrap_samples_dists_mds[[i]] <- list()
-
-bootstrap_samples_dists_mds[[i]]$conf <- temp_MDS$conf
-bootstrap_samples_dists_mds[[i]]$stress <- temp_MDS$stress
-bootstrap_samples_dists_mds[[i]]$spp <- temp_MDS$spp
-
-temp_MDS <- NULL
+# ==== DEFINE MDS WRAPPER FUNCTION (now includes LABID tracking) ====
+run_mds <- function(dist_matrix, weight_matrix, ids, ndim = 2) {
+  temp_MDS <- mds(
+    delta     = dist_matrix,
+    ndim      = ndim,
+    type      = "ratio",
+    weightmat = weight_matrix,
+    init      = "torgerson",
+    modulus   = 1,
+    itmax     = 1000,
+    eps       = 1e-06
+  )
+  return(list(
+    conf   = temp_MDS$conf,
+    stress = temp_MDS$stress,
+    spp    = temp_MDS$spp,
+    LABID  = ids
+  ))
 }
 
-# Save an object to a file
-#saveRDS(bootstrap_samples_dists_mds, file = "bootstrap_samples_dists_mds_disc_mic_comb.rds")
-# Restore the object
-bootstrap_samples_dists_mds <- readRDS(file = "bootstrap_samples_dists_mds_disc_mic_comb.rds")
+# ==== PARALLEL BATCHED EXECUTION OF MDS ====
 
-#head(bootstrap_samples_dists_mds[[1]]$spp)
- 
+# Set number of bootstraps, batch size, and cores
+no_bootstraps <- 100
+batch_size <- 10        # Run 5 at a time
+num_cores <- 2          # Use 2 cores to stay within RAM limits
+
+# Register parallel backend
+library(doParallel)
+registerDoParallel(cores = num_cores)
+
+# Create list to store file paths for each batch
+all_batches_paths <- list()
+
+# Loop through bootstrap samples in batches
+for (start in seq(1, no_bootstraps, by = batch_size)) {
+  
+  end <- min(start + batch_size - 1, no_bootstraps)
+  cat("Processing batch", start, "to", end, "...\n")
+  
+  # Run MDS in parallel across current batch
+  mds_results <- foreach(i = start:end, .packages = c("smacof")) %dopar% {
+    run_mds(
+      dist_matrix   = bootstrap_samples_dists[[i]],
+      weight_matrix = bootstrap_samples_weight_matrices[[i]],
+      ids           = bootstrap_samples[[i]]$LABID
+    )
+  }
+  
+  # Save this batch to file
+  batch_file <- paste0("bootstrap_mds_batch_", start, "_to_", end, ".rds")
+  saveRDS(mds_results, file = batch_file)
+  all_batches_paths[[length(all_batches_paths) + 1]] <- batch_file
+  
+  # Free memory
+  rm(mds_results)
+  gc()
+}
+
+# Stop parallel backend
+registerDoSEQ()
+
+# ==== OPTIONAL: Load all batches later into one object ====
+
+# Reconstruct full list of results (if needed)
+batch_files <- list.files(pattern = "bootstrap_mds_batch_.*\\.rds")
+bootstrap_samples_dists_mds <- lapply(batch_files, readRDS) %>% unlist(recursive = FALSE)
+
+
 
 
 
@@ -314,18 +369,16 @@ bootstrap_samples_dists_mds <- readRDS(file = "bootstrap_samples_dists_mds_disc_
 
 
 
+
 ```{r, echo =F}
+# Set the rotation angle in radians
+theta <- 326 * pi / 180
 
-#torg_met <- mds(dist_pne, ndim = 2, type = c("ratio") , init = "torgerson", modulus = 1, itmax = 1000, eps = 1e-06)
-
-# Save an object to a file
-#saveRDS(torg_met, file = "torg_met.rds")
-# Restore the object
-torg_met <- readRDS(file = "torg_met.rds")
-
-theta <- 326*pi/180 ## degrees to radians
+# Create a rotation matrix
 rot <- matrix(c(cos(theta), sin(theta), -sin(theta), cos(theta)), ncol = 2)
-torg_met$conf <- torg_met$conf %*% rot ## rotated configurations
+
+# Apply rotation to the configuration data
+torg_met$conf <- torg_met$conf %*% rot
 
 bootstrap_samples_dists_confs <- list()
 
@@ -358,9 +411,9 @@ table_distances <- as_tibble(as.matrix(torg_met[[1]]))
 map_distances <- as_tibble(as.matrix(torg_met[[3]]))
 
 colnames(map_distances) <- colnames(table_distances)
-table_distances <- gather(table_distances,"antibiotic","table_distance", 1:nrow(tablemicgon)) 
+table_distances <- gather(table_distances,"antibiotic","table_distance", 1:nrow(tablemic)) 
 
-map_distances <- gather(map_distances,"antibiotic","map_distance", 1:nrow(tablemicgon))
+map_distances <- gather(map_distances,"antibiotic","map_distance", 1:nrow(tablemic))
 
 distances <- bind_cols(table_distances, map_distances)
 
@@ -464,13 +517,10 @@ colnames(met_ord_comparison[[i]]$pairwise_dist) <- c("D1_X", "D2_X","D1_Y","D2_Y
 
 met_ord_comparison[[i]]$pairwise_dist <- as_tibble(met_ord_comparison[[i]]$pairwise_dist) %>% 
      mutate(dist_phen = sqrt((D1_X-D1_Y)^2 + (D2_X-D2_Y)^2),
-            LABID = tablemicgon_meta[,1]) 
+            LABID = tablemic_meta[,1]) 
 
 
-####################################double check the above line - make sure the tablemic_gon_meta is aligned with the true ids given they were changed when rbinding disc diff data
-#############################################
-
-bootstrap_samples_dists_mds[[i]]$spp <- cbind(tablemicgon_meta$LABID, bootstrap_samples_dists_mds[[i]]$spp)
+bootstrap_samples_dists_mds[[i]]$spp <- cbind(tablemic_meta$LABID, bootstrap_samples_dists_mds[[i]]$spp)
 colnames(bootstrap_samples_dists_mds[[i]]$spp) <- c("LABID", "spp")
 #colnames(as_tibble(bootstrap_samples_dists_mds[[i]]$spp))
 #colnames(as_tibble(met_ord_comparison[[i]]$pairwise_dist))
@@ -481,7 +531,7 @@ met_ord_comparison[[i]]$pairwise_dist <- left_join(met_ord_comparison[[i]]$pairw
 
 #median(met_ord_comparison[[1]]$pairwise_dist$dist_phen)
 
-torg_met_conf <- cbind(torg_met_conf, tablemicgon_meta$LABID, torg_met$spp)
+torg_met_conf <- cbind(torg_met_conf, tablemic_meta$LABID, torg_met$spp)
 colnames(torg_met_conf) <- c("D1","D2","LABID", "stress_per_point_real")
 
 stress_per_point_comp <- list()
@@ -506,7 +556,8 @@ stress_per_point_comp[[i]]<- stress_per_point_comp[[i]] %>%
   mutate(dataset = i)
 }
 
-test <- bind_rows(stress_per_point_comp)
+test <- bind_rows(stress_per_point_comp) %>%
+  distinct(LABID, dataset, .keep_all = TRUE)
 
 
 test_2 <- test %>% mutate(missing_values = ifelse(count_na == "0", "No missing values","Missing values")) 
@@ -555,37 +606,147 @@ After reorientation of the cut-off value maps to compare to the real map, I then
 
 
 ```{r, echo = F}
-
-
 mu <- test_2 %>%
-group_by(missing_values) %>%
-    summarize(Mean = mean(dist_phen, na.rm=TRUE),
-              Median = median(dist_phen, na.rm=TRUE))
+  group_by(missing_values) %>%
+  summarize(
+    Mean = round(mean(dist_phen, na.rm = TRUE), 3),
+    SD = round(sd(dist_phen, na.rm = TRUE), 3)
+  )
 
-round(mu$Mean[1],3)
-
+round(mu$Mean[1], 3)
 
 C <- ggplot(filter(test_2, true_value != 1), aes(dist_phen, y = stat(density), colour = missing_values, fill = missing_values)) + 
-  geom_histogram(position="identity", alpha = 0.45, color = "black") + 
-  geom_freqpoly(bins = 40 , stat = "bin") + 
+  geom_histogram(position = "identity", alpha = 0.45, color = "black") + 
+  geom_freqpoly(bins = 40, stat = "bin") + 
   theme_bw() + 
-  geom_vline(data=mu, aes(xintercept=Mean, color=missing_values),
-            linetype="dashed", size = .75) +
-    geom_vline(aes(xintercept=1), color="black",
-             linetype="solid", size = .5) +
- # scale_x_continuous(breaks=seq(0, 7, 1))   +
+  geom_vline(data = mu, aes(xintercept = Mean, color = missing_values),
+             linetype = "dashed", size = 0.75) +
+  geom_vline(aes(xintercept = 1), color = "black",
+             linetype = "solid", size = 0.5) +
   labs(x = "Distance from true value (MIC units)", y = "Density") +
-  theme(legend.justification=c(.95,.725), legend.position=c(.95,.8)) + 
-  guides(colour = "none")  +
-  guides(fill=guide_legend(title="Error added"))  +
-  scale_colour_manual(values=c(  "#E41A1C","darkgrey")) +
-  scale_fill_manual(values=c(   "#E41A1C","darkgrey"))+
-      theme(legend.position = "none") 
+  theme(legend.justification = c(0.95, 0.725), legend.position = c(0.95, 0.8)) + 
+  guides(colour = "none") +
+  guides(fill = guide_legend(title = "Error added")) +
+  scale_colour_manual(values = c("#E41A1C", "darkgrey")) +
+  scale_fill_manual(values = c("#E41A1C", "darkgrey")) +
+  theme(legend.position = "none")
 
-  #coord_fixed(ratio = .85) 
 C
 
 ggsave("S_pneumo_comb_euc_phen_dist.jpg")
+
+# Estimate proportion of distances < 1 MIC unit
+count_less_than_1 <- test_2 %>%
+  group_by(missing_values) %>%
+  summarise(
+    count_total = n(),
+    count_less_than_one = sum(dist_phen < 1, na.rm = TRUE),
+    prop_less_than_one = round(count_less_than_one / count_total * 100, 3)
+  )
+
+print(count_less_than_1)
+
+# Also calculate >1 MIC unit error
+count_greater_than_1 <- test_2 %>%
+  group_by(missing_values) %>%
+  summarise(
+    count_total = n(),
+    count_greater_than_one = sum(dist_phen > 1, na.rm = TRUE),
+    prop_greater_than_one = round(count_greater_than_one / count_total * 100, 3)
+  )
+
+print(count_greater_than_1)
+
+# Calculate exact percentages (optional)
+100 - count_less_than_1$prop_less_than_one
+
+count_dist_bins <- test_2 %>%
+  group_by(missing_values) %>%
+  summarise(
+    count_total = n(),
+    count_lt_1 = sum(dist_phen < 1, na.rm = TRUE),
+    count_1_to_2 = sum(dist_phen >= 1 & dist_phen < 2, na.rm = TRUE),
+    count_ge_2 = sum(dist_phen >= 2, na.rm = TRUE),
+    prop_lt_1 = round(count_lt_1 / count_total * 100, 3),
+    prop_1_to_2 = round(count_1_to_2 / count_total * 100, 3),
+    prop_ge_2 = round(count_ge_2 / count_total * 100, 3)
+  )
+
+print(count_dist_bins)
+
+```
+
+
+
+## Comparing the number of missing values with prediction error
+
+```{r,echo = f}
+library(dplyr)
+library(ggplot2)
+
+mapvtable <- NULL
+bootstrap_samples_weight_matrices <- NULL
+bootstrap_samples_dists <- NULL
+
+# Deduplicate: one row per LABID-dataset pair, keeping count_na and missing_values
+dedup_data <- test_2 %>%
+  group_by(LABID, dataset) %>%
+  summarise(
+    dist_phen = mean(dist_phen, na.rm = TRUE),
+    count_na = mean(count_na, na.rm = TRUE),
+    D1_X = mean(D1_X, na.rm = TRUE),
+    D2_X = mean(D2_X, na.rm = TRUE),
+    missing_values = first(missing_values),
+    .groups = "drop"
+  )
+
+
+# Add radial distance from MDS center
+dedup_data <- dedup_data %>%
+  mutate(dist_from_center = sqrt((D1_X - mean(D1_X, na.rm = TRUE))^2 + 
+                                 (D2_X - mean(D2_X, na.rm = TRUE))^2),
+         count_na = as.factor(count_na))  # convert to factor for grouping & plotting
+
+# Bin distance and summarise error by bin and count_na
+summary_by_bin <- dedup_data %>%
+  mutate(dist_bin = cut(dist_from_center, breaks = 10)) %>%
+  group_by(dist_bin) %>%
+  summarise(
+    center = mean(dist_from_center, na.rm = TRUE),
+    mean_dist_phen = mean(dist_phen, na.rm = TRUE),
+    sd_dist_phen = sd(dist_phen, na.rm = TRUE),
+    n = n(),
+    se = sd_dist_phen / sqrt(n),
+    .groups = "drop"
+  )
+
+# Plot mean error by distance and count_na
+ggplot(summary_by_bin, aes(x = center, y = mean_dist_phen)) +
+  geom_point(size = 3) +
+  geom_line(aes()) +
+  geom_errorbar(aes(ymin = mean_dist_phen - se, ymax = mean_dist_phen + se), width = 0.1) +
+  theme_bw() +
+  labs(x = "Distance from mean centroid map position (MIC units)",
+       y = "Mean Prediction Error (dist_phen)",
+       colour = "Missing Values") +
+  theme(
+    axis.text = element_text(size = 12),
+    axis.title = element_text(size = 14),
+    plot.title = element_text(size = 15, face = "bold")
+  )
+
+# Tabulate prediction error summaries by distance and count_na
+summary_dist_center <- dedup_data %>%
+  mutate(dist_bin = cut(dist_from_center, breaks = 10)) %>%
+  group_by(dist_bin) %>%
+  summarise(
+    mean_error = round(mean(dist_phen, na.rm = TRUE), 3),
+    median_error = round(median(dist_phen, na.rm = TRUE), 3),
+    max_error = round(max(dist_phen, na.rm = TRUE), 3),
+    prop_below_1 = round(mean(dist_phen <= 1, na.rm = TRUE), 3),
+    .groups = "drop"
+  )
+print(summary_dist_center)
 
 
 ```
@@ -632,181 +793,74 @@ ggsave("S_pneumo_comb_pred_error_map.jpg")
 ```
 
 
-### Calibrated Biplot vectors
-An additional option is to use Biplot vectors to map the external variables onto the plot, calibrate their scale to the plot and read the predicted MIC values from these scales. Here I have used the 'calibrate' package in R. This program calibrates variable vectors in biplots and scatterplots, by drawing tick marks along a given the vector and labelling the tick marks with specified values. The optimal calibration is found by (generalized) least squares. Here, I have fit the calibrated vectors only using the numeric values, not those which were thresholded or cut-off values. 
 
-After calibrating these scales and reading the predicted values for the isolates with cut-off  values, I found that there prediction error was low, both in terms of total euclidean distance (see above) and on the predicted MIC scales for each individual drug. There were some small differences between the drugs in their predicted values, but all had a mean prediction error of less than one MIC unit (red dashed lined). Generally, prediction error was lower than 1 mic unit (black line), again suggesting the maps offer a small increase in precision over using raw MIC values.
-
-
-```{r, echo=F, include = F}
-
-### Penicillin
-tablemicgon_test <- tablemicgon %>% dplyr::na_if(1)
-
-drugs <- as.vector(colnames(tablemicgon))
-calibration <- list()
-predicted_values <- list()
-
-for (f in 1:1) {
-for (i in 1:ncol(tablemicgon)) {
-X <- test %>%
-#filter(fold != 1) %>%
-select(D1_X, D2_X, MIC_value, true_value, drug, LABID) %>%
-  filter(drug == drugs[i]) %>%
-#replace_na(list(MIC_value = 1)) %>%
-filter(MIC_value != min(MIC_value, na.rm = T) & MIC_value != max(MIC_value, na.rm = T)) %>%
-#select(-fold) %>%
-filter(!is.na(MIC_value)) %>%
-rename(D1 = 1, D2 = 2)
-
-test_2 <- as.data.frame(test) %>% distinct(LABID, .keep_all = T) 
-
-plot(test_2[,1],test_2[,2],pch=19,cex=0.5,asp=1 )
-m <- apply(test_2[,1:2],2,mean)
-origin(m)
-
-X$MIC_value <- as.numeric(X$MIC_value)
-Xc <- scale(X[,1:3],center=TRUE,scale=FALSE)
-
-b <- solve(t(Xc[,1:2])%*%Xc[,1:2])%*%t(Xc[,1:2])%*%X$MIC_value
-print(b)
-
-Y <- test %>%
-select(D1_Y, D2_Y, MIC_value, true_value, drug, LABID) %>%
-  filter(drug == drugs[i]) %>%
-replace_na(list(MIC_value = 0)) %>%
-filter(MIC_value == min(MIC_value, na.rm = T) | MIC_value == 1 | MIC_value == max(MIC_value, na.rm = T)) %>%
-#filter(is.na(MIC_value)) %>%
-#select(-fold) %>%
-rename(D1 = 1, D2 = 2)
-Y$MIC_value <- Y$MIC_value %>% na_if(0)
-
-Xc <- as.data.frame(X) %>% mutate(weights = 1)
-Yc <- as.data.frame(Y) %>% mutate(weights = 0)
-
-calibration[[i]] <- rbind(Xc, Yc)
-calibration[[i]][,1] <- as.numeric(calibration[[i]][,1])
-calibration[[i]][,2] <- as.numeric(calibration[[i]][,2])
-calibration[[i]] <- as.data.frame(calibration[[i]]) 
-for(p in 1:3){
-calibration[[i]][,p] <- as.numeric(calibration[[i]][,p])
-}
-calibration[[i]][,1:3] <- scale(calibration[[i]][,1:3],scale=FALSE)
-calibration[[i]] <- calibration[[i]] %>% replace_na(list(MIC_value= 20)) 
-
-tm <- seq((min(calibration[[i]]$true_value, na.rm = T)), max(calibration[[i]]$true_value, na.rm = T), by = 1)
-tmc <- tm - mean(calibration[[i]]$true_value, na.rm = T)
-calibration[[i]]<- as.data.frame(calibration[[i]])
-
-Calibrate.X5 <- calibrate(b,calibration[[i]][,3],tmc,as.matrix(calibration[[i]][,1:2]),tmlab=tm,m=m,tl=0.3, weights = calibration[[i]]$weights, labpos=4,cex.axislab=1)
-
-calibration[[i]]$MIC_value <- calibration[[i]]$MIC_value %>% na_if(20)
-
-calibration[[i]] <- calibration[[i]] %>%
-    mutate(calibrated_value = Calibrate.X5$yt,
-    calibration_error = Calibrate.X5$e) %>%
-    rename(calibration_value = 8, calibration_error = 9) %>%
-    mutate(calibration_value = calibration_value - min(MIC_value, na.rm = T) +1,
-           MIC_value = MIC_value - min(MIC_value, na.rm = T) +1,
-           prediction_error =  calibration_value - true_value)
-
-}
-
-predicted_values[[f]] <- bind_rows(calibration)
-}
-
-predicted_values <- bind_rows(predicted_values)
-
-
-predicted_values <- predicted_values %>% 
-  replace_na(list(MIC_value= "Missing")) %>% 
-  mutate(MIC_value = ifelse(MIC_value == "Missing", "Missing", "Not Missing")) 
-
-
-mu <- predicted_values %>%
-filter(MIC_value== "Missing") %>%
-    summarize(Mean = mean(abs(prediction_error), na.rm=TRUE),
-              Median = median(prediction_error, na.rm=TRUE))
-
-
-```
-
-
-```{r, echo=F}
-
-plot_F <- ggplot(filter(predicted_values, MIC_value == "Missing"), aes(x=abs(prediction_error))) + 
-  geom_histogram(position="identity", alpha = 0.6, fill = "#E41A1C", color = "black", bins = 25 ) + 
-  theme_bw() + 
-  geom_vline(data=mu, aes(xintercept=Mean), color = "#E41A1C", size = 1,
-             linetype="dashed") +
-    geom_vline(aes(xintercept=1), color = "black", size = 1,
-             linetype="solid") +
-   scale_x_continuous(breaks=seq(0, max(abs(predicted_values$prediction_error), na.rm = T) +.5, .5)) +
-  labs(x = "Prediction Error (MIC units)", y = "Frequency") 
-
-plot_F
-ggsave("S_pneumo_missing_values_biplot_pred_error.jpg")
-
-```
-
-
-
-### Cross-validation analysis - multiple dimensions
-
-Lastly, I made maps in several different dimensions using the same datasets with cut-off values as before. I also made maps using the true values for each dimension to compare them to. Here, I again calculated the euclidean distance between the 'true' map position and the cut-off value map position, after reorientation of the maps to overlap. I found that prediction error was lowest at 1 dimension, but that there were marginal increases in error when using more than 2 dimensions. This suggests that using more than two dimensions may overfit the data. Although 1 dimension offered the lowest prediction error here, it was clear from the stress and goodness of fit analyses (previous markdowns) that a minimum of two dimensions was needed to accurately represent the data. 
-
-Here, I plotted each dimension on the x axis, and the mean prediction error for each cut-off value dataset on the y axis. The points and error bars show the standard error for the mean of the means for each dataset.
 
 
 ```{r, echo = FALSE}
 
-#x <- as_tibble(seq(1,10, by = 1))
-#x <- cbind(x, as_tibble(seq(33,42, by = 1)))
-#x <- dist(x)
+# --- Set parameters ---
+no_bootstraps <- 25
+num_cores <- 2
 
-bootstrap_samples_dists_dimensions <- list()
-for (f in 1:4){
-bootstrap_samples_dists_dimensions[[f]] <- list()
+# --- Register parallel backend ---
+library(doParallel)
+registerDoParallel(cores = num_cores)
+
+# --- Initialize outer list (1 per dimension) ---
+bootstrap_samples_dists_dimensions <- vector("list", 4)
+
+# --- Run MDS for each dimension in parallel ---
+for (dim in 1:4) {
+  cat("Running MDS for dimension:", dim, "\n")
+  
+  bootstrap_samples_dists_dimensions[[dim]] <- foreach(i = 1:no_bootstraps, .packages = c("smacof")) %dopar% {
+    
+    temp_MDS <- mds(
+      delta     = bootstrap_samples_dists[[i]],
+      ndim      = dim,
+      type      = "ratio",
+      init      = "torgerson",
+      weightmat = bootstrap_samples_weight_matrices[[i]],
+      modulus   = 1,
+      itmax     = 1000,
+      eps       = 1e-06
+    )
+    
+    list(
+      conf   = temp_MDS$conf,
+      stress = temp_MDS$stress,
+      spp    = temp_MDS$spp
+    )
+  }
 }
 
+# --- Stop parallel backend ---
+registerDoSEQ()
 
-for (i in 1:25) {
-  for (f in 1:4){
+# --- Save results ---
+#saveRDS(bootstrap_samples_dists_dimensions, file = "bootstrap_samples_dists_dimensions_disc_mic_comb.rds")
 
-temp_MDS <- mds(bootstrap_samples_dists[[i]], ndim = f, type = c("ratio"), init = "torgerson", weightmat = bootstrap_samples_weight_matrices[[i]], modulus = 1, itmax = 1000, eps = 1e-06)
+# --- Restore if needed later ---
+ bootstrap_samples_dists_dimensions <- readRDS("bootstrap_samples_dists_dimensions_disc_mic_comb.rds")
 
-bootstrap_samples_dists_dimensions[[f]][[i]] <- list()
-
-bootstrap_samples_dists_dimensions[[f]][[i]]$conf <- temp_MDS$conf
-bootstrap_samples_dists_dimensions[[f]][[i]]$stress <- temp_MDS$stress
-bootstrap_samples_dists_dimensions[[f]][[i]]$spp <- temp_MDS$spp
-temp_MDS <- NULL
-
-}
-}
-
-
-# Save an object to a file
-saveRDS(bootstrap_samples_dists_dimensions, file = "bootstrap_samples_dists_dimensions_disc_mic_comb.rds")
-# Restore the object
-bootstrap_samples_dists_dimensions <- readRDS(file = "bootstrap_samples_dists_dimensions_disc_mic_comb.rds")
-
-
-torg_met_dimensions <- list()
-
-#for (f in 1:4){
-#torg_met_dimensions[[f]] <- mds(dist_pne, ndim = f, type = c("ratio") , init = "torgerson", modulus = 1, itmax = 1000, eps = 1e-06)
-#}
-
-
-# Save an object to a file
-#saveRDS(torg_met_dimensions, file = "torg_met_dimensions_disc_mic_comb.rds")
-# Restore the object
+# --- Load torg_met dimensions from existing results ---
 torg_met_dimensions <- readRDS(file = "torg_met_dimensions_missing_values.rds")
 
-bootstrap_samples_dists_confs_dim <- list()
-bootstrap_samples_stress_dim <- list()
+# --- Prepare output lists for stress and coordinates ---
+bootstrap_samples_dists_confs_dim <- vector("list", 4)
+bootstrap_samples_stress_dim <- vector("list", 4)
 
+for (f in 1:4) {
+  bootstrap_samples_dists_confs_dim[[f]] <- list()
+  bootstrap_samples_stress_dim[[f]] <- vector()
+  
+  for (i in 1:no_bootstraps) {
+    bootstrap_samples_dists_confs_dim[[f]][[i]] <- as_tibble(bootstrap_samples_dists_dimensions[[f]][[i]]$conf)
+    bootstrap_samples_stress_dim[[f]][i] <- bootstrap_samples_dists_dimensions[[f]][[i]]$stress
+  }
+  
+  bootstrap_samples_stress_dim[[f]] <- as_tibble(bootstrap_samples_stress_dim[[f]])
+}
 
 for (f in 1:4){
 bootstrap_samples_dists_confs_dim[[f]] <- list()
@@ -814,7 +868,7 @@ bootstrap_samples_stress_dim[[f]] <- vector()
 }
 
 for (f in 1:4) {
-  for (i in 1:25) {
+  for (i in 1:no_bootstraps) {
 bootstrap_samples_dists_confs_dim[[f]][[i]] <- as_tibble(bootstrap_samples_dists_dimensions[[f]][[i]]$conf)
 bootstrap_samples_stress_dim[[f]][i] <- bootstrap_samples_dists_dimensions[[f]][[i]]$stress
   }
@@ -847,8 +901,8 @@ table_distances <- as_tibble(as.matrix(torg_met_dimensions[[f]][[1]]))
 map_distances <- as_tibble(as.matrix(torg_met_dimensions[[f]][[3]]))
 
 colnames(map_distances) <- colnames(table_distances)
-table_distances <- gather(table_distances,"antibiotic","table_distance", 1:nrow(tablemicgon)) 
-map_distances <- gather(map_distances,"antibiotic","map_distance", 1:nrow(tablemicgon))
+table_distances <- gather(table_distances,"antibiotic","table_distance", 1:nrow(tablemic)) 
+map_distances <- gather(map_distances,"antibiotic","map_distance", 1:nrow(tablemic))
 
 distances <- bind_cols(table_distances, map_distances)
 
@@ -892,61 +946,61 @@ met_ord_comparison_dim[[f]] <- list()
 
 
 for (f in 1:4) {
-  for (i in 1:25) {
+  for (i in 1:no_bootstraps) {
 met_ord_comparison_dim[[f]][[i]] <- Procrustes(as.matrix(torg_met_dimensions_conf[[f]]),  as.matrix(bootstrap_samples_dists_confs_dim[[f]][[i]]))
   }
 }
 
 
 for (f in 1:4) {
-for (i in 1:25) { 
+for (i in 1:no_bootstraps) { 
 colnames(met_ord_comparison_dim[[f]][[i]]$X)<-paste(colnames(met_ord_comparison_dim[[f]][[i]]$X),"X",sep="_")
 colnames(met_ord_comparison_dim[[f]][[i]]$Yhat)<-paste(colnames(met_ord_comparison_dim[[f]][[i]]$Yhat),"Y",sep="_")
 }}
 
 for (f in 1:4) {
-for (i in 1:25) {
+for (i in 1:no_bootstraps) {
 met_ord_comparison_dim[[f]][[i]]$pairwise_dist <- cbind(met_ord_comparison_dim[[f]][[i]]$X, met_ord_comparison_dim[[f]][[i]]$Yhat)
 }}
 
 for (f in 1:4) {
-  for (i in 1:25) {
+  for (i in 1:no_bootstraps) {
 met_ord_comparison_dim[[f]][[i]]$pairwise_dist <- as_tibble(met_ord_comparison_dim[[f]][[i]]$pairwise_dist)
   }}
 
 
-for (i in 1:25) {
+for (i in 1:no_bootstraps) {
 met_ord_comparison_dim[[1]][[i]]$pairwise_dist <- as_tibble(met_ord_comparison_dim[[1]][[i]]$pairwise_dist) %>%
      mutate(dist_phen = sqrt((D1_X-D1_Y)^2),
-            LABID = tablemicgon_meta[,1])
+            LABID = tablemic_meta[,1])
 }
 
-for (i in 1:25) {
+for (i in 1:no_bootstraps) {
 met_ord_comparison_dim[[2]][[i]]$pairwise_dist <- as_tibble(met_ord_comparison_dim[[2]][[i]]$pairwise_dist) %>%
      mutate(dist_phen = sqrt((D1_X-D1_Y)^2 + (D2_X-D2_Y)^2),
-            LABID = tablemicgon_meta[,1])
+            LABID = tablemic_meta[,1])
 }
 
 
-for (i in 1:25) {
+for (i in 1:no_bootstraps) {
 met_ord_comparison_dim[[3]][[i]]$pairwise_dist <- as_tibble(met_ord_comparison_dim[[3]][[i]]$pairwise_dist) %>%
      mutate(dist_phen = sqrt((D1_X-D1_Y)^2 + (D2_X-D2_Y)^2 + (D3_X-D3_Y)^2),
-            LABID = tablemicgon_meta[,1])
+            LABID = tablemic_meta[,1])
 }
 
 
-for (i in 1:25) {
+for (i in 1:no_bootstraps) {
 met_ord_comparison_dim[[4]][[i]]$pairwise_dist <- as_tibble(met_ord_comparison_dim[[4]][[i]]$pairwise_dist) %>%
      mutate(dist_phen = sqrt((D1_X-D1_Y)^2 + (D2_X-D2_Y)^2 + (D3_X-D3_Y)^2 + (D4_X-D4_Y)^2),
-            LABID = tablemicgon_meta[,1])
+            LABID = tablemic_meta[,1])
 }
 
 
 
 
 for (f in 1:4) {
-for (i in 1:25) {
-bootstrap_samples_dists_dimensions[[f]][[i]]$spp <- cbind(tablemicgon_meta$LABID, bootstrap_samples_dists_dimensions[[f]][[i]]$spp)
+for (i in 1:no_bootstraps) {
+bootstrap_samples_dists_dimensions[[f]][[i]]$spp <- cbind(tablemic_meta$LABID, bootstrap_samples_dists_dimensions[[f]][[i]]$spp)
 colnames(bootstrap_samples_dists_dimensions[[f]][[i]]$spp) <- c("LABID", "spp")
 #colnames(as_tibble(bootstrap_samples_dists_dimensions[[f]][[i]]$spp))
 #colnames(as_tibble(met_ord_comparison_dim[[f]][[i]]$pairwise_dist))
@@ -965,7 +1019,7 @@ stress_per_point_comp[[f]] <- list()
 
 
 for (f in 1:4) {
-for (i in 1:25) {
+for (i in 1:no_bootstraps) {
 stress_per_point_comp[[f]][[i]] <- left_join(as_tibble(met_ord_comparison_dim[[f]][[i]]$pairwise_dist), as_tibble(bootstrap_samples_values[[i]]), by = "LABID")
 }}
 
@@ -977,14 +1031,14 @@ stress_per_point_comp_2[[f]] <- list()
 
 ###############
 for (f in 1:4) {
-for (i in 1:25) {
+for (i in 1:no_bootstraps) {
 stress_per_point_comp_2[[f]][[i]] <- stress_per_point_comp[[f]][[i]] %>%
   group_by(LABID) %>%
  summarize(count_na = sum(is.na(MIC_value)))
 }}
 
 for (f in 1:4) {
-for (i in 1:25) {
+for (i in 1:no_bootstraps) {
 stress_per_point_comp[[f]][[i]] <- left_join(stress_per_point_comp[[f]][[i]], stress_per_point_comp_2[[f]][[i]], by = c("LABID" = "LABID")) #%>%
 # distinct(LABID, dataset, .keep_all = T) 
 ##################
@@ -1039,27 +1093,8 @@ D <- ggplot(mu, aes(x=dimension, y=Mean)) +
 
 D
 
-```
+ggsave("S_pneumo_comb_pred_error_map_cross_validation.jpg")
 
-
-
-### Plotting all analyses together
-
-Lastly, I have plotted all the analyses together into a single multipanel plot which I will include in my thesis chapter
-
-
-```{r, echo = F}
-library(ggpubr)
-
-x <- ggarrange(A,                                          # First row with scatter plot
-          ggarrange(B, C, nrow = 2, labels = c("B", "C")), # Second row with box and dot plots
-          ncol = 2,
-          labels = "A"                                        
-          ) 
-
-
-y <- ggarrange(D, E, plot_F, nrow = 1, ncol = 3, labels = c("D", "E", "F"))
-ggarrange(x, y, nrow = 2, ncol = 1)
 
 ```
 

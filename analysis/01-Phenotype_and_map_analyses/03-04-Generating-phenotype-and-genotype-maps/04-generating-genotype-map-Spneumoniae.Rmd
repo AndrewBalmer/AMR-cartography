@@ -16,19 +16,19 @@ remove(list = ls())
 # load packages
 library(tidyverse)
 library(smacof)
-library(psych)
+
 
 # Set working directory
-setwd("/Users/ajb306/AMR-cartography/analysis/#01-Phenotype_and_map_analyses/#03-06-Generating-phenotype-and-genotype-maps")
+setwd("/Users/ajb306/AMR-cartography-results/data")
 
 # Here we just use a small subsample of the full dataset for illustration purposes
-#load('/Users/ajb306/AMR-cartography/data/tablemic_pneumo_3628_meta_gen_distance_matrix_200_subsample.RData')
+#load('/Users/ajb306/AMR-cartography-results/data/tablemic_pneumo_3628_meta_gen_distance_matrix_200_subsample.RData')
 
 # Rename for script
 #pbp_dist <- pbp_dist_200
 
 # Read in genetic distance matrix for the full dataset
-load('/Users/ajb306/AMR-cartography/data/tablemic_pneumo_3628_meta_gen_distance_matrix.RData')
+load('/Users/ajb306/AMR-cartography-results/data/tablemic_pneumo_3628_meta_gen_distance_matrix.RData')
 print(getwd())
 
 ```
