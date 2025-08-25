@@ -73,7 +73,7 @@ install.packages(c(
 ## Data
 
 * The analysis uses the Active Bacterial Core surveillance dataset of *S. pneumoniae* isolates with MICs for six β‑lactams and PBP TPD sequences.
-* **Inputs are referenced/ingested by the scripts**; large raw data may not be included in the repo. Where data cannot be redistributed, scripts document how to fetch or derive them.
+* **Inputs are referenced/ingested by the scripts**; large raw data and intermediate data files are not included in the repo. Instead, the scripts document how to acquire these using DOIs from relevant papers, or in the case of the intermediate files, how to derive them.
 
 ---
 
