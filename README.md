@@ -6,12 +6,13 @@
 Andrew J. Balmer\*, Gemma G. R. Murray, Stephanie Lo, Olivier Restif⍅, Lucy A. Weinert⍅
 
 \*Corresponding author; ⍅ Joint senior author
+Contact email: ab69@sanger.ac.uk
 
 ---
 
 ## Overview
 
-AMR Cartography is a toolkit for analysing and visualising multivariate antibiotic susceptibility profiles (e.g., MICs to several drugs), study population level trends in multivariate phenotypes, and link changes in phenotype to underlying genetic variation. It adapts multidimensional scaling (MDS/SMACOF) and multivariate linear mixed models (mvLMM) to:
+AMR Cartography is a toolkit for analysing and visualising multivariate antibiotic susceptibility profiles (e.g., MICs to several drugs). It can be used to study population level trends in multivariate phenotypes, and link changes in phenotype to underlying genetic variation. It adapts multidimensional scaling (MDS/SMACOF) and multivariate linear mixed models (mvLMM) to:
 
 * build low‑dimensional phenotype maps from log₂‑MIC profiles,
 * assess goodness‑of‑fit (cross‑validation, dimensionality tests),
