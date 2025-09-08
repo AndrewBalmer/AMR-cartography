@@ -81,7 +81,7 @@ library(broom)
 table_distances <- as_tibble(as.matrix(torg_met[[1]]))
 map_distances   <- as_tibble(as.matrix(torg_met[[3]]))
 colnames(map_distances) <- colnames(table_distances)
-
+    
 # Reshape using pivot_longer and add an id column to preserve row order
 table_distances <- table_distances %>%
   mutate(id = row_number()) %>%

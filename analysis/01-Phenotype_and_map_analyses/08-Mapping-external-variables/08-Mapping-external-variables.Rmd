@@ -1,5 +1,5 @@
 ---
-title: "06-Mapping-external-variables"
+title: "08-Mapping-external-variables"
 author: "Andrew Balmer"
 date: "2023-12-22"
 output: html_document
@@ -836,84 +836,59 @@ ggsave("Spneumo_MLSTphen_distribution.jpg")
 
 
 ```{r, echo = F}
-# Create a ggplot object
-ggplot(tablemic_metadata_MLST, aes(x = x_centroid, y = y_centroid)) +
-  geom_point(data = AA_matrix_phenotype, aes(x=D1,y=D2), colour = "#999999", fill = "#999999", shape = 16, size = 1.5, alpha = .8)+
-  #stat_ellipse(aes(fill = gen_cluster), level = 0.95, alpha = 0.4, colour = "black", linetype = "solid") +
-  geom_point(data = tablemic_metadata_MLST, aes(x=D1,y=D2, fill = MLST_with_count), shape = 21, size = 2.5
-             , alpha = 1, colour = "black") + 
-  #geom_point(aes(fill = MLST_with_count), shape = 21,size = 4, alpha = 1, colour = "black") + 
-  geom_mark_ellipse(aes(fill = MLST_with_count), color = "NA", expand = unit(1, "mm"),alpha = 0.3) +
-  facet_wrap(MLST_with_count ~. ) + 
-  scale_x_continuous(limits = limits_phen_map_x, breaks=breaks_phen_map_x) +
-  scale_y_continuous(limits = limits_phen_map_y, breaks=breaks_phen_map_y) +
-  labs(fill = "MLST") +
-    theme_bw() +
-    theme(strip.background = element_rect(fill = "white"),
-          strip.text = element_text(colour = 'black',size = 12),
-    legend.position = "none") +
-  AMRC_phen_theme() +
-  coord_fixed() +
-  scale_fill_manual(values=my_colours)
-
-
-
-ggsave("Spneumo_MLSTphen_distribution_multipanel.jpg")
-
-# Load necessary libraries
+## ---- MLST facets (3x4) with correct export ratio and clearer background, echo=FALSE ----
 library(ggplot2)
-library(dplyr)
-library(MASS) # for the mvrnorm function
+library(ggforce)
+library(grid)
 
-# Calculate the mean centroids and confidence intervals for each MLST_with_count
-centroid_data <- tablemic_metadata_MLST %>%
-  group_by(MLST_with_count) %>%
-  summarise(
-    mean_D1 = mean(D1),
-    mean_D2 = mean(D2),
-    n = n(),
-    cov_matrix = list(cov(select(cur_data(), D1, D2)))
-  )
-
-# Function to calculate ellipse points for 95% confidence interval around mean centroid
-calc_ellipse <- function(center, cov_matrix, level = 0.95, npoints = 100) {
-  angles <- seq(0, 2 * pi, length.out = npoints)
-  ell_radius <- sqrt(qchisq(level, df = 2))
-  chol_decomp <- chol(cov_matrix)
-  unit_circle <- cbind(cos(angles), sin(angles))
-  ell_points <- t(center + ell_radius * t(unit_circle %*% chol_decomp))
-  ell_df <- data.frame(x = ell_points[, 1], y = ell_points[, 2])
-  return(ell_df)
-}
-
-# Corrected: Generate the ellipse data
-ellipse_data <- do.call(rbind, lapply(1:nrow(centroid_data), function(i) {
-  center <- as.numeric(centroid_data[i, c("mean_D1", "mean_D2")])
-  cov_matrix <- centroid_data$cov_matrix[[i]]
-  ell_df <- calc_ellipse(center, cov_matrix, level = 0.95, npoints = 100)
-  ell_df$MLST_with_count <- centroid_data$MLST_with_count[i]
-  return(ell_df)
-}))
-
-# Create a ggplot object
-p <- ggplot() +
-  geom_point(data = AA_matrix_phenotype, aes(x = D1, y = D2), colour = "#999999", fill = "#999999", shape = 16, size = 1.5, alpha = .8) +
-  geom_polygon(data = ellipse_data, aes(x = x, y = y, fill = MLST_with_count, group = MLST_with_count), alpha = 0.2, color = "black") +
-  geom_point(data = tablemic_metadata_MLST, aes(x = D1, y = D2, fill = MLST_with_count), shape = 21, size = 3.5, alpha = 1, colour = "black") +
-  geom_point(data = centroid_data, aes(x = mean_D1, y = mean_D2, fill = MLST_with_count), shape = 23, size = 4.5, color = "red") + 
-  
+# Build the plot
+p_facets <- ggplot(tablemic_metadata_MLST, aes(x = x_centroid, y = y_centroid)) +
+  # light, small grey background points (all isolates)
+  geom_point(data = AA_matrix_phenotype, aes(x = D1, y = D2),
+             color = "#999999", shape = 16, size = 1.5, alpha = 0.8) +
+  # colored isolates for each MLST
+  geom_point(data = tablemic_metadata_MLST,
+             aes(x = D1, y = D2, fill = MLST_with_count),
+             shape = 21, size = 2.5, color = "black", alpha = 1) +
+  # soft ellipse per MLST
+  geom_mark_ellipse(aes(fill = MLST_with_count),
+                    colour = NA, expand = unit(1, "mm"), alpha = 0.3) +
+  facet_wrap(MLST_with_count ~ ., ncol = 3, nrow = 4) +
   scale_x_continuous(limits = limits_phen_map_x, breaks = breaks_phen_map_x) +
   scale_y_continuous(limits = limits_phen_map_y, breaks = breaks_phen_map_y) +
-  labs(fill = "MLST") +
-  facet_wrap(MLST_with_count ~. ) + 
-    theme(strip.background = element_rect(fill = "white")) + 
-  theme(strip.text = element_text(colour = 'black')) +
-  theme_bw() + AMRC_phen_theme() +
   coord_fixed() +
-  scale_fill_manual(values = my_colours)
+  theme_bw() +
+  scale_fill_manual(values = my_colours) +
+  labs(fill = NULL) +
+  theme(
+    legend.position = "none",
+    panel.grid.minor = element_blank(),
+    strip.background = element_rect(fill = "white", colour = "black", linewidth = 0.5),
+    strip.text = element_text(size = 12, colour = 'black')
+  )+
+  AMRC_phen_theme() 
 
-# Print the plot
-print(p)
+
+# Calculate the correct overall export ratio for 3x4 facets
+x_span <- diff(limits_phen_map_x)   # expected 120
+y_span <- diff(limits_phen_map_y)   # expected 16
+ncol_facets <- 3
+nrow_facets <- 4
+overall_ratio <- (x_span * ncol_facets) / (y_span * nrow_facets)  # 5.625
+
+# Pick a height and derive width to keep cell squares square
+h <- 6         # inches (adjust as you like)
+w <- h * overall_ratio
+p_facets
+
+# Save 
+ggsave("Spneumo_MLSTphen_distribution_multipanel.jpg",
+       plot = p_facets, width = w, height = h, units = "in", dpi = 600, bg = "white")
+
+# Optional vector export for PowerPoint (crisp, non-squished)
+# ggsave("Spneumo_MLSTphen_distribution_multipanel.pdf", plot = p_facets,
+ #       width = w, height = h, units = "in")
+
 
 
 
@@ -1231,3 +1206,156 @@ combined_summary
 
 
 ```
+
+
+
+```{r, echo = F}
+## ---- gen_by_phen_distance_centroids_top12_color_others_grey_WITH_MLST_PBP_MEANS, echo=FALSE ----
+library(dplyr)
+library(ggplot2)
+
+# 1) Reference (2-0-2) centroid on both maps
+centroids_202 <- AA_matrix_phenotype %>%
+  dplyr::filter(PBP_type == "2-0-2") %>%
+  dplyr::distinct(PBP_type, .keep_all = TRUE) %>%
+  dplyr::summarise(
+    phen_centroid_x_202 = dplyr::first(x_centroid),
+    phen_centroid_y_202 = dplyr::first(y_centroid),
+    gen_centroid_x_202  = dplyr::first(G1),
+    gen_centroid_y_202  = dplyr::first(G2)
+  )
+
+# 2) MEDIAN centroids per (MLST × PBP_type), then distance to 2-0-2 in each space
+centroids_by_mlst <- processed_data %>%
+  tidyr::drop_na(D1, D2, G1, G2, PBP_type, MLST) %>%
+  dplyr::group_by(MLST, MLST_with_count, PBP_type) %>%
+  dplyr::summarise(
+    D1_med = median(D1, na.rm = TRUE),
+    D2_med = median(D2, na.rm = TRUE),
+    G1_med = median(G1, na.rm = TRUE),
+    G2_med = median(G2, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  dplyr::mutate(
+    phen_centroid_x_202 = centroids_202$phen_centroid_x_202,
+    phen_centroid_y_202 = centroids_202$phen_centroid_y_202,
+    gen_centroid_x_202  = centroids_202$gen_centroid_x_202,
+    gen_centroid_y_202  = centroids_202$gen_centroid_y_202,
+    phen_dist_to_202    = sqrt((D1_med - phen_centroid_x_202)^2 + (D2_med - phen_centroid_y_202)^2),
+    gen_dist_to_202     = sqrt((G1_med - gen_centroid_x_202)^2 + (G2_med - gen_centroid_y_202)^2)
+  )
+
+# 3) Top 12 MLSTs (by abundance) + preserve prior legend order/labels
+top_12_MLSTs <- processed_data %>%
+  dplyr::count(MLST, sort = TRUE) %>%
+  dplyr::slice(1:12) %>%
+  dplyr::pull(MLST)
+
+order_levels12 <- processed_data %>%
+  dplyr::filter(MLST %in% top_12_MLSTs) %>%
+  dplyr::group_by(MLST_with_count) %>%
+  dplyr::summarise(n = dplyr::n(), .groups = "drop") %>%
+  dplyr::arrange(dplyr::desc(n)) %>%
+  dplyr::pull(MLST_with_count)
+
+# Split highlight (top12) vs background (others)
+highlight_centroids <- centroids_by_mlst %>%
+  dplyr::filter(MLST %in% top_12_MLSTs) %>%
+  dplyr::mutate(MLST_with_count = factor(MLST_with_count, levels = order_levels12))
+
+background_centroids <- centroids_by_mlst %>%
+  dplyr::filter(!(MLST %in% top_12_MLSTs))
+
+# 3b) BIG POINTS computed EXACTLY like your summary table
+dist_base <- processed_data %>%
+  dplyr::filter(MLST %in% top_12_MLSTs) %>%
+  dplyr::mutate(
+    phen_centroid_x_202 = centroids_202$phen_centroid_x_202,
+    phen_centroid_y_202 = centroids_202$phen_centroid_y_202,
+    gen_centroid_x_202  = centroids_202$gen_centroid_x_202,
+    gen_centroid_y_202  = centroids_202$gen_centroid_y_202,
+    phen_dist_to_202    = sqrt((D1 - phen_centroid_x_202)^2 + (D2 - phen_centroid_y_202)^2),
+    gen_dist_to_202     = sqrt((G1 - gen_centroid_x_202)^2 + (G2 - gen_centroid_y_202)^2)
+  )
+
+pbp_means <- dist_base %>%
+  dplyr::group_by(MLST, MLST_with_count, PBP_type) %>%
+  dplyr::summarise(
+    phen_dist_mean_pbp = mean(phen_dist_to_202, na.rm = TRUE),
+    gen_dist_mean_pbp  = mean(gen_dist_to_202,  na.rm = TRUE),
+    .groups = "drop"
+  )
+
+mlst_bigpoints <- pbp_means %>%
+  dplyr::group_by(MLST, MLST_with_count) %>%
+  dplyr::summarise(
+    phen_dist_mean = mean(phen_dist_mean_pbp, na.rm = TRUE),
+    gen_dist_mean  = mean(gen_dist_mean_pbp,  na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  dplyr::mutate(MLST_with_count = factor(MLST_with_count, levels = order_levels12))
+
+# Palette mapping for ordered top-12 labels
+palette_vec <- setNames(my_colours[seq_along(order_levels12)], order_levels12)
+# 4) Plot — x hard cut, y hard cut; thicker border; extra RIGHT margin for "120"
+x_major <- 10
+y_major <- 2
+
+p_centroids_top12 <- ggplot() +
+  geom_point(
+    data = background_centroids,
+    aes(x = gen_dist_to_202, y = phen_dist_to_202),
+    shape = 21, size = 5.75, alpha = 0.7,
+    colour = "#999999", fill = "#999999"
+  ) +
+  geom_point(
+    data = highlight_centroids,
+    aes(x = gen_dist_to_202, y = phen_dist_to_202, fill = MLST_with_count),
+    shape = 21, size = 7.4, alpha = 1, colour = "black"
+  ) +
+  geom_point(
+    data = mlst_bigpoints,
+    aes(x = gen_dist_mean, y = phen_dist_mean, fill = MLST_with_count),
+    shape = 21, size = 14, alpha = 1, colour = "black", stroke = 1.1
+  ) +
+  scale_x_continuous(
+    limits = c(0, 120),
+    breaks = seq(0, 120, x_major),
+    minor_breaks = seq(0, 120, x_major/2),
+    expand = expansion(mult = 0, add = 0)
+  ) +
+  scale_y_continuous(
+    limits = c(0, 16),
+    breaks = seq(0, 16, y_major),
+    minor_breaks = seq(0, 16, y_major/2),
+    expand = expansion(mult = 0, add = 0)
+  ) +
+  labs(
+    x = "Genetic distance (AA substitutions from 2-0-2)",
+    y = "Phenotypic distance (MIC units from 2-0-2)"
+  ) +
+  theme_bw() +
+  theme(
+    axis.text  = element_text(size = 22),
+    axis.title = element_text(size = 23),
+    legend.position = "none",
+    panel.grid.major = element_line(colour = "grey85", linewidth = 0.6),
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(colour = "black", fill = NA, linewidth = 1.2),
+    # >>> add some breathing room on the RIGHT so "120" isn't clipped <<<
+    plot.margin = margin(t = 10, r = 30, b = 10, l = 10, unit = "pt"),
+    axis.title.x = element_text(margin = margin(t = 6))
+  ) +
+  coord_fixed(ratio = x_major / y_major, clip = "on") +
+  scale_fill_manual(values = palette_vec, limits = order_levels12, drop = FALSE)
+
+p_centroids_top12
+
+ggsave(
+  "Spneumo_gen_by_phen_distance_MEDIANcentroids_top12_coloured_others_grey_WITH_MLST_UNWEIGHTED_PBP_MEANS.jpg",
+  p_centroids_top12, width = 10, height = 8, dpi = 600
+)
+
+
+```
+

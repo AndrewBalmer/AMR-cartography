@@ -43,7 +43,6 @@ for (i in 1:ncol(tablemic)) {
 
 set.seed(123)
 
-no_permutations <- 100
 
 ```
 
@@ -345,151 +344,138 @@ I then further compared the one and two dimensional maps made with real data. He
 
 
 ```{r, echo = F}
+# --- One vs Two dimensional maps: compute projection error once per phenotype ---
 
 torg_met_2D <- torg_met
-one_dim_map <- as_tibble(torg_met$conf)
+one_dim_map <- as_tibble(torg_met_1D$conf)
 two_dim_map <- as_tibble(torg_met_2D$conf)
 
-
-#slope <- as.numeric(coef(mapvtable)[2])
+# Dilation from your previous fit
 slope <- 0.1842996
-
-dilation <- 1/slope
+dilation <- 1 / slope
 colnames(two_dim_map) <- c("D1","D2")
 
-
 for (i in 1:ncol(two_dim_map)) {
-  two_dim_map[,i] <- two_dim_map[,i] *dilation
-  
+  two_dim_map[, i] <- two_dim_map[, i] * dilation
 }
-
 
 one_dim_map$D2 <- 0
 colnames(one_dim_map) <- c("D1","D2")
 
-
-
+# Procrustes to align 2D map and the padded 1D map
 one_and_two_dim_map_comp <- smacof::Procrustes(as.matrix(two_dim_map), as.matrix(one_dim_map))
 one_and_two_dim_map_comp_congcoef <- one_and_two_dim_map_comp$congcoef
 
+pairwise_df <- as_tibble(cbind(one_and_two_dim_map_comp$X, one_and_two_dim_map_comp$Yhat))
+colnames(pairwise_df) <- c("X_axis_2D_map","Y_axis_2D_map","X_axis_1D_map","Y_axis_1D_map")
 
+one_and_two_dim_map_comp_pairwise_dist <- pairwise_df %>%
+  mutate(dist_phen = sqrt((X_axis_2D_map - X_axis_1D_map)^2 + (Y_axis_2D_map - Y_axis_1D_map)^2),
+         LABID = tablemic_meta$LABID)
 
-one_and_two_dim_map_comp_pairwise_dist <- as_tibble(cbind(one_and_two_dim_map_comp$X, one_and_two_dim_map_comp$Yhat))
-
-colnames(one_and_two_dim_map_comp_pairwise_dist) <- c("X_axis_2D_map", "Y_axis_2D_map","X_axis_1D_map","Y_axis_1D_map")
-
-one_and_two_dim_map_comp_pairwise_dist <- as_tibble(one_and_two_dim_map_comp_pairwise_dist) %>% 
-  mutate(dist_phen = sqrt((X_axis_2D_map-X_axis_1D_map)^2 + (Y_axis_2D_map-Y_axis_1D_map)^2),
-         LABID = tablemic_meta$LABID) 
-
-
-
+# Add stress-per-point
 spp <- as_tibble(cbind(tablemic_meta$LABID, torg_met_2D$spp))
 colnames(spp) <- c("LABID", "spp_2D")
 
-
-one_and_two_dim_map_comp_pairwise_dist <- left_join(one_and_two_dim_map_comp_pairwise_dist, as_tibble(spp), by = "LABID")
-
-
+one_and_two_dim_map_comp_pairwise_dist <- left_join(one_and_two_dim_map_comp_pairwise_dist, spp, by = "LABID")
 
 torg_met_conf_1D <- as_tibble(cbind(tablemic_meta$LABID, torg_met_1D$spp))
 colnames(torg_met_conf_1D) <- c("LABID", "spp_1D")
 
-#head(torg_met_conf_1D)
-
-one_two_dim_comp <- left_join(one_and_two_dim_map_comp_pairwise_dist, torg_met_conf_1D, by = "LABID")
-
-
-one_two_dim_comp <- as_tibble(one_two_dim_comp)
+one_two_dim_comp <- left_join(one_and_two_dim_map_comp_pairwise_dist, torg_met_conf_1D, by = "LABID") %>%
+  as_tibble()
 one_two_dim_comp$spp_1D <- as.numeric(one_two_dim_comp$spp_1D)
 
-
-theta <- 326*pi/180 ## degrees to radians
+# Rotate both 2D and 1D coordinates (as you do elsewhere)
+theta <- 326 * pi / 180
 rot <- matrix(c(cos(theta), sin(theta), -sin(theta), cos(theta)), ncol = 2)
-one_two_dim_comp[,1:2] <- as.matrix(one_two_dim_comp[,1:2]) %*% rot ## rotated configurations
-one_two_dim_comp[,3:4] <- as.matrix(one_two_dim_comp[,3:4]) %*% rot ## rotated configurations
+one_two_dim_comp[, 1:2] <- as.matrix(one_two_dim_comp[, 1:2]) %*% rot
+one_two_dim_comp[, 3:4] <- as.matrix(one_two_dim_comp[, 3:4]) %*% rot
 
-range_x <- c(one_two_dim_comp$X_axis_1D_map, one_two_dim_comp$X_axis_2D_map)
-range_y <- c(one_two_dim_comp$Y_axis_1D_map, one_two_dim_comp$Y_axis_2D_map)
+# ------------------ KEY CHANGE: deduplicate by 2D phenotype (unique positions) ------------------
+# Match your first script approach: round, group_by rounded coords, slice one row
+pheno_unique <- one_two_dim_comp %>%
+  mutate(
+    X2D_r = round(X_axis_2D_map, 10),
+    Y2D_r = round(Y_axis_2D_map, 10)
+  ) %>%
+  group_by(X2D_r, Y2D_r) %>%
+  slice(1) %>%         # pick one representative per phenotype (exactly like your first script)
+  ungroup()
 
-A<-ggplot(one_two_dim_comp, aes(x=X_axis_2D_map, y=Y_axis_2D_map,size = spp_1D)) + 
-  geom_segment(aes(x = min(X_axis_1D_map), y = min(Y_axis_1D_map), xend = max(X_axis_1D_map), yend = max(Y_axis_1D_map)), size = 1, colour = "black") +  
-  geom_segment(data = filter(one_two_dim_comp), aes(x = X_axis_2D_map, y = Y_axis_2D_map, xend = X_axis_1D_map, yend = Y_axis_1D_map), size = .3, colour = "black") + 
-  
-  geom_point(aes(x=X_axis_2D_map, y=Y_axis_2D_map), shape = 21, fill = "#E41A1C", colour = "white") +
-  theme_bw() +   
-  #facet_wrap(~ dataset)+
-  scale_x_continuous(limits = c(min(range_x, na.rm = T), max(range_x, na.rm = T)+ .5), breaks=seq(min(range_x, na.rm = T), max(range_x, na.rm = T) + 1,  1))   +
-  scale_y_continuous(limits = c(min(range_y, na.rm = T), max(range_y, na.rm = T)+ .5), breaks=seq(min(range_y, na.rm = T), max(range_y, na.rm = T) + 1,  1)) +
-  labs(title ="") +
-  guides(size="none") +
-  labs( x = "MDR distance", y = "MDR distance") + 	
-  theme(axis.text=element_text(size=16), 
-        axis.title=element_text(size=16), 
-        panel.grid.major = element_line(colour="grey", size = (0.3)),
-        panel.grid.minor = element_blank(),
-        axis.title.x=element_blank(),
-        axis.text.x=element_blank(),
-        axis.ticks.x=element_blank(),
-        axis.title.y=element_blank(),
-        axis.text.y=element_blank(),
-        axis.ticks.y = element_blank(),
-        strip.text.x = element_text(size = 14)) +
-  coord_fixed() 
+# Use only unique phenotypes going forward
+range_x <- c(pheno_unique$X_axis_1D_map, pheno_unique$X_axis_2D_map)
+range_y <- c(pheno_unique$Y_axis_1D_map, pheno_unique$Y_axis_2D_map)
+
+library(ggplot2)
+
+# Plot A: 2D points + 1D line + connectors (unique phenotypes only)
+A <- ggplot(pheno_unique, aes(x = X_axis_2D_map, y = Y_axis_2D_map, size = spp_1D)) +
+  geom_segment(
+    aes(x = min(X_axis_1D_map), y = min(Y_axis_1D_map),
+        xend = max(X_axis_1D_map), yend = max(Y_axis_1D_map)),
+    size = 1, colour = "black"
+  ) +
+  geom_segment(aes(xend = X_axis_1D_map, yend = Y_axis_1D_map),
+               size = .3, colour = "black") +
+  geom_point(shape = 21, fill = "#E41A1C", colour = "white") +
+  theme_bw() +
+  scale_x_continuous(limits = c(min(range_x, na.rm = TRUE), max(range_x, na.rm = TRUE) + .5),
+                     breaks = seq(min(range_x, na.rm = TRUE), max(range_x, na.rm = TRUE) + 1, 1)) +
+  scale_y_continuous(limits = c(min(range_y, na.rm = TRUE), max(range_y, na.rm = TRUE) + .5),
+                     breaks = seq(min(range_y, na.rm = TRUE), max(range_y, na.rm = TRUE) + 1, 1)) +
+  labs(title = "", x = "MDR distance", y = "MDR distance") +
+  guides(size = "none") +
+  theme(
+    axis.text = element_text(size = 16),
+    axis.title = element_text(size = 16),
+    panel.grid.major = element_line(colour = "grey", size = 0.3),
+    panel.grid.minor = element_blank(),
+    axis.title.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.title.y = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    strip.text.x = element_text(size = 14)
+  ) +
+  coord_fixed()
 
 A
+ggsave("Spneumo_phen_1D_procrustes_projection.jpg", A, width = 7, height = 5, dpi = 300)
 
-ggsave("Spneumo_phen_1D_procrustes_projection.jpg")
+# Histogram B: stress (1D spp) per unique phenotype
+muB <- pheno_unique %>%
+  summarise(sd = sd(spp_1D, na.rm = TRUE),
+            Mean = mean(spp_1D, na.rm = TRUE))
 
-test <- one_two_dim_comp %>% 
-  mutate(X_axis_2D_map = round(X_axis_2D_map, 10),
-         Y_axis_2D_map = round(Y_axis_2D_map, 10)) %>%
-  group_by(X_axis_2D_map, Y_axis_2D_map) %>%
-  distinct(X_axis_2D_map, Y_axis_2D_map, .keep_all=TRUE)
+B <- ggplot(pheno_unique, aes(x = spp_1D)) +
+  geom_histogram(position = "identity", alpha = 0.6, fill = "#E41A1C",
+                 color = "black", bins = 25) +
+  theme_bw() +
+  geom_vline(data = muB, aes(xintercept = Mean),
+             color = "#E41A1C", size = 1, linetype = "solid") +
+  scale_x_continuous(breaks = seq(0, max(pheno_unique$spp_1D, na.rm = TRUE) + .5, .5)) +
+  labs(x = "Stress per phenotype in 1D (%)", y = "Frequency")
 
+# Histogram C: projection error per unique phenotype (this is the key match to script 1)
+muC <- pheno_unique %>%
+  summarise(sd = sd(dist_phen, na.rm = TRUE),
+            Mean = mean(dist_phen, na.rm = TRUE))
 
-mu <- one_two_dim_comp %>%
-  ungroup() %>%
-  summarize(sd = sd(spp_1D),
-            Mean = mean(spp_1D))
-
-
-B <- ggplot(filter(one_two_dim_comp), aes(x=spp_1D)) + 
-  geom_histogram(position="identity", alpha = 0.6, fill = "#E41A1C", color = "black", bins = 25) + 
-  theme_bw() + 
-  geom_vline(data=mu, aes(xintercept=Mean), color = "#E41A1C", size = 1,
-             linetype="solid") +
-  # geom_vline(aes(xintercept=1), color = "black", size = 1,
-  #          linetype="solid") +
-  scale_x_continuous(breaks=seq(0, max(test$spp_1D, na.rm = T) +.5, .5)) +
-  labs(x = "Stress per isolate per phenotype (%)", y = "Frequency") 
-
-
-
-
-mu <- one_two_dim_comp %>%
-  ungroup() %>%
-  summarize(sd = sd(dist_phen),
-            Mean = mean(dist_phen))
-
-C <- ggplot(filter(test), aes(x=dist_phen)) + 
-  geom_histogram(position="identity", alpha = 0.6, fill = "#E41A1C", color = "black", bins = 25) + 
-  theme_bw() + 
-  geom_vline(data=mu, aes(xintercept=Mean), color = "#E41A1C", size = 1,
-             linetype="solid") +
-  # geom_vline(aes(xintercept=1), color = "black", size = 1,
-  #          linetype="solid") +
-  scale_x_continuous(breaks=seq(0, max(test$dist_phen, na.rm = T) +.5, 1)) +
+C <- ggplot(pheno_unique, aes(x = dist_phen)) +
+  geom_histogram(position = "identity", alpha = 0.6, fill = "#E41A1C",
+                 color = "black", bins = 25) +
+  theme_bw() +
+  geom_vline(data = muC, aes(xintercept = Mean),
+             color = "#E41A1C", size = 1, linetype = "solid") +
+  scale_x_continuous(breaks = seq(0, max(pheno_unique$dist_phen, na.rm = TRUE) + .5, 1)) +
   labs(x = "Distance to position on 1D map", y = "Frequency") +
-    theme(axis.text=element_text(size=16), 
-        axis.title=element_text(size=16))
+  theme(axis.text = element_text(size = 16),
+        axis.title = element_text(size = 16))
 
-
-A
-B
-C
-
-ggsave("Spneumo_phen_1D_procrustes_projection_distances.jpg")
+A; B; C
+ggsave("Spneumo_phen_1D_procrustes_projection_distances.jpg", C, width = 7, height = 5, dpi = 300)
 
 
 ```
