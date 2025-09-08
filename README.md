@@ -1,7 +1,7 @@
 
 # AMR Cartography
 
-**Antimicrobial Resistance Cartography Reveals the Molecular Determinants of Multivariate Beta‑lactam Resistance in** ***Streptococcus pneumoniae***
+**Antimicrobial Resistance Cartography: A Generalisable Framework for Studying Multivariate Drug Resistance**
 
 Andrew J. Balmer\*, Gemma G. R. Murray, Stephanie Lo, Olivier Restif⍅, Lucy A. Weinert⍅
 
