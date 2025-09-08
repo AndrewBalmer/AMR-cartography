@@ -306,7 +306,8 @@ write.csv(processed_data, file = "S.pneumo_MLST_for_GWAS.csv", row.names=FALSE)
 
 
 ### generating a dummy set of epistatic interactions, and then a corresponding dummy_gen of 
-#just the relevant comparisons
+#just the relevant comparisons 
+# commented out because this is v time consuming
 
 Y <- map_coords$D1
 form <- Y ~ .^2
