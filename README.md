@@ -45,7 +45,7 @@ AMR-cartography/
 
 ## Installation & requirements
 
-AMR Cartography analyses are primarily in **R**, althoigh the mvLMM steps use **Python**.
+AMR Cartography analyses are primarily in **R**, although the mvLMM steps use **Python**.
 
 ### R
 
