@@ -50,27 +50,11 @@ AMR Cartography analyses are primarily in **R**, although the mvLMM steps use **
 ### R
 
 * **R ≥ 4.2** (4.3+ recommended)
-* Suggested packages (install on first use):
+* Primary packages:
 
   * Core: `tidyverse`, `data.table`, `readr`, `stringr`, `purrr`, `ggplot2`, `patchwork`, `cowplot`
   * MDS: `smacof`
   * R Markdown: `rmarkdown`, `knitr`
-
-Install in R:
-
-```r
-install.packages(c(
-  "tidyverse","data.table","readr","stringr","purrr","ggplot2",
-  "patchwork","cowplot","smacof","broom","matrixStats",
-  "rmarkdown","knitr"
-))
-```
-
-
-
-### (Optional) Python
-
-* Recommended (only if you plan to rerun mvLMM variants in Python): `numpy`, `pandas`, `limix`/`fastlmm`.
 
 ---
 
