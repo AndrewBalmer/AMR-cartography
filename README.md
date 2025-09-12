@@ -69,7 +69,7 @@ AMR Cartography analyses are primarily in R, although the mvLMM steps use Python
 
 If you use **AMR Cartography** (methods or code), **please cite**:
 
-> Balmer AJ, Murray GGR, Lo S, Restif O, Weinert LA. *Antimicrobial Resistance Cartography:A Generalisable Framework for Studying Multivariate Drug Resistance*.
+> Balmer AJ, Murray GGR, Lo S, Restif O, Weinert LA. *Antimicrobial Resistance Cartography: A Generalisable Framework for Studying Multivariate Drug Resistance*.
 >
 > **Preprint**: *link coming soon*
 > **Journal article**: *link coming soon*
