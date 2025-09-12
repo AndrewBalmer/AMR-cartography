@@ -1,7 +1,5 @@
 
-# AMR Cartography
-
-**Antimicrobial Resistance Cartography: A Generalisable Framework for Studying Multivariate Drug Resistance**
+# AMR Cartography: A Generalisable Framework for Studying Multivariate Drug Resistance**
 
 Andrew J. Balmer\*, Gemma G. R. Murray, Stephanie Lo, Olivier Restif⍅, Lucy A. Weinert⍅
 
