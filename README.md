@@ -97,7 +97,7 @@ A BibTeX entry will be provided once the DOI is available.
 ## License
 
 This project is released under the **MIT License** (permissive).
-**Attribution required**: in academic or public outputs that use the methods or scripts here, please include the citation above.
+**Attribution**: in academic or public outputs that use the methods or scripts here, please include the citation above.
 
 See [`LICENSE`](#) (to be added) for full terms.
 
