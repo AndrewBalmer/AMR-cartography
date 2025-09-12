@@ -34,7 +34,9 @@ AMR-cartography/
 │  ├─ 01-Phenotype_and_map_analyses/
 │  └─ 02-Genotype_to_phenotype_analyses/
 ├─ manuscript/
-│  └─ (text, figures, supplementary)
+│  ├─ Manuscript.pdf
+│  ├─ Supplementary_Information.pdf
+│  └─ Supplementary_File_1.csv
 ├─ .gitignore
 └─ README.md (this file)
 ```
@@ -83,7 +85,7 @@ install.packages(c(
 
 If you use **AMR Cartography** (methods or code), **please cite**:
 
-> Balmer AJ, Murray GGR, Lo S, Restif O, Weinert LA. *Antimicrobial Resistance Cartography Reveals the Molecular Determinants of Multivariate Beta‑lactam Resistance in Streptococcus pneumoniae*.
+> Balmer AJ, Murray GGR, Lo S, Restif O, Weinert LA. *Antimicrobial Resistance Cartography:A Generalisable Framework for Studying Multivariate Drug Resistance*.
 >
 > **Preprint**: *link coming soon*
 > **Journal article**: *link coming soon*
@@ -103,7 +105,7 @@ See [`LICENSE`](#) (to be added) for full terms.
 
 ## Funding & acknowledgements
 
-This work was supported by the **Biotechnology and Biological Sciences Research Council (BBSRC)** (Student Project ID 2113638), BBSRC Doctoral Training Partnership.
+This work was supported by the Biotechnology and Biological Sciences Research Council (BBSRC) (Student Project ID 2113638), BBSRC Doctoral Training Partnership.
 We also acknowledge the CDC/ABC programme for making data available, and the colleagues and groups listed in the manuscript’s Acknowledgements.
 
 ---
@@ -111,7 +113,7 @@ We also acknowledge the CDC/ABC programme for making data available, and the col
 ## Contact & contributions
 
 * Lead/contact: **Andrew J. Balmer**
-* Issues and improvements via **GitHub Issues**/PRs are welcome.
+* Issues and improvements via GitHub Issues*/PRs are welcome.
 * Please open an issue for reproducibility questions or environment pinning (we can provide an `renv.lock`).
 
 ---
