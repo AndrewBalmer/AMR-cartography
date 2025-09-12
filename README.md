@@ -45,11 +45,11 @@ AMR-cartography/
 
 ## Installation & requirements
 
-AMR Cartography analyses are primarily in **R**, although the mvLMM steps use **Python**.
+AMR Cartography analyses are primarily in R, although the mvLMM steps use Python.
 
 ### R
 
-* **R ≥ 4.2** (4.3+ recommended)
+* R ≥ 4.2 (4.3+ recommended)
 * Primary packages:
 
   * Core: `tidyverse`, `data.table`, `readr`, `stringr`, `purrr`, `ggplot2`, `patchwork`, `cowplot`
