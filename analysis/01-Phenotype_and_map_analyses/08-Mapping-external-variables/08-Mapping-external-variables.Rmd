@@ -420,30 +420,53 @@ nb.cols <- 10
 mycolors <- colorRampPalette(brewer.pal(8, "Reds"))(nb.cols)
 
 # Create a ggplot object
+
+
+
 ggplot(phen_map, aes(x = D1, y = D2)) +
-  geom_abline(slope = slope_orthogonal, intercept = intercept_orthogonal_nonmeningitis, size = .75, linetype = "solid", color = "red") +
-  geom_abline(slope = slope_orthogonal, intercept = intercept_orthogonal_meningitis, size = .75, linetype = "solid", color = "red", alpha = 0.4) +
-  geom_point(aes(fill = as.factor(Penicillin)), shape = 21, size = 3.75, alpha = 1) +
+  geom_abline(slope = slope_orthogonal, intercept = intercept_orthogonal_nonmeningitis,
+              size = .75, linetype = "solid", color = "red") +
+  geom_abline(slope = slope_orthogonal, intercept = intercept_orthogonal_meningitis,
+              size = .75, linetype = "solid", color = "red", alpha = 0.4) +
+  geom_point(aes(fill = as.factor(Penicillin)), shape = 21, size = 7, alpha = 1) +
   theme_linedraw() +
   geom_segment(aes(x = min(calibrated_pen$V1), y = min(calibrated_pen$V2), 
-                   xend = max(calibrated_pen$V1), yend = max(calibrated_pen$V2)), size = .75, colour = "black") +
-  geom_point(data = calibrated_pen, aes(x = V1, y = V2), shape = 16, size = 2) +
+                   xend = max(calibrated_pen$V1), yend = max(calibrated_pen$V2)),
+               size = .75, colour = "black") +
+  geom_point(data = calibrated_pen, aes(x = V1, y = V2),
+             shape = 16, size = 2.75) +
   
   geom_label(data = calibrated_pen,
-             aes(x = V1 - 1, y = V2, label = c("<=0.03", "0.06", "0.12", "0.25", "0.5", "1", "2", "4", "8")),
+             aes(x = V1 - 1, y = V2,
+                 label = c("<=0.03", "0.06", "0.12", "0.25",
+                           "0.5", "1", "2", "4", "8")),
              fill = "white", color = "black",
-             label.padding = unit(0.2, "lines"), label.r = unit(0.2, "lines")) +
+             size = 7,  # increase label text size
+             label.padding = unit(0.2, "lines"),
+             label.r = unit(0.2, "lines")) +
 
-  scale_y_continuous(limits = c(min(phen_map$D2), max(phen_map$D2)), breaks = seq(min(phen_map$D2), max(phen_map$D2)+1, 1)) +
-  scale_x_continuous(limits = c(min(phen_map$D1), max(phen_map$D1)), breaks = seq(min(phen_map$D1), max(phen_map$D1)+1, 1)) +
-  labs(fill = "Penicillin MIC (ug/ml)") +
-    theme_bw() +AMRC_phen_theme() +
+  scale_y_continuous(limits = c(min(phen_map$D2), max(phen_map$D2)),
+                     breaks = seq(min(phen_map$D2), max(phen_map$D2)+1, 1)) +
+  scale_x_continuous(limits = c(min(phen_map$D1), max(phen_map$D1)),
+                     breaks = seq(min(phen_map$D1), max(phen_map$D1)+1, 1)) +
+  labs(fill = "Penicillin MIC (µg/ml)") +
+  theme_bw() + AMRC_phen_theme() +
   coord_fixed() +
-  scale_fill_manual(values = mycolors) 
+  scale_fill_manual(values = mycolors) +
+  
+  # Legend customisation
+  theme(
+    legend.position = c(0.82, 0.24),  # bottom-right (adjust x/y if needed)
+    legend.background = element_rect(fill = "white",
+                                     colour = "black",
+                                     size = 0.25, linetype = "solid"),
+    legend.text = element_text(size = 17.5),
+    legend.title = element_text(size = 17.5),
+    legend.key.height = unit(.75, "cm")  # increase vertical spacing
 
+  )
 
-ggsave("Penicillin_S_pneumo_biplot.jpg")
-
+ggsave("Penicillin_S_pneumo_biplot.jpg", width = 10, height = 10, dpi = 600)
 
 ```
 
@@ -583,7 +606,7 @@ print(p_biplot_marginal)
 
 # Save the final combined plot.
 ggsave("Combined_Biplot_Mean_MIC_spneumo_phen_distribution.jpg", 
-       p_biplot_marginal, width = 10, height = 10, dpi = 1200)
+       p_biplot_marginal, width = 10, height = 10, dpi = 600)
 
 ```
 
@@ -1209,12 +1232,17 @@ combined_summary
 
 
 
-```{r, echo = F}
+
+```{r,echo = F}
+
+
+
 ## ---- gen_by_phen_distance_centroids_top12_color_others_grey_WITH_MLST_PBP_MEANS, echo=FALSE ----
 library(dplyr)
 library(ggplot2)
+library(tidyr)
 
-# 1) Reference (2-0-2) centroid on both maps
+# 1) Reference (2-0-2) centroid on both maps — get as numeric scalars
 centroids_202 <- AA_matrix_phenotype %>%
   dplyr::filter(PBP_type == "2-0-2") %>%
   dplyr::distinct(PBP_type, .keep_all = TRUE) %>%
@@ -1224,6 +1252,13 @@ centroids_202 <- AA_matrix_phenotype %>%
     gen_centroid_x_202  = dplyr::first(G1),
     gen_centroid_y_202  = dplyr::first(G2)
   )
+
+stopifnot(nrow(centroids_202) >= 1)
+
+cx <- centroids_202$phen_centroid_x_202[1] %>% as.numeric()
+cy <- centroids_202$phen_centroid_y_202[1] %>% as.numeric()
+gx <- centroids_202$gen_centroid_x_202[1]  %>% as.numeric()
+gy <- centroids_202$gen_centroid_y_202[1]  %>% as.numeric()
 
 # 2) MEDIAN centroids per (MLST × PBP_type), then distance to 2-0-2 in each space
 centroids_by_mlst <- processed_data %>%
@@ -1237,17 +1272,15 @@ centroids_by_mlst <- processed_data %>%
     .groups = "drop"
   ) %>%
   dplyr::mutate(
-    phen_centroid_x_202 = centroids_202$phen_centroid_x_202,
-    phen_centroid_y_202 = centroids_202$phen_centroid_y_202,
-    gen_centroid_x_202  = centroids_202$gen_centroid_x_202,
-    gen_centroid_y_202  = centroids_202$gen_centroid_y_202,
-    phen_dist_to_202    = sqrt((D1_med - phen_centroid_x_202)^2 + (D2_med - phen_centroid_y_202)^2),
-    gen_dist_to_202     = sqrt((G1_med - gen_centroid_x_202)^2 + (G2_med - gen_centroid_y_202)^2)
+    phen_dist_to_202 = sqrt((D1_med - cx)^2 + (D2_med - cy)^2),
+    gen_dist_to_202  = sqrt((G1_med - gx)^2 + (G2_med - gy)^2)
   )
 
 # 3) Top 12 MLSTs (by abundance) + preserve prior legend order/labels
-top_12_MLSTs <- processed_data %>%
-  dplyr::count(MLST, sort = TRUE) %>%
+top_12_MST_counts <- processed_data %>%
+  dplyr::count(MLST, sort = TRUE)
+
+top_12_MLSTs <- top_12_MST_counts %>%
   dplyr::slice(1:12) %>%
   dplyr::pull(MLST)
 
@@ -1263,19 +1296,28 @@ highlight_centroids <- centroids_by_mlst %>%
   dplyr::filter(MLST %in% top_12_MLSTs) %>%
   dplyr::mutate(MLST_with_count = factor(MLST_with_count, levels = order_levels12))
 
-background_centroids <- centroids_by_mlst %>%
-  dplyr::filter(!(MLST %in% top_12_MLSTs))
 
-# 3b) BIG POINTS computed EXACTLY like your summary table
+# 4) Per-isolate distances to 2-0-2 on AA_matrix_phenotype (make sure numeric)
+AA_matrix_phenotype <- AA_matrix_phenotype %>%
+  dplyr::mutate(across(c(x_centroid, y_centroid, G1, G2), ~ as.numeric(.x))) %>%
+  dplyr::mutate(
+    phen_dist_between_sample_and_202 = sqrt((x_centroid - cx)^2 + (y_centroid - cy)^2),
+    gen_dist_between_sample_and_202  = sqrt((G1 - gx)^2 + (G2 - gy)^2)
+  )
+
+background_centroids <- AA_matrix_phenotype %>%
+  dplyr::transmute(
+    gen_dist_between_sample_and_202  = gen_dist_between_sample_and_202,
+    phen_dist_between_sample_and_202 = phen_dist_between_sample_and_202
+  )
+
+
+# 5) BIG POINTS computed EXACTLY like your summary table
 dist_base <- processed_data %>%
   dplyr::filter(MLST %in% top_12_MLSTs) %>%
   dplyr::mutate(
-    phen_centroid_x_202 = centroids_202$phen_centroid_x_202,
-    phen_centroid_y_202 = centroids_202$phen_centroid_y_202,
-    gen_centroid_x_202  = centroids_202$gen_centroid_x_202,
-    gen_centroid_y_202  = centroids_202$gen_centroid_y_202,
-    phen_dist_to_202    = sqrt((D1 - phen_centroid_x_202)^2 + (D2 - phen_centroid_y_202)^2),
-    gen_dist_to_202     = sqrt((G1 - gen_centroid_x_202)^2 + (G2 - gen_centroid_y_202)^2)
+    phen_dist_to_202 = sqrt((D1 - cx)^2 + (D2 - cy)^2),
+    gen_dist_to_202  = sqrt((G1 - gx)^2 + (G2 - gy)^2)
   )
 
 pbp_means <- dist_base %>%
@@ -1295,16 +1337,17 @@ mlst_bigpoints <- pbp_means %>%
   ) %>%
   dplyr::mutate(MLST_with_count = factor(MLST_with_count, levels = order_levels12))
 
-# Palette mapping for ordered top-12 labels
+# 6) Plot
+# Expect `my_colours` to be defined earlier and have >= length(order_levels12)
 palette_vec <- setNames(my_colours[seq_along(order_levels12)], order_levels12)
-# 4) Plot — x hard cut, y hard cut; thicker border; extra RIGHT margin for "120"
+
 x_major <- 10
 y_major <- 2
 
 p_centroids_top12 <- ggplot() +
   geom_point(
     data = background_centroids,
-    aes(x = gen_dist_to_202, y = phen_dist_to_202),
+    aes(x = gen_dist_between_sample_and_202, y = phen_dist_between_sample_and_202),
     shape = 21, size = 5.75, alpha = 0.7,
     colour = "#999999", fill = "#999999"
   ) +
@@ -1342,7 +1385,6 @@ p_centroids_top12 <- ggplot() +
     panel.grid.major = element_line(colour = "grey85", linewidth = 0.6),
     panel.grid.minor = element_blank(),
     panel.border = element_rect(colour = "black", fill = NA, linewidth = 1.2),
-    # >>> add some breathing room on the RIGHT so "120" isn't clipped <<<
     plot.margin = margin(t = 10, r = 30, b = 10, l = 10, unit = "pt"),
     axis.title.x = element_text(margin = margin(t = 6))
   ) +
@@ -1355,6 +1397,13 @@ ggsave(
   "Spneumo_gen_by_phen_distance_MEDIANcentroids_top12_coloured_others_grey_WITH_MLST_UNWEIGHTED_PBP_MEANS.jpg",
   p_centroids_top12, width = 10, height = 8, dpi = 600
 )
+
+
+```
+
+
+
+```{r,echo =F}
 
 
 ```

@@ -53,35 +53,49 @@ dist_pne <- dist(tablemic) # Use this analysis if you would like to replicate th
 ### Pairwise scatterplot of MIC values for the 6 beta-lactam antibiotics in the S. pneumoniae dataset
 
 Here, I have simply plotted the pairwise MIC values for each drug for all isolates. Note the high number of 'threshold values' for Cefuroxime. Many isolates had MICs equal to or lower than the lowest dilution value tested for this drug.
+### CSLI 2025 catalogue
+#https://em100.edaptivedocs.net/GetDoc.aspx?doc=CLSI%20M100%20ED35:2025&sbssok=CLSI+M100+ED35%3a2025+TABLE+2G&format=HTML#CLSI%20M100%20ED35:2025%20TABLE%202G
 
 
 ```{r, echo = F}
-
-# ==== Pairwise plot: keep all tick marks, label only min & max (µg/mL) ====
+# ==== Pairwise plot with raw (µg/mL) non-meningitis breakpoints only ====
 
 library(ggplot2)
 library(GGally)
 library(rlang)
 library(dplyr)
+library(grid)   # for unit()
 
-#  Data (log2-transformed)
+# 1) Data (log2-transformed)
 pairwise_panels <- as.data.frame(tablemic)
 pairwise_panels <- pairwise_panels %>% select(rev(names(pairwise_panels)))
 
-# Define breakpoints (convert to log2 scale)
-breakpoints <- c(
-  Penicillin = 1,
-  Cefuroxime = 1,
-  Ceftriaxone = 1,
-  Cefotaxime = 1,
-  Amoxicillin = 3,
-  Meropenem  = 0
+# 2) ENTER your CLSI non-meningitis breakpoints in µg/mL (leave NA if none)
+bp_nonmen_raw <- c(
+  Penicillin  = 2,  # e.g. 2
+  Cefuroxime  = 0.5,  # e.g. 1
+  Ceftriaxone = 1,  # e.g. 1
+  Cefotaxime  = 1,  # e.g. 1
+  Amoxicillin = 2,  # e.g. 2
+  Meropenem   = 0.25   # e.g. 0.5
 )
-log_breakpoints <- log2(breakpoints)
 
-# Helpers:
-# - full_breaks: all integer log2 steps across panel range (for tick marks)
-# - minmax_labeler: show labels only for min & max ticks (values in µg/mL)
+# Ensure vector covers exactly the panel columns
+all_drugs <- names(pairwise_panels)
+fill_to <- function(x, keys) {
+  out <- setNames(rep(NA_real_, length(keys)), keys)
+  nm <- intersect(names(x), keys)
+  out[nm] <- x[nm]
+  out
+}
+bp_nonmen_raw <- fill_to(bp_nonmen_raw, all_drugs)
+
+# Convert µg/mL -> log2 safely (0/neg -> NA)
+safe_log2 <- function(x) ifelse(is.finite(x) & x > 0, log2(x), NA_real_)
+log_bp_nonmen <- vapply(all_drugs, function(nm) safe_log2(bp_nonmen_raw[[nm]]), numeric(1))
+names(log_bp_nonmen) <- all_drugs
+
+# 3) Axis tick helpers (log2 steps), label only min & max (in µg/mL)
 full_breaks <- function(v) {
   r1 <- floor(min(v, na.rm = TRUE))
   r2 <- ceiling(max(v, na.rm = TRUE))
@@ -102,18 +116,19 @@ minmax_labeler <- function(breaks_vec) {
   }
 }
 
-# Custom lower panel: scatter with breakpoints, rotated x-axis
 tick_size <- 18
 
+# 4) Custom panels
 my_lower <- function(data, mapping, ...) {
   xvar <- as_label(mapping$x); yvar <- as_label(mapping$y)
-  x_break <- log_breakpoints[xvar]; y_break <- log_breakpoints[yvar]
   xb_full <- full_breaks(data[[xvar]])
   yb_full <- full_breaks(data[[yvar]])
 
+  x_bpn <- log_bp_nonmen[[xvar]]; y_bpn <- log_bp_nonmen[[yvar]]
+
   ggplot(data, mapping) +
-    geom_vline(xintercept = x_break, linetype = "solid", color = "#E41A1C") +
-    geom_hline(yintercept = y_break, linetype = "solid", color = "#E41A1C") +
+    { if (is.finite(x_bpn)) geom_vline(xintercept = x_bpn, linetype = "solid", color = "#E41A1C") } +
+    { if (is.finite(y_bpn)) geom_hline(yintercept = y_bpn, linetype = "solid", color = "#E41A1C") } +
     geom_point(shape = 21, color = "black", fill = "#E41A1C", size = 3, ...) +
     scale_x_continuous(breaks = xb_full, labels = minmax_labeler(xb_full)) +
     scale_y_continuous(breaks = yb_full, labels = minmax_labeler(yb_full)) +
@@ -125,14 +140,14 @@ my_lower <- function(data, mapping, ...) {
     )
 }
 
-# Custom diagonal panel: histogram with vertical breakpoint line
 my_diag <- function(data, mapping, ...) {
-  xvar <- as_label(mapping$x); x_break <- log_breakpoints[xvar]
+  xvar <- as_label(mapping$x)
   xb_full <- full_breaks(data[[xvar]])
+  x_bpn <- log_bp_nonmen[[xvar]]
 
   ggplot(data, mapping) +
     geom_histogram(binwidth = 1, fill = "#E41A1C", color = "black", ...) +
-    geom_vline(xintercept = x_break, linetype = "solid", color = "#E41A1C") +
+    { if (is.finite(x_bpn)) geom_vline(xintercept = x_bpn, linetype = "solid",  color = "#E41A1C") } +
     scale_x_continuous(breaks = xb_full, labels = minmax_labeler(xb_full), expand = c(0, 0)) +
     theme_bw() +
     theme(
@@ -142,7 +157,6 @@ my_diag <- function(data, mapping, ...) {
     )
 }
 
-# Custom upper panel: correlation (unchanged)
 my_upper <- function(data, mapping, ...) {
   xvar <- as_label(mapping$x)
   yvar <- as_label(mapping$y)
@@ -159,22 +173,20 @@ my_upper <- function(data, mapping, ...) {
           panel.grid.major = element_blank())
 }
 
-# Create pairwise plot
-suppressMessages(
-  p <- ggpairs(pairwise_panels,
-               lower = list(continuous = my_lower),
-               diag  = list(continuous = my_diag),
-               upper = list(continuous = my_upper))
-)
+# 5) Build + save
+p <- ggpairs(
+  pairwise_panels,
+  lower = list(continuous = my_lower),
+  diag  = list(continuous = my_diag),
+  upper = list(continuous = my_upper)
+) +
+  theme(
+    strip.background = element_rect(color = "black", fill = "white"),
+    strip.text = element_text(size = 16)
+  )
 
-p <- p + theme(
-  strip.background = element_rect(color = "black", fill = "white"),
-  strip.text = element_text(size = 16)
-)
-
-# Print and save
 print(p)
-ggsave("pairwise_plot.png", plot = p, width = 10, height = 10, dpi = 300)
+ggsave("pairwise_plot.png", plot = p, width = 10, height = 10, dpi = 600)
 
 ```
 

@@ -1,42 +1,35 @@
-# macOS cruft
+# OS / editor
 .DS_Store
+Thumbs.db
+.vscode/
+.idea/
 
-# R session files
+# R
+.Rproj.user/
 .Rhistory
 .RData
-.RDataTmp
 .Ruserdata
-.Rproj.user/
+.Rapp.history
 
-# R markdown side-products
-*_cache/
-*_files/
-
-# Jupyter notebooks
+# Python
+__pycache__/
+*.py[cod]
 .ipynb_checkpoints/
 
-# Data/results (ignore all by default; whitelist later if needed)
-*.rds
-*.RDS
-*.RData
-*.rda
-*.csv
-*.tsv
-*.feather
-*.parquet
-
-# Figures and plots
-*.png
-*.jpg
-*.jpeg
-*.tiff
-*.pdf
-*.svg
-
-# Archives/backups
-*.gz
-*.zip
-*.tar
-*.tar.gz
+# Common build / cache / outputs
+*.log
+*.tmp
 *.bak
+*.swp
+*.swo
+*.aux
+*.toc
+*.out
+*.gz
 
+# Project-specific typical outputs (adjust as needed)
+results/
+output/
+figures/
+data/
+cache/

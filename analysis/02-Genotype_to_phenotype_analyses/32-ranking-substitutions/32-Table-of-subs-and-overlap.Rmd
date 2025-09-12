@@ -788,8 +788,14 @@ combined_table$`Adj. p-value`[is.na(combined_table$`Adj. p-value`)] <-
 
 
 
-# supplementary file 1
+# supplementary file 1 
 supp_file_1 <- combined_table 
+
+
+supp_file_1 <- supp_file_1 %>%
+  mutate(total = as.numeric(total),
+         Joint_effsize_mv_LMM = as.numeric(Joint_effsize_mv_LMM)) %>%
+  arrange(desc(total), desc(Joint_effsize_mv_LMM))
 
 # Rename the columns
 colnames(supp_file_1) <- c("Evidence", "PBP", "Substitution", 
@@ -800,7 +806,7 @@ colnames(supp_file_1) <- c("Evidence", "PBP", "Substitution",
                                       "No. Sig. interactions", "total", "Sig. mvLMM/uvLMM (No. drugs")
 
 
-write.csv(supp_file_1, file = "Supplementary_file_1.csv", row.names=FALSE)
+write.csv(supp_file_1, file = "Supplementary_File_1.csv", row.names=FALSE)
 
 
 
@@ -1102,7 +1108,8 @@ ggplot(filter(top_cluster_hits), aes(x = D1, y = D2, fill = AA, colour = AA)) +
                              "#A65628", #7 
                              "#F781BF"))
 
-  ggsave("Spneumoniae_method_highlight_panel4.jpg")
+ggsave("Spneumoniae_method_highlight_panel4.png",
+       width = 6, height = 4, units = "in", dpi = 600)
 
 
 # Get the ColorBrewer "Set1" palette
