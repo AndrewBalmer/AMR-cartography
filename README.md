@@ -26,7 +26,7 @@ This repo contains the analysis scripts to reproduce the figures/tables in the a
 
 ## Repository structure
 
-**Example layout (placeholder):**
+**Brief overview:**
 
 ```
 AMR-cartography/
