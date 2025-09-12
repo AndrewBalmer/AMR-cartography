@@ -96,7 +96,7 @@ We also acknowledge the CDC/ABC programme for making data available, and the col
 
 ## Contact & contributions
 
-* Lead/contact: **Andrew J. Balmer**
+* Lead/contact: **Andrew J. Balmer** (ab69@sanger.ac.uk)
 * Issues and improvements via GitHub Issues*/PRs are welcome.
 * Please open an issue for reproducibility questions or environment pinning (we can provide an `renv.lock`).
 
