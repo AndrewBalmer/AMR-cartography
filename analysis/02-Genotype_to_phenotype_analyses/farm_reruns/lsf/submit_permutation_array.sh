@@ -14,7 +14,7 @@ MEM_MB="${MEM_MB:-8000}"
 SCRIPT_DIR="$PROJECT_ROOT/analysis/02-Genotype_to_phenotype_analyses/farm_reruns"
 
 mkdir -p "$CHUNK_DIR" "$FARM_OUT/logs"
-TOTAL=$(python - "$INTERACTION_FILE" <<'PY'
+TOTAL=$("$PYTHON" - "$INTERACTION_FILE" <<'PY'
 import pandas as pd, sys
 print(len(pd.read_csv(sys.argv[1])))
 PY
