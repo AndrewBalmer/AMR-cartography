@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import signal
 from pathlib import Path
 
 import numpy as np
@@ -29,6 +30,12 @@ def parse_args() -> argparse.Namespace:
         choices=["raise", "pvalue-one"],
         default="raise",
         help="How to handle numerical model failures for individual tests.",
+    )
+    parser.add_argument(
+        "--fit-timeout-seconds",
+        type=int,
+        default=0,
+        help="Optional per-test wall-clock timeout; 0 disables timeout.",
     )
     parser.add_argument("--force", action="store_true")
     return parser.parse_args()
@@ -77,7 +84,15 @@ def main() -> None:
         ).reshape(-1, 1)
         covariates = relatedness[[parent_a, parent_b]].to_numpy(dtype=float)
         dropped = relatedness.drop(columns=[parent_a, parent_b]).to_numpy(dtype=float)
+        previous_handler = None
         try:
+            if args.fit_timeout_seconds > 0:
+                def raise_timeout(signum, frame):  # type: ignore[no-untyped-def]
+                    raise TimeoutError(f"fit exceeded {args.fit_timeout_seconds} seconds")
+
+                previous_handler = signal.getsignal(signal.SIGALRM)
+                signal.signal(signal.SIGALRM, raise_timeout)
+                signal.setitimer(signal.ITIMER_REAL, args.fit_timeout_seconds)
             result = lowrank_multitrait_scan(
                 y=y,
                 trait_design=trait_design,
@@ -101,6 +116,11 @@ def main() -> None:
                 "candidate_eff": np.full(y.shape[1], np.nan),
                 "candidate_se": np.full(y.shape[1], np.nan),
             }
+        finally:
+            if args.fit_timeout_seconds > 0:
+                signal.setitimer(signal.ITIMER_REAL, 0)
+                if previous_handler is not None:
+                    signal.signal(signal.SIGALRM, previous_handler)
 
         test_id = start + local_index
         stats_rows.append(

@@ -24,6 +24,7 @@ def parse_args() -> argparse.Namespace:
         default="raise",
         help="How to handle numerical model failures for individual tests.",
     )
+    parser.add_argument("--fit-timeout-seconds", type=int, default=0)
     parser.add_argument("--force", action="store_true")
     return parser.parse_args()
 
@@ -53,6 +54,8 @@ def main() -> None:
         "--on-fit-error",
         args.on_fit_error,
     ]
+    if args.fit_timeout_seconds > 0:
+        cmd.extend(["--fit-timeout-seconds", str(args.fit_timeout_seconds)])
     if args.force:
         cmd.append("--force")
     subprocess.run(cmd, check=True)
