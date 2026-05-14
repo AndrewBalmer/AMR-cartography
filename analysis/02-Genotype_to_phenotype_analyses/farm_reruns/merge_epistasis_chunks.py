@@ -80,17 +80,24 @@ def main() -> None:
     support = pd.DataFrame(rows)
     support.to_csv(args.out_dir / "corrected_epistasis_marker_support.csv", index=False)
 
+    observed_non_ok = (
+        int((observed["fit_status"].notna() & (observed["fit_status"] != "ok")).sum())
+        if "fit_status" in observed
+        else 0
+    )
+    permutation_non_ok = (
+        int((permutations["fit_status"].notna() & (permutations["fit_status"] != "ok")).sum())
+        if "fit_status" in permutations
+        else 0
+    )
+
     summary = {
         "observed_interactions": int(len(observed)),
         "effect_rows": int(len(effects)),
         "permutation_rows": int(len(permutations)),
         "permutations": int(permutations["permutation_seed"].nunique()) if not permutations.empty else 0,
-        "observed_fit_failures": int((observed.get("fit_status") == "failed").sum())
-        if "fit_status" in observed
-        else 0,
-        "permutation_fit_failures": int((permutations.get("fit_status") == "failed").sum())
-        if "fit_status" in permutations
-        else 0,
+        "observed_non_ok_fit_rows": observed_non_ok,
+        "permutation_non_ok_fit_rows": permutation_non_ok,
         "alpha": args.alpha,
         "permutation_threshold": threshold,
         "significant_interactions": int(observed["significant_epistasis_perm"].sum()),
