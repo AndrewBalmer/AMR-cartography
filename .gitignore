@@ -41,6 +41,6 @@ reviewer-comments/
 audit/
 
 # Local external data bundles used for reproducibility
-AMRC-repo-files/
-local-data/
-farm_outputs/
+AMRC-repo-files
+local-data
+farm_outputs
