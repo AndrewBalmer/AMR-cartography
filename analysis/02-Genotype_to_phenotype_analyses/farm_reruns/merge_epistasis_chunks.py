@@ -85,6 +85,12 @@ def main() -> None:
         "effect_rows": int(len(effects)),
         "permutation_rows": int(len(permutations)),
         "permutations": int(permutations["permutation_seed"].nunique()) if not permutations.empty else 0,
+        "observed_fit_failures": int((observed.get("fit_status") == "failed").sum())
+        if "fit_status" in observed
+        else 0,
+        "permutation_fit_failures": int((permutations.get("fit_status") == "failed").sum())
+        if "fit_status" in permutations
+        else 0,
         "alpha": args.alpha,
         "permutation_threshold": threshold,
         "significant_interactions": int(observed["significant_epistasis_perm"].sum()),

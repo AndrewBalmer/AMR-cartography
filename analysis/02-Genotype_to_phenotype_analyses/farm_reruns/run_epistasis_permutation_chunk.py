@@ -18,6 +18,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--chunk-size", type=int, default=25)
     parser.add_argument("--permutation-index", required=True, type=int)
     parser.add_argument("--base-seed", default=20260514, type=int)
+    parser.add_argument(
+        "--on-fit-error",
+        choices=["raise", "pvalue-one"],
+        default="raise",
+        help="How to handle numerical model failures for individual tests.",
+    )
     parser.add_argument("--force", action="store_true")
     return parser.parse_args()
 
@@ -44,6 +50,8 @@ def main() -> None:
         "--permutation-seed",
         str(seed),
         "--pvalues-only",
+        "--on-fit-error",
+        args.on_fit_error,
     ]
     if args.force:
         cmd.append("--force")

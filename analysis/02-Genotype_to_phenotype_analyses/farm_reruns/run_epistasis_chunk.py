@@ -24,6 +24,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--chunk-label", default=None)
     parser.add_argument("--permutation-seed", type=int, default=None)
     parser.add_argument("--pvalues-only", action="store_true")
+    parser.add_argument(
+        "--on-fit-error",
+        choices=["raise", "pvalue-one"],
+        default="raise",
+        help="How to handle numerical model failures for individual tests.",
+    )
     parser.add_argument("--force", action="store_true")
     return parser.parse_args()
 
@@ -71,13 +77,30 @@ def main() -> None:
         ).reshape(-1, 1)
         covariates = relatedness[[parent_a, parent_b]].to_numpy(dtype=float)
         dropped = relatedness.drop(columns=[parent_a, parent_b]).to_numpy(dtype=float)
-        result = lowrank_multitrait_scan(
-            y=y,
-            trait_design=trait_design,
-            covariates=covariates,
-            relatedness_features=dropped,
-            candidate=candidate_values,
-        )
+        try:
+            result = lowrank_multitrait_scan(
+                y=y,
+                trait_design=trait_design,
+                covariates=covariates,
+                relatedness_features=dropped,
+                candidate=candidate_values,
+            )
+            fit_status = "ok"
+            fit_error = ""
+        except Exception as exc:
+            if args.on_fit_error == "raise":
+                raise
+            fit_status = "failed"
+            fit_error = f"{type(exc).__name__}: {exc}"
+            result = {
+                "lml0": np.nan,
+                "lml2": np.nan,
+                "dof20": y.shape[1],
+                "scale2": np.nan,
+                "pv20": 1.0,
+                "candidate_eff": np.full(y.shape[1], np.nan),
+                "candidate_se": np.full(y.shape[1], np.nan),
+            }
 
         test_id = start + local_index
         stats_rows.append(
@@ -93,6 +116,8 @@ def main() -> None:
                 "dof20": result["dof20"],
                 "scale2": result["scale2"],
                 "pv20": result["pv20"],
+                "fit_status": fit_status,
+                "fit_error": fit_error,
             }
         )
         if not args.pvalues_only:
