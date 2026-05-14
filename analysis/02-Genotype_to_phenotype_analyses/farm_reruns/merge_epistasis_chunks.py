@@ -30,9 +30,21 @@ def main() -> None:
     args = parse_args()
     args.out_dir.mkdir(parents=True, exist_ok=True)
 
-    observed_files = sorted(args.chunk_dir.glob("epistasis_p_values.chunk_*.csv"))
-    effect_files = sorted(args.chunk_dir.glob("epistasis_effect_sizes.chunk_*.csv"))
-    perm_files = sorted(args.chunk_dir.glob("epistasis_perm_p_values.chunk_*.csv"))
+    observed_files = sorted(
+        path
+        for path in args.chunk_dir.glob("epistasis_p_values.chunk_*.csv")
+        if "smoke" not in path.name
+    )
+    effect_files = sorted(
+        path
+        for path in args.chunk_dir.glob("epistasis_effect_sizes.chunk_*.csv")
+        if "smoke" not in path.name
+    )
+    perm_files = sorted(
+        path
+        for path in args.chunk_dir.glob("epistasis_perm_p_values.chunk_*.csv")
+        if "perm_9999_" not in path.name and "smoke" not in path.name
+    )
     if not observed_files:
         raise FileNotFoundError(f"No observed chunks found in {args.chunk_dir}")
 
