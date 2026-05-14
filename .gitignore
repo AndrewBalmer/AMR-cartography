@@ -33,3 +33,14 @@ output/
 figures/
 data/
 cache/
+
+# Local manuscript review notes (never commit)
+reviewer-comments/
+
+# Local audit notes (never commit — adjust this line to push selectively)
+audit/
+
+# Local external data bundles used for reproducibility
+AMRC-repo-files/
+local-data/
+farm_outputs/
