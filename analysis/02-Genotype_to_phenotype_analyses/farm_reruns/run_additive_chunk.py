@@ -81,6 +81,8 @@ def main() -> None:
 
     start, end = resolve_bounds(args, markers.shape[1])
     label = args.chunk_label or f"{start:03d}_{end:03d}"
+    if args.permutation_index is not None and args.chunk_label is None:
+        label = f"perm_{args.permutation_index:03d}_{label}"
     prefix = "additive_perm" if args.permutation_index is not None else "additive"
     pvalue_path = args.out_dir / f"{prefix}_p_values.chunk_{label}.csv"
     effect_path = args.out_dir / f"{prefix}_effect_sizes.chunk_{label}.csv"
