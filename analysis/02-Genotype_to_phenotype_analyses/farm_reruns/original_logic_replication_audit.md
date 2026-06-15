@@ -455,3 +455,72 @@ The correct next step is not manuscript regeneration.
 
 The correct next step is to repair the corrected rerun pipeline so that it exactly reproduces the old implemented logic on old data, then apply that same logic to the corrected 170-marker panel.
 
+## Verbatim Claude Final Corrected Rebuild Audit
+
+```text
+Audit Report — Final Corrected Original-Logic Rebuild
+Branch: rerun-corrected-mvlmm-epistasis · Baseline: main (82e8123) · Date: 2026-06-15 · Method: read-only, git show main:… for baseline, pandas/numpy via .venv-mvlmm.
+
+Verdict
+The rebuild is sound. Codex's corrected pipeline now faithfully implements the original manuscript logic, with the only scientific change being the intended 13-marker panel (157→170) and the 4,052-candidate epistasis universe. The four deviations flagged in the prior audit are all fixed. Every headline number reproduces exactly, the golden validation passes against old main, and main/manuscript/ are untouched. Recommendation: safe to use the rebuilt review outputs as the corrected results, with two minor caveats to confirm before regenerating the manuscript.
+
+Findings by severity
+Critical
+None.
+
+Major
+None blocking. Two methodological points to be aware of (both deliberate, documented, and conservative — not errors):
+
+Historical literal constants are applied to the new universe by design. The epistasis Galwey meff (39) and threshold (0.0007620121), and the additive meff (28)/threshold (0.000588), are reused as literals rather than recomputed for the 170-marker / 4,052-interaction universe (common.py:33-37). This is the intended "exact historical replication" choice and is conservative: the rebuild's own recomputed adjusted permutation threshold is 0.00805 (larger/looser than the literal 0.000762), so using the literal is stricter, not laxer. Worth one sentence in the methods.
+The 170-marker additive mvLMM fit provenance remains external to farm_reruns/. The rebuild consumes mvLMM_p_values_normal_pneumo_low_freq_vars.csv from AMRC-repo-files/pythonProject1-additive-production-…; only the epistasis fit is reproduced by committed code. The additive fit can be audited at the output level (and the validation harness checks the 157⊂170 panel), but the additive production code path is not in the branch.
+Minor / nits
+"Additive p-threshold plus epistasis" ratio (89.8% → 92.2%) not reproducible to the digit. From the public columns I get additive-evidence = 78/88 (old) or additive∩epistasis = 73/88; neither equals the claimed 79/88 (the new side: 100 or 115 vs claimed 106). All underlying counts (88, 115) are exact; this is a derived percentage whose exact recipe isn't pinned down in the prompt (likely rounding in the public β Joint/Adj. p-value columns or a manuscript-specific definition). The direction (slightly higher in corrected) holds under every interpretation. Confirm the exact definition before quoting the percentage.
+2X A347S gains multi-method evidence without being a component of the 13 added markers — an expected downstream effect of the enlarged epistasis interaction universe (it picks up ≥1 supported interaction). Correctly flagged in the prompt; worth a sentence so it isn't mistaken for an error.
+validate_rebuilt_outputs only INFO-logs the corrected numbers (validate_original_logic.py:216-242) — it asserts the old logic but not the new 394/170/115 counts, so a future regression in corrected outputs wouldn't fail the harness. Enhancement, not a bug.
+The eigenvalue-based galwey_meff() helper (common.py:58-71) is unused by the manuscript rebuild (literals are used); fine, but its floored value should be confirmed = 28/39 if ever wired into sensitivity outputs.
+Task-by-task confirmation
+1. Branch safety — PASS. On rerun-corrected-mvlmm-epistasis; main at 82e8123 with reflog showing only the original clone (untouched); HEAD ahead of origin by 4 (the 3 rebuild commits + the audit-prompt doc). manuscript/Supplementary_File_1.csv is byte-identical to main (355 lines, empty git diff); no corrected/marker-level files leaked into manuscript/. Rebuilt outputs live under farm_outputs/original_logic_rebuild/manuscript_outputs/ (gitignored; git ls-files farm_outputs/ empty).
+
+2. Code change audit — PASS. All 7 rebuilt scripts implement the historical logic; no unintended scientific changes. Key fixes verified in source: pv20_raw vs pv20_adj_galwey kept distinct (build_corrected_evidence_table.py:164-165); add_galwey_adjusted_pvalues raises if raw==adjusted (common.py:83-84); four-cell rule with no hash dedup (common.py:111-155).
+
+3. Original logic replication — PASS. Validation report shows all PASS: old SF1 354 rows, VS1/S5/M82/W105/WNE161, multi-method 88/81, 0 slash rows; 3542/3542/3542 old epistasis; corrected four-cell = 4052; 510 corrected-only pairs all involve added markers; old additive 78 (adj) vs 84 (raw); old uvLMM 127/66 tests, 61/40 markers. I reproduced 354/88/81 and 4052 independently.
+
+4. P-value scale audit — PASS. Additive evidence uses adjusted pv20_adj_galwey ≤ 0.000588 & joint ≥ 1 (build…py:391); uvLMM uses adjusted ≤ 0.001 (merge_exact_unilmm.py:57-58); public Adj. p-value carries the adjusted value (ratio to raw = exactly 28). No column named pv20_adj_galwey contains raw pv20.
+
+5. Epistasis support audit — PASS. Support = (pv20_adj_galwey ≤ 0.0007620121) AND (joint − joint_se ≥ 1) (merge_epistasis_chunks.py:71-73); both parents pivoted once each (:104-110). I independently recomputed: p-only = 3093, supported = 1924, markers = 131; my recompute equals the stored epistasis_support flag exactly. Permutation thresholds are sensitivity-only.
+
+6. Permutation audit — PASS. 405,200 rows / 100 seeds. The 25 non-ok rows are all pv20=1.0 from a single seed (20260523 = permutation 9, array 146 — the documented synthetic chunk). That seed's minimum (6.27e-3) comes from its 4,027 real fits; a p=1 row can never be a minimum, so it cannot loosen the permutation threshold — and the threshold isn't used for manuscript support regardless. Doubly safe.
+
+7. Headline calculation audit — PASS (exact). See table below. Frames never mixed (public component-expanded = 354/394; marker-level = 170). Gained 31 / lost 4 multi-method substitutions reproduce exactly, including the lost-4 now Weak (β 0.993/0.993/0.964/0.964).
+
+8. Head-node safety — PASS. README has a dedicated section naming farm22-head*/farm22-pam-01, listing scripts never to run directly, with Arbiter-penalty warnings. All 6 LSF scripts use set -euo pipefail; every heavy runner executes inside a bsub string; the only head-node Python is the lightweight missing-chunk scanner. Space-containing SUPPORT_DIR is protected by single-quote-inside-double-quote quoting; submit_permutation_array.sh carries --on-fit-error/--fit-timeout-seconds.
+
+9. Stale output audit — PASS. farm_outputs gitignored; invalid pre-tidy files quarantined under tidied_invalid_manuscript_outputs/ (clearly named, non-final); nothing tracked under farm_outputs/.
+
+10. Manuscript implications — see below.
+
+Recomputed old-vs-new headline table (all reproduced exactly)
+Metric (component-expanded public frame)	Old (main)	New (rebuild)
+Public rows	354	394
+Evidence VS/S/M/W/None	1/5/82/105/161	1/5/109/121/158
+Any-evidence rows / subs / positions	193 / 172 / 147	236 / 215 / 179
+Any-evidence positions 1A/2B/2X	50/31/66	60/50/69
+Proportion of 285 positions	51.6%	62.8%
+Multi-method rows / subs / positions	88 / 88 / 81	115 / 115 / 106
+Multi positions 1A/2B/2X	18/24/39	24/42/40
+Multi component rows 1A/2B/2X	20/26/42	26/46/43
+Multi β-Joint range	0.330–3.079	0.374–3.187
+Sole Very Strong	2X I371T (β 3.079, 36 int)	2X I371T (β 3.187, 40 int)
+Marker-level frame (170): VS/S/M/W/None	—	1/5/78/68/18
+Marker streams single/cluster/mvLMM/epistasis	—	1/21/90/131
+Manuscript claims that change: any-evidence substitutions/positions/proportion (172→215, 147→179, 51.6%→62.8%); multi-method substitutions/positions and per-PBP split (88→115, 81→106; PBP2B notably 24→42 positions); effect-size range (0.330–3.079 → 0.374–3.187); Supplementary File 1 rows and Moderate/Weak counts (354→394; Moderate 82→109); Table 3 top-row numbers (I371T β and interaction counts shift). Claims stable: PBP2X I371T remains the sole Very Strong row; Strong count remains 5 and the 5 identities are unchanged (PBP2X E320K/A369V/A491V/M343T/T490S); the broad conclusion of substantial epistasis holds (strengthened).
+
+Commands used for independent recalculation
+Baseline: git show main:manuscript/Supplementary_File_1.csv piped to pandas.read_csv.
+Evidence/any/multi/per-PBP/gained-lost: pandas over old main SF1 vs farm_outputs/original_logic_rebuild/manuscript_outputs/Supplementary_File_1.csv (position via regex \d+).
+Epistasis support: independent recompute of pv20×39 ≤ 0.0007620121 & (joint−joint_se) ≥ 1 over merged/corrected_epistasis_p_values.csv, compared to stored flag.
+Permutation safety: usecols read of merged/corrected_epistasis_permutation_p_values.csv grouping non-ok rows by seed.
+Four-cell candidate count: re-ran four_cell_interaction_metadata on the 170-marker matrix (4052; min cell 37).
+Recommendation
+Use the rebuilt review outputs as the corrected manuscript results. Before the deliberate, provenance-noted copy of farm_outputs/original_logic_rebuild/manuscript_outputs/Supplementary_File_1.csv into manuscript/ (as the README's step 11/12 prescribes) and regenerating the manuscript text/figures: (1) confirm the exact definition behind the "additive+epistasis = 89.8%/92.2%" sentence, and (2) note in methods that the additive mvLMM fit was produced outside farm_reruns/ and that historical literal Galwey/threshold constants were applied to the corrected universe by design. Neither caveat affects the validity of the rebuilt tables.
+```
