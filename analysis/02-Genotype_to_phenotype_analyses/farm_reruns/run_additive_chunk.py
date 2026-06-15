@@ -89,7 +89,7 @@ def main() -> None:
 
     stats_rows: list[dict[str, object]] = []
     effects_out: list[dict[str, object]] = []
-    phenotype_cov = map_coords.cov()
+    phenotype_cov = map_coords.cov().to_numpy(dtype=float)
 
     for marker_index in range(start, end):
         marker = str(markers.columns[marker_index])
