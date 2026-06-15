@@ -9,7 +9,7 @@ set -euo pipefail
 
 PROJECT_ROOT="${PROJECT_ROOT:?Set PROJECT_ROOT to the checked-out repo path}"
 PYTHON="${PYTHON:-python}"
-FARM_OUT="${FARM_OUT:-$PROJECT_ROOT/farm_outputs/corrected_epistasis}"
+FARM_OUT="${FARM_OUT:-$PROJECT_ROOT/farm_outputs/original_logic_rebuild}"
 DATA_DIR="${DATA_DIR:-$PROJECT_ROOT/AMRC-repo-files/pythonProject1-additive-production-20260507-150112}"
 INTERACTION_DIR="${INTERACTION_DIR:-$FARM_OUT/interactions}"
 CHUNK_DIR="${CHUNK_DIR:-$FARM_OUT/chunks}"

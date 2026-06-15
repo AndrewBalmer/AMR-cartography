@@ -30,8 +30,17 @@ from numpy import eye, sqrt  # noqa: E402
 from numpy_sugar.linalg import ddot, economic_qs_linear  # noqa: E402
 
 
-DEFAULT_NEW_THRESHOLD = 0.0009078488974311251
-DEFAULT_UV_THRESHOLD = 0.001
+HISTORICAL_ADDITIVE_THRESHOLD = 0.000588
+HISTORICAL_UV_THRESHOLD = 0.001
+HISTORICAL_EPISTASIS_THRESHOLD = 0.0007620121
+HISTORICAL_ADDITIVE_GALWEY_MEFF = 28.0
+HISTORICAL_EPISTASIS_GALWEY_MEFF = 39.0
+HISTORICAL_EPISTASIS_EFFECT_LOWER_BOUND = 1.0
+
+EXPECTED_OLD_ADDITIVE_MARKERS = 157
+EXPECTED_CORRECTED_ADDITIVE_MARKERS = 170
+EXPECTED_OLD_EPISTASIS_CANDIDATES = 3542
+EXPECTED_CORRECTED_EPISTASIS_CANDIDATES = 4052
 
 
 def require_files(paths: list[Path]) -> None:
@@ -44,6 +53,106 @@ def read_csv(path: Path) -> pd.DataFrame:
     if not path.exists():
         raise FileNotFoundError(path)
     return pd.read_csv(path)
+
+
+def galwey_meff(marker_values: pd.DataFrame | np.ndarray, *, floor: bool = True) -> float:
+    """Return the Galwey effective-test count used by the historical R workflow.
+
+    The old manuscript scripts hard-coded the floored poolr Galwey values:
+    28 for additive/uvLMM marker tests and 39 for epistasis tests. This helper
+    is used by validation and sensitivity checks, while exact manuscript
+    rebuilds default to the historical literal constants above.
+    """
+    values = np.asarray(marker_values, dtype=float)
+    corr = np.corrcoef(values, rowvar=False)
+    eigvals = np.linalg.eigvalsh(corr)
+    eigvals = np.maximum(eigvals, 0)
+    meff = float(np.square(np.sqrt(eigvals).sum()) / eigvals.sum())
+    return float(np.floor(meff)) if floor else meff
+
+
+def add_galwey_adjusted_pvalues(
+    df: pd.DataFrame,
+    *,
+    raw_column: str = "pv20",
+    adjusted_column: str = "pv20_adj_galwey",
+    meff: float,
+    clip: bool = False,
+) -> pd.DataFrame:
+    """Add an adjusted p-value column while preserving the raw p-value column."""
+    if adjusted_column == raw_column:
+        raise ValueError("raw and adjusted p-value columns must be distinct")
+    if raw_column not in df.columns:
+        raise KeyError(f"Missing raw p-value column: {raw_column}")
+    out = df.copy()
+    adjusted = pd.to_numeric(out[raw_column], errors="coerce") * float(meff)
+    if clip:
+        adjusted = adjusted.clip(upper=1.0)
+    out[adjusted_column] = adjusted
+    out["galwey_meff"] = float(meff)
+    return out
+
+
+def binary_marker_matrix(markers: pd.DataFrame) -> pd.DataFrame:
+    """Validate and return a 0/1 marker matrix."""
+    bad: list[str] = []
+    for column in markers.columns:
+        values = set(pd.Series(markers[column]).dropna().unique().tolist())
+        if not values.issubset({0, 1, 0.0, 1.0, False, True}):
+            bad.append(str(column))
+    if bad:
+        raise ValueError(f"Non-binary marker columns: {bad[:10]}")
+    if markers.isna().any().any():
+        missing = markers.columns[markers.isna().any()].astype(str).tolist()
+        raise ValueError(f"Marker columns contain missing values: {missing[:10]}")
+    return markers.astype(np.uint8)
+
+
+def four_cell_interaction_metadata(
+    markers: pd.DataFrame,
+    *,
+    min_fraction: float = 0.01,
+) -> pd.DataFrame:
+    """Generate pairwise marker products using the original four-cell rule.
+
+    The historical R code used `model.matrix(Y ~ .^2)` and retained interaction
+    products only when all four parent genotype cells were at least 1% of
+    isolates. It did not hash-deduplicate interaction products for the exact
+    replication output.
+    """
+    matrix = binary_marker_matrix(markers)
+    names = list(matrix.columns.astype(str))
+    min_count = float(len(matrix) * min_fraction)
+    rows: list[dict[str, object]] = []
+
+    for i, parent_a in enumerate(names):
+        a = matrix[parent_a].to_numpy(dtype=np.uint8)
+        for parent_b in names[i + 1 :]:
+            b = matrix[parent_b].to_numpy(dtype=np.uint8)
+            n_00 = int(((a == 0) & (b == 0)).sum())
+            n_10 = int(((a == 1) & (b == 0)).sum())
+            n_01 = int(((a == 0) & (b == 1)).sum())
+            n_11 = int(((a == 1) & (b == 1)).sum())
+            if min(n_00, n_10, n_01, n_11) < min_count:
+                continue
+            interaction = f"{parent_a}:{parent_b}"
+            rows.append(
+                {
+                    "interaction": interaction,
+                    "parent_a": parent_a,
+                    "parent_b": parent_b,
+                    "n_00": n_00,
+                    "n_10": n_10,
+                    "n_01": n_01,
+                    "n_11": n_11,
+                    "n_present": n_11,
+                    "frequency": float(n_11 / len(matrix)),
+                    "min_cell_count": min(n_00, n_10, n_01, n_11),
+                    "one_percent_count": min_count,
+                }
+            )
+
+    return pd.DataFrame(rows)
 
 
 def normalized_relatedness_features(values: np.ndarray) -> np.ndarray:

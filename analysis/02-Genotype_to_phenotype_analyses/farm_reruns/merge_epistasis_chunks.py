@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Merge corrected-panel epistasis chunks and derive permutation threshold."""
+"""Merge epistasis chunks and derive historical-scale marker support."""
 
 from __future__ import annotations
 
@@ -10,20 +10,156 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from common import (
+    EXPECTED_CORRECTED_EPISTASIS_CANDIDATES,
+    HISTORICAL_EPISTASIS_EFFECT_LOWER_BOUND,
+    HISTORICAL_EPISTASIS_GALWEY_MEFF,
+    HISTORICAL_EPISTASIS_THRESHOLD,
+    add_galwey_adjusted_pvalues,
+)
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--chunk-dir", required=True, type=Path)
     parser.add_argument("--out-dir", required=True, type=Path)
     parser.add_argument("--alpha", default=0.05, type=float)
+    parser.add_argument("--galwey-meff", default=HISTORICAL_EPISTASIS_GALWEY_MEFF, type=float)
+    parser.add_argument("--threshold", default=HISTORICAL_EPISTASIS_THRESHOLD, type=float)
+    parser.add_argument("--support-effect-lower-bound", default=HISTORICAL_EPISTASIS_EFFECT_LOWER_BOUND, type=float)
+    parser.add_argument("--expected-observed-interactions", default=EXPECTED_CORRECTED_EPISTASIS_CANDIDATES, type=int)
     return parser.parse_args()
 
 
-def concat(pattern: str) -> pd.DataFrame:
-    files = sorted(Path().glob(pattern))
-    if not files:
-        return pd.DataFrame()
-    return pd.concat([pd.read_csv(path) for path in files], ignore_index=True)
+def read_many(files: list[Path]) -> pd.DataFrame:
+    return pd.concat([pd.read_csv(path) for path in files], ignore_index=True) if files else pd.DataFrame()
+
+
+def candidate_effect_wide(effects: pd.DataFrame) -> pd.DataFrame:
+    if effects.empty:
+        raise ValueError("Observed effect chunks are required for historical epistasis support")
+    candidate = effects[effects["effect_type"].eq("candidate")].copy()
+    required = {"test", "effect_name", "env", "effsize", "effsize_se"}
+    missing = required - set(candidate.columns)
+    if missing:
+        raise ValueError(f"Effect chunks are missing columns: {sorted(missing)}")
+    wide = candidate.pivot(index=["test", "effect_name"], columns="env", values=["effsize", "effsize_se"])
+    wide.columns = [f"{value}_{env}" for value, env in wide.columns]
+    wide = wide.reset_index().rename(columns={"effect_name": "interaction"})
+    expected = ["effsize_env1_D1", "effsize_env1_D2", "effsize_se_env1_D1", "effsize_se_env1_D2"]
+    missing_effects = [column for column in expected if column not in wide.columns]
+    if missing_effects:
+        raise ValueError(f"Effect chunks are missing candidate env columns: {missing_effects}")
+    return wide
+
+
+def enrich_observed(observed: pd.DataFrame, effects: pd.DataFrame, *, galwey_meff: float, threshold: float, lower_bound: float) -> pd.DataFrame:
+    required = {"test", "interaction", "parent_a", "parent_b", "pv20"}
+    missing = required - set(observed.columns)
+    if missing:
+        raise ValueError(f"Observed chunks are missing columns: {sorted(missing)}")
+
+    effects_wide = candidate_effect_wide(effects)
+    out = observed.merge(effects_wide, on=["test", "interaction"], how="left", validate="one_to_one")
+    if out[["effsize_env1_D1", "effsize_env1_D2", "effsize_se_env1_D1", "effsize_se_env1_D2"]].isna().any().any():
+        raise ValueError("Some observed p-value rows did not receive candidate effect sizes")
+
+    out = add_galwey_adjusted_pvalues(out, meff=galwey_meff)
+    out["joint_effect_size"] = np.sqrt(out["effsize_env1_D1"] ** 2 + out["effsize_env1_D2"] ** 2)
+    out["joint_effect_size_se"] = np.sqrt(out["effsize_se_env1_D1"] ** 2 + out["effsize_se_env1_D2"] ** 2)
+    out["joint_effect_lower_bound"] = out["joint_effect_size"] - out["joint_effect_size_se"]
+    out["passes_epistasis_threshold"] = out["pv20_adj_galwey"] <= threshold
+    out["passes_epistasis_effect_filter"] = out["joint_effect_lower_bound"] >= lower_bound
+    out["epistasis_support"] = out["passes_epistasis_threshold"] & out["passes_epistasis_effect_filter"]
+    return out
+
+
+def permutation_minima(permutations: pd.DataFrame, *, galwey_meff: float, alpha: float) -> tuple[pd.DataFrame, dict[str, object]]:
+    if permutations.empty:
+        return pd.DataFrame(), {
+            "permutations": 0,
+            "raw_permutation_threshold": np.nan,
+            "adjusted_permutation_threshold": np.nan,
+        }
+    adjusted = add_galwey_adjusted_pvalues(permutations, meff=galwey_meff)
+    minima = (
+        adjusted.groupby("permutation_seed", dropna=False)
+        .agg(raw_min_pv20=("pv20", "min"), adjusted_min_pv20=("pv20_adj_galwey", "min"))
+        .reset_index()
+    )
+    summary = {
+        "permutations": int(minima["permutation_seed"].nunique()),
+        "raw_permutation_threshold": float(minima["raw_min_pv20"].quantile(alpha, interpolation="higher")),
+        "adjusted_permutation_threshold": float(
+            minima["adjusted_min_pv20"].quantile(alpha, interpolation="higher")
+        ),
+    }
+    return minima, summary
+
+
+def marker_support(enriched: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    supported = enriched[enriched["epistasis_support"]].copy()
+    p_only = enriched[enriched["passes_epistasis_threshold"]].copy()
+
+    support_parents = pd.concat(
+        [
+            supported.assign(marker=supported["parent_a"], partner=supported["parent_b"]),
+            supported.assign(marker=supported["parent_b"], partner=supported["parent_a"]),
+        ],
+        ignore_index=True,
+    )
+    p_only_parents = pd.concat(
+        [
+            p_only.assign(marker=p_only["parent_a"]),
+            p_only.assign(marker=p_only["parent_b"]),
+        ],
+        ignore_index=True,
+    )
+
+    if support_parents.empty:
+        support = pd.DataFrame(
+            columns=[
+                "marker",
+                "num_sig_interactions",
+                "num_perm_cutoff_interactions",
+                "min_epistasis_pv20",
+                "min_epistasis_pv20_adj_galwey",
+                "min_joint_effect_lower_bound",
+                "max_joint_effect_size",
+            ]
+        )
+    else:
+        support = (
+            support_parents.groupby("marker", dropna=False)
+            .agg(
+                num_sig_interactions=("interaction", "count"),
+                min_epistasis_pv20=("pv20", "min"),
+                min_epistasis_pv20_adj_galwey=("pv20_adj_galwey", "min"),
+                min_joint_effect_lower_bound=("joint_effect_lower_bound", "min"),
+                max_joint_effect_size=("joint_effect_size", "max"),
+            )
+            .reset_index()
+        )
+
+    if p_only_parents.empty:
+        p_only_counts = pd.DataFrame(columns=["marker", "num_perm_cutoff_interactions"])
+    else:
+        p_only_counts = (
+            p_only_parents.groupby("marker", dropna=False)
+            .agg(num_perm_cutoff_interactions=("interaction", "count"))
+            .reset_index()
+        )
+    support = support.drop(columns=["num_perm_cutoff_interactions"], errors="ignore").merge(
+        p_only_counts, on="marker", how="left"
+    )
+    support["num_perm_cutoff_interactions"] = support["num_perm_cutoff_interactions"].fillna(0).astype(int)
+    return supported, support.sort_values(["num_sig_interactions", "marker"], ascending=[False, True])
+
+
+def non_ok_count(df: pd.DataFrame) -> int:
+    if df.empty or "fit_status" not in df.columns:
+        return 0
+    return int((df["fit_status"].notna() & (df["fit_status"] != "ok")).sum())
 
 
 def main() -> None:
@@ -31,14 +167,10 @@ def main() -> None:
     args.out_dir.mkdir(parents=True, exist_ok=True)
 
     observed_files = sorted(
-        path
-        for path in args.chunk_dir.glob("epistasis_p_values.chunk_*.csv")
-        if "smoke" not in path.name
+        path for path in args.chunk_dir.glob("epistasis_p_values.chunk_*.csv") if "smoke" not in path.name
     )
     effect_files = sorted(
-        path
-        for path in args.chunk_dir.glob("epistasis_effect_sizes.chunk_*.csv")
-        if "smoke" not in path.name
+        path for path in args.chunk_dir.glob("epistasis_effect_sizes.chunk_*.csv") if "smoke" not in path.name
     )
     perm_files = sorted(
         path
@@ -48,59 +180,45 @@ def main() -> None:
     if not observed_files:
         raise FileNotFoundError(f"No observed chunks found in {args.chunk_dir}")
 
-    observed = pd.concat([pd.read_csv(path) for path in observed_files], ignore_index=True)
-    effects = pd.concat([pd.read_csv(path) for path in effect_files], ignore_index=True) if effect_files else pd.DataFrame()
-    permutations = pd.concat([pd.read_csv(path) for path in perm_files], ignore_index=True) if perm_files else pd.DataFrame()
+    observed_raw = read_many(observed_files)
+    if args.expected_observed_interactions is not None and len(observed_raw) != args.expected_observed_interactions:
+        raise AssertionError(
+            f"Expected {args.expected_observed_interactions} observed interactions, found {len(observed_raw)}"
+        )
+    effects = read_many(effect_files)
+    permutations = read_many(perm_files)
 
-    threshold = np.nan
-    min_by_perm = pd.DataFrame()
-    if not permutations.empty:
-        min_by_perm = permutations.groupby("permutation_seed", dropna=False)["pv20"].min().reset_index()
-        threshold = float(min_by_perm["pv20"].quantile(args.alpha, interpolation="higher"))
-        observed["significant_epistasis_perm"] = observed["pv20"] <= threshold
-    else:
-        observed["significant_epistasis_perm"] = False
+    observed = enrich_observed(
+        observed_raw,
+        effects,
+        galwey_meff=args.galwey_meff,
+        threshold=args.threshold,
+        lower_bound=args.support_effect_lower_bound,
+    )
+    supported, support = marker_support(observed)
+    minima, permutation_summary = permutation_minima(permutations, galwey_meff=args.galwey_meff, alpha=args.alpha)
 
     observed.to_csv(args.out_dir / "corrected_epistasis_p_values.csv", index=False)
     effects.to_csv(args.out_dir / "corrected_epistasis_effect_sizes.csv", index=False)
     permutations.to_csv(args.out_dir / "corrected_epistasis_permutation_p_values.csv", index=False)
-    min_by_perm.to_csv(args.out_dir / "corrected_epistasis_permutation_minima.csv", index=False)
-
-    sig = observed[observed["significant_epistasis_perm"]].copy()
-    rows: list[dict[str, object]] = []
-    for marker in sorted(set(sig["parent_a"]).union(set(sig["parent_b"]))):
-        subset = sig[(sig["parent_a"] == marker) | (sig["parent_b"] == marker)]
-        rows.append(
-            {
-                "marker": marker,
-                "num_sig_interactions": int(len(subset)),
-                "min_epistasis_pv20": float(subset["pv20"].min()) if len(subset) else np.nan,
-            }
-        )
-    support = pd.DataFrame(rows)
+    minima.to_csv(args.out_dir / "corrected_epistasis_permutation_minima.csv", index=False)
+    supported.to_csv(args.out_dir / "corrected_epistasis_supported_interactions.csv", index=False)
     support.to_csv(args.out_dir / "corrected_epistasis_marker_support.csv", index=False)
 
-    observed_non_ok = (
-        int((observed["fit_status"].notna() & (observed["fit_status"] != "ok")).sum())
-        if "fit_status" in observed
-        else 0
-    )
-    permutation_non_ok = (
-        int((permutations["fit_status"].notna() & (permutations["fit_status"] != "ok")).sum())
-        if "fit_status" in permutations
-        else 0
-    )
-
     summary = {
+        "support_rule": "pv20_adj_galwey <= threshold AND joint_effect_size - joint_effect_size_se >= lower_bound",
+        "galwey_meff": float(args.galwey_meff),
+        "historical_epistasis_threshold": float(args.threshold),
+        "support_effect_lower_bound": float(args.support_effect_lower_bound),
         "observed_interactions": int(len(observed)),
         "effect_rows": int(len(effects)),
         "permutation_rows": int(len(permutations)),
-        "permutations": int(permutations["permutation_seed"].nunique()) if not permutations.empty else 0,
-        "observed_non_ok_fit_rows": observed_non_ok,
-        "permutation_non_ok_fit_rows": permutation_non_ok,
-        "alpha": args.alpha,
-        "permutation_threshold": threshold,
-        "significant_interactions": int(observed["significant_epistasis_perm"].sum()),
+        **permutation_summary,
+        "observed_non_ok_fit_rows": non_ok_count(observed),
+        "permutation_non_ok_fit_rows": non_ok_count(permutations),
+        "alpha": float(args.alpha),
+        "pvalue_threshold_only_interactions": int(observed["passes_epistasis_threshold"].sum()),
+        "support_interactions": int(observed["epistasis_support"].sum()),
         "markers_with_epistasis_support": int(len(support)),
     }
     (args.out_dir / "corrected_epistasis_summary.json").write_text(json.dumps(summary, indent=2) + "\n")
