@@ -47,6 +47,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--new-dir", required=True, type=Path)
     parser.add_argument("--support-dir", required=True, type=Path)
     parser.add_argument("--analysis-out", required=True, type=Path)
+    parser.add_argument("--additive-dir", type=Path)
+    parser.add_argument("--uv-dir", type=Path)
+    parser.add_argument("--epistasis-dir", type=Path)
+    parser.add_argument("--threshold-file", type=Path)
+    parser.add_argument("--analysis-label", default="Corrected rerun")
     parser.add_argument(
         "--output-dir",
         default=Path("farm_outputs/original_logic_rebuild/manuscript_outputs"),
@@ -145,23 +150,27 @@ def evidence_category(total: int) -> str:
     )
 
 
-def load_additive(new_dir: Path, threshold: float, galwey_meff: float) -> pd.DataFrame:
-    pvals = read_csv(new_dir / "mvLMM_p_values_normal_pneumo_low_freq_vars.csv")
+def load_additive(new_dir: Path, threshold: float, galwey_meff: float, additive_dir: Path | None = None) -> pd.DataFrame:
+    source_dir = additive_dir or new_dir
+    pvals = read_csv(source_dir / "mvLMM_p_values_normal_pneumo_low_freq_vars.csv")
     unnamed = [col for col in pvals.columns if str(col).startswith("Unnamed")]
     if unnamed:
         pvals = pvals.rename(columns={unnamed[0]: "mvLMM_result_index"})
-    order = marker_order_from_effects(new_dir / "mvLMM_effect_sizes_normal_pneumo_low_freq_vars.csv")
-    if len(order) != len(pvals):
-        raise ValueError("Additive mvLMM p-values/effects do not align")
-    pvals["marker"] = order
+    effect_file = source_dir / "mvLMM_effect_sizes_normal_pneumo_low_freq_vars.csv"
+    if "marker" not in pvals.columns:
+        order = marker_order_from_effects(effect_file)
+        if len(order) != len(pvals):
+            raise ValueError("Additive mvLMM p-values/effects do not align")
+        pvals["marker"] = order
 
-    effects = read_csv(new_dir / "mvLMM_effect_sizes_normal_pneumo_low_freq_vars.csv")
+    effects = read_csv(effect_file)
     cand = effects[effects["effect_type"].eq("candidate")][["effect_name", "env", "effsize"]]
     wide = cand.pivot(index="effect_name", columns="env", values="effsize").reset_index()
     wide = wide.rename(columns={"effect_name": "marker", "env1_D1": "effect_axis1", "env1_D2": "effect_axis2"})
 
     out = pvals.merge(wide, on="marker", how="left")
-    out = out.rename(columns={"pv20": "pv20_raw"})
+    if "pv20_raw" not in out.columns:
+        out = out.rename(columns={"pv20": "pv20_raw"})
     out = add_galwey_adjusted_pvalues(out, raw_column="pv20_raw", meff=galwey_meff)
     out["joint_effect_size"] = np.sqrt(out["effect_axis1"] ** 2 + out["effect_axis2"] ** 2)
     out["mvLMM_significant_historical"] = out["pv20_adj_galwey"] <= threshold
@@ -181,8 +190,9 @@ def load_uv_support(
     new_dir: Path,
     threshold: float,
     galwey_meff: float,
+    uv_dir: Path | None = None,
 ) -> pd.DataFrame:
-    support_path = analysis_out / "uniLMM_exact_170_marker_support.csv"
+    support_path = (uv_dir or analysis_out) / "uniLMM_exact_170_marker_support.csv"
     if support_path.exists():
         support = read_csv(support_path)
         return support.rename(
@@ -457,9 +467,13 @@ def build_audit(
     legacy_table: pd.DataFrame,
     analysis_out: Path,
     additive_threshold: float,
+    *,
+    analysis_label: str,
+    threshold_file: Path | None,
 ) -> list[str]:
     summary_path = analysis_out / "corrected_epistasis_summary.json"
     summary = json.loads(summary_path.read_text()) if summary_path.exists() else {}
+    thresholds = json.loads(threshold_file.read_text()) if threshold_file is not None and threshold_file.exists() else {}
     marker_counts = marker_table["Evidence"].value_counts().reindex(
         ["Very Strong", "Strong", "Moderate", "Weak", "Weak/No Evidence"], fill_value=0
     )
@@ -468,12 +482,12 @@ def build_audit(
     )
 
     audit = [
-        "# Corrected rerun manuscript audit",
+        f"# {analysis_label} manuscript audit",
         "",
         f"- Additive markers tested: `{len(marker_table)}`.",
         f"- Public legacy-format Supplementary File 1 rows: `{len(legacy_table)}`.",
         f"- Public unique PBP/substitution rows: `{legacy_table[['PBP', 'Substitution']].drop_duplicates().shape[0]}`.",
-        f"- Additive markers significant at historical adjusted threshold `{additive_threshold}`: `{int(marker_table['mvLMM_significant_historical'].sum())}`.",
+        f"- Additive markers significant at analysis adjusted threshold `{additive_threshold}`: `{int(marker_table['mvLMM_significant_historical'].sum())}`.",
         f"- Additive markers with manuscript mvLMM evidence (`threshold + joint effect >= 1`): `{int(marker_table['mvLMM_evidence'].sum())}`.",
         f"- Additive markers significant at adjusted `0.001` for mvLMM/uvLMM display: `{int(marker_table['mvLMM_significant_p001'].sum())}`.",
         f"- Exact uvLMM marker-drug tests expected: `{len(marker_table) * 6}`.",
@@ -498,7 +512,8 @@ def build_audit(
                 f"- Observed interactions: `{summary.get('observed_interactions', 'NA')}`.",
                 f"- Permutation rows: `{summary.get('permutation_rows', 'NA')}`.",
                 f"- Permutations: `{summary.get('permutations', 'NA')}`.",
-                f"- Historical epistasis threshold: `{summary.get('historical_epistasis_threshold', 'NA')}`.",
+                f"- Epistasis threshold: `{summary.get('epistasis_threshold', summary.get('historical_epistasis_threshold', 'NA'))}`.",
+                f"- Epistasis threshold policy: `{summary.get('threshold_policy', 'NA')}`.",
                 f"- P-value-threshold-only interactions: `{summary.get('pvalue_threshold_only_interactions', 'NA')}`.",
                 f"- Supported interactions after lower-bound effect filter: `{summary.get('support_interactions', 'NA')}`.",
                 f"- Observed non-ok fit rows: `{summary.get('observed_non_ok_fit_rows', 'NA')}`.",
@@ -529,10 +544,18 @@ def main() -> None:
     output_dir = args.manuscript_dir if args.manuscript_dir is not None else args.output_dir
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    additive = load_additive(args.new_dir, args.additive_threshold, args.additive_galwey_meff)
-    uv = load_uv_support(args.analysis_out, args.legacy_dir, args.new_dir, args.uv_threshold, args.additive_galwey_meff)
+    additive = load_additive(args.new_dir, args.additive_threshold, args.additive_galwey_meff, args.additive_dir)
+    uv = load_uv_support(
+        args.analysis_out,
+        args.legacy_dir,
+        args.new_dir,
+        args.uv_threshold,
+        args.additive_galwey_meff,
+        args.uv_dir,
+    )
     component = load_component_support(args.support_dir)
-    epistasis_path = args.analysis_out / "corrected_epistasis_marker_support.csv"
+    epistasis_dir = args.epistasis_dir or args.analysis_out
+    epistasis_path = epistasis_dir / "corrected_epistasis_marker_support.csv"
     epi = read_csv(epistasis_path) if epistasis_path.exists() else pd.DataFrame(columns=["marker", "num_sig_interactions"])
 
     marker_table = build_marker_level_table(additive, uv, component, epi)
@@ -541,10 +564,28 @@ def main() -> None:
     write_marker_level_display(marker_table, output_dir)
     write_legacy_public(legacy_table, output_dir)
 
-    audit = build_audit(marker_table, legacy_table, args.analysis_out, args.additive_threshold)
+    audit = build_audit(
+        marker_table,
+        legacy_table,
+        epistasis_dir,
+        args.additive_threshold,
+        analysis_label=args.analysis_label,
+        threshold_file=args.threshold_file,
+    )
     (output_dir / "corrected_rerun_manuscript_audit.md").write_text("\n".join(audit) + "\n")
     print("\n".join(audit))
 
 
 if __name__ == "__main__":
     main()
+    if thresholds:
+        audit.extend(
+            [
+                "",
+                "## Recomputed threshold summary",
+                "",
+                "```json",
+                json.dumps(thresholds, indent=2, sort_keys=True),
+                "```",
+            ]
+        )

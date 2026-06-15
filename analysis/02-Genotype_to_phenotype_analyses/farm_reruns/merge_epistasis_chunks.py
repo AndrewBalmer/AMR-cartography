@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Merge epistasis chunks and derive historical-scale marker support."""
+"""Merge epistasis chunks and derive marker support."""
 
 from __future__ import annotations
 
@@ -26,8 +26,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--alpha", default=0.05, type=float)
     parser.add_argument("--galwey-meff", default=HISTORICAL_EPISTASIS_GALWEY_MEFF, type=float)
     parser.add_argument("--threshold", default=HISTORICAL_EPISTASIS_THRESHOLD, type=float)
+    parser.add_argument(
+        "--threshold-mode",
+        choices=["historical", "lowest-min-p", "explicit"],
+        default="historical",
+        help="How to choose the adjusted-p support threshold.",
+    )
     parser.add_argument("--support-effect-lower-bound", default=HISTORICAL_EPISTASIS_EFFECT_LOWER_BOUND, type=float)
     parser.add_argument("--expected-observed-interactions", default=EXPECTED_CORRECTED_EPISTASIS_CANDIDATES, type=int)
+    parser.add_argument("--expected-permutation-rows", type=int)
+    parser.add_argument("--expected-permutations", type=int)
+    parser.add_argument("--fail-on-non-ok", action="store_true")
     return parser.parse_args()
 
 
@@ -86,9 +95,14 @@ def permutation_minima(permutations: pd.DataFrame, *, galwey_meff: float, alpha:
         adjusted.groupby("permutation_seed", dropna=False)
         .agg(raw_min_pv20=("pv20", "min"), adjusted_min_pv20=("pv20_adj_galwey", "min"))
         .reset_index()
+        .sort_values("raw_min_pv20", kind="mergesort")
     )
+    lowest = minima.iloc[0]
     summary = {
         "permutations": int(minima["permutation_seed"].nunique()),
+        "raw_lowest_min_p_threshold": float(lowest["raw_min_pv20"]),
+        "adjusted_lowest_min_p_threshold": float(lowest["adjusted_min_pv20"]),
+        "lowest_min_p_permutation_seed": int(lowest["permutation_seed"]),
         "raw_permutation_threshold": float(minima["raw_min_pv20"].quantile(alpha, interpolation="higher")),
         "adjusted_permutation_threshold": float(
             minima["adjusted_min_pv20"].quantile(alpha, interpolation="higher")
@@ -187,16 +201,34 @@ def main() -> None:
         )
     effects = read_many(effect_files)
     permutations = read_many(perm_files)
+    if args.expected_permutation_rows is not None and len(permutations) != args.expected_permutation_rows:
+        raise AssertionError(f"Expected {args.expected_permutation_rows} permutation rows, found {len(permutations)}")
+    if args.expected_permutations is not None:
+        actual_permutations = int(permutations["permutation_seed"].nunique()) if not permutations.empty else 0
+        if actual_permutations != args.expected_permutations:
+            raise AssertionError(f"Expected {args.expected_permutations} permutations, found {actual_permutations}")
+    if args.fail_on_non_ok and (non_ok_count(observed_raw) or non_ok_count(permutations)):
+        raise AssertionError("Primary epistasis merge contains non-ok fit rows")
+
+    minima, permutation_summary = permutation_minima(permutations, galwey_meff=args.galwey_meff, alpha=args.alpha)
+    if args.threshold_mode == "lowest-min-p":
+        support_threshold = float(permutation_summary["adjusted_lowest_min_p_threshold"])
+        threshold_policy = "lowest permutation minimum"
+    elif args.threshold_mode == "explicit":
+        support_threshold = float(args.threshold)
+        threshold_policy = "explicit adjusted threshold"
+    else:
+        support_threshold = float(args.threshold)
+        threshold_policy = "historical literal adjusted threshold"
 
     observed = enrich_observed(
         observed_raw,
         effects,
         galwey_meff=args.galwey_meff,
-        threshold=args.threshold,
+        threshold=support_threshold,
         lower_bound=args.support_effect_lower_bound,
     )
     supported, support = marker_support(observed)
-    minima, permutation_summary = permutation_minima(permutations, galwey_meff=args.galwey_meff, alpha=args.alpha)
 
     observed.to_csv(args.out_dir / "corrected_epistasis_p_values.csv", index=False)
     effects.to_csv(args.out_dir / "corrected_epistasis_effect_sizes.csv", index=False)
@@ -208,6 +240,9 @@ def main() -> None:
     summary = {
         "support_rule": "pv20_adj_galwey <= threshold AND joint_effect_size - joint_effect_size_se >= lower_bound",
         "galwey_meff": float(args.galwey_meff),
+        "threshold_mode": args.threshold_mode,
+        "threshold_policy": threshold_policy,
+        "epistasis_threshold": float(support_threshold),
         "historical_epistasis_threshold": float(args.threshold),
         "support_effect_lower_bound": float(args.support_effect_lower_bound),
         "observed_interactions": int(len(observed)),

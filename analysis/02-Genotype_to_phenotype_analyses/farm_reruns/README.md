@@ -30,8 +30,11 @@ missing-chunk reruns must be submitted through LSF.
 
 In particular, do not run these directly on a head node:
 
+- `run_additive_chunk.py`
+- `run_exact_unilmm_chunk.py`
 - `run_epistasis_chunk.py`
 - `run_epistasis_permutation_chunk.py`
+- `merge_additive_chunks.py`
 - `merge_epistasis_chunks.py`
 - ad hoc Python loops over all `epistasis_perm_p_values.chunk_*.csv`
 - full R/Rmd manuscript rebuilds or any script that reads all permutation chunks
@@ -274,13 +277,81 @@ rsync -av USER@FARM_HOST:/farm/path/AMR-cartography/farm_outputs/original_logic_
   /Users/ab69/AMR-cartography/manuscript/
 ```
 
+## Recomputed 170-marker primary analysis
+
+Use this workflow for a revised manuscript that claims the analysis was rerun on
+the corrected 170-marker universe with recomputed thresholds. It is separate
+from `original_logic_rebuild/`, which remains the historical-threshold
+comparability audit.
+
+Set the recomputed output root:
+
+```bash
+export PROJECT_ROOT=/farm/path/AMR-cartography
+export PYTHON=$PROJECT_ROOT/.venv-mvlmm/bin/python
+export FARM_OUT=$PROJECT_ROOT/farm_outputs/recomputed_170_thresholds
+export DATA_DIR=$PROJECT_ROOT/AMRC-repo-files/pythonProject1-additive-production-20260507-150112
+export OLD_DIR=$PROJECT_ROOT/AMRC-repo-files/pythonProject1
+export SUPPORT_DIR="$PROJECT_ROOT/AMRC-repo-files/Streptococcus pneumoniae analysis"
+export N_PERMUTATIONS=100
+```
+
+Submit jobs through LSF only:
+
+```bash
+bash analysis/02-Genotype_to_phenotype_analyses/farm_reruns/lsf/submit_recomputed_install_poolr.sh
+bash analysis/02-Genotype_to_phenotype_analyses/farm_reruns/lsf/submit_recomputed_meff.sh
+bash analysis/02-Genotype_to_phenotype_analyses/farm_reruns/lsf/submit_recomputed_additive_smoke.sh
+bash analysis/02-Genotype_to_phenotype_analyses/farm_reruns/lsf/submit_recomputed_additive_array.sh
+bash analysis/02-Genotype_to_phenotype_analyses/farm_reruns/lsf/submit_recomputed_additive_permutation_array.sh
+bash analysis/02-Genotype_to_phenotype_analyses/farm_reruns/lsf/submit_recomputed_uvlmm_array.sh
+bash analysis/02-Genotype_to_phenotype_analyses/farm_reruns/lsf/submit_recomputed_epistasis_smoke.sh
+bash analysis/02-Genotype_to_phenotype_analyses/farm_reruns/lsf/submit_recomputed_epistasis_array.sh
+bash analysis/02-Genotype_to_phenotype_analyses/farm_reruns/lsf/submit_recomputed_epistasis_permutation_array.sh
+```
+
+`submit_recomputed_install_poolr.sh` installs or verifies R `poolr` in the user
+R library. It is required for the Galwey effective-test calculation and should
+be allowed to finish before submitting `submit_recomputed_meff.sh`. To let LSF
+enforce that ordering, submit the meff step with a dependency on the install job,
+for example:
+
+```bash
+DEPENDENCY='done(123456)' \
+  bash analysis/02-Genotype_to_phenotype_analyses/farm_reruns/lsf/submit_recomputed_meff.sh
+```
+
+After all observed and permutation jobs finish:
+
+```bash
+bash analysis/02-Genotype_to_phenotype_analyses/farm_reruns/lsf/submit_recomputed_additive_merge.sh
+bash analysis/02-Genotype_to_phenotype_analyses/farm_reruns/lsf/submit_recomputed_uvlmm_merge.sh
+bash analysis/02-Genotype_to_phenotype_analyses/farm_reruns/lsf/submit_recomputed_epistasis_merge.sh
+bash analysis/02-Genotype_to_phenotype_analyses/farm_reruns/lsf/submit_recomputed_review_outputs.sh
+```
+
+Primary recomputed thresholds use the original lowest-min-p policy: compute the
+minimum p-value within each of the 100 null/permutation repeats, then use the
+lowest of those 100 minima as the analysis threshold. The scripts store both raw
+and Galwey-adjusted threshold equivalents in `$FARM_OUT/thresholds/`.
+
+Primary recomputed outputs are valid only if
+`$FARM_OUT/validation/recomputed_170_validation_report.md` reports all checks
+passing. The validator requires complete additive, uvLMM, and epistasis outputs,
+zero synthetic chunks, and zero non-ok fit rows.
+
 ## Notes
 
-- Additive mvLMM evidence uses historical adjusted p-value logic:
-  `pv20_adj_galwey <= 0.000588` and `Joint_effsize >= 1`.
+- `original_logic_rebuild/` uses the historical literal thresholds for
+  comparability with the implemented manuscript pipeline.
+- `recomputed_170_thresholds/` uses recomputed 170-marker thresholds. Additive
+  evidence requires the recomputed Galwey-adjusted mvLMM threshold and
+  `Joint_effsize >= 1`; epistasis evidence requires the recomputed
+  Galwey-adjusted epistasis threshold and
+  `joint_effect_size - joint_effect_size_se >= 1`.
 - Exact uvLMM display counts use `pv20_adj_galwey <= 0.001` for all 170
-  markers: 157 historical marker results plus exact reruns for the 13
-  corrected-panel additions.
+  markers. uvLMM remains a display/comparison column and is not counted as a
+  fifth evidence stream.
 - Raw `pv20` and adjusted `pv20_adj_galwey` are kept as separate columns.
 - Once the full farm run starts, do not regenerate heavy analysis outputs on the
   laptop. The farm outputs become authoritative.
