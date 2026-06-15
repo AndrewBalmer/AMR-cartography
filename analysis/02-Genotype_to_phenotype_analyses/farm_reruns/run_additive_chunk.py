@@ -8,6 +8,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from xarray import DataArray
 
 from common import chunk_bounds, install_pandas_limix_shim, read_csv
 
@@ -89,7 +90,18 @@ def main() -> None:
 
     stats_rows: list[dict[str, object]] = []
     effects_out: list[dict[str, object]] = []
+    trait_labels = map_coords.columns.astype(object).to_numpy()
     phenotype_cov = map_coords.cov().to_numpy(dtype=float)
+    null_trait_design = DataArray(
+        np.empty((len(trait_labels), 0)),
+        dims=["sample", "env"],
+        coords={"env": np.asarray([], dtype=object)},
+    )
+    candidate_trait_design = DataArray(
+        np.eye(len(trait_labels)),
+        dims=["sample", "env"],
+        coords={"env": trait_labels},
+    )
 
     for marker_index in range(start, end):
         marker = str(markers.columns[marker_index])
@@ -97,7 +109,15 @@ def main() -> None:
         test_marker = markers[[marker]]
         kinship_features = relatedness.drop(columns=[marker]).to_numpy(dtype=float)
         kinship = linear_kinship(kinship_features)
-        result = scan(G=test_marker, Y=map_coords, K=kinship, A=phenotype_cov, verbose=False)
+        result = scan(
+            G=test_marker,
+            Y=map_coords,
+            K=kinship,
+            A=phenotype_cov,
+            A0=null_trait_design,
+            A1=candidate_trait_design,
+            verbose=False,
+        )
         test_id = marker_index
         stats_row = stats_frame_to_row(result.stats, marker=marker, marker_index=marker_index, test_id=test_id)
         if args.permutation_index is not None:
