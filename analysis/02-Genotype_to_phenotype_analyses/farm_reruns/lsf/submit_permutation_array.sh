@@ -11,6 +11,8 @@ CHUNK_SIZE="${CHUNK_SIZE:-25}"
 N_PERMUTATIONS="${N_PERMUTATIONS:-100}"
 QUEUE="${QUEUE:-normal}"
 MEM_MB="${MEM_MB:-8000}"
+ON_FIT_ERROR="${ON_FIT_ERROR:-raise}"
+FIT_TIMEOUT_SECONDS="${FIT_TIMEOUT_SECONDS:-0}"
 SCRIPT_DIR="$PROJECT_ROOT/analysis/02-Genotype_to_phenotype_analyses/farm_reruns"
 
 mkdir -p "$CHUNK_DIR" "$FARM_OUT/logs"
@@ -33,5 +35,7 @@ for PERM in $(seq 1 "$N_PERMUTATIONS"); do
       --out-dir '$CHUNK_DIR' \
       --array-index \${LSB_JOBINDEX} \
       --chunk-size '$CHUNK_SIZE' \
-      --permutation-index '$PERM'"
+      --permutation-index '$PERM' \
+      --on-fit-error '$ON_FIT_ERROR' \
+      --fit-timeout-seconds '$FIT_TIMEOUT_SECONDS'"
 done
