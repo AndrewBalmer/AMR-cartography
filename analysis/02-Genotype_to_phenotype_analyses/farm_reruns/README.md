@@ -20,6 +20,28 @@ rerun, and rebuilt output tables have been reviewed.
   after the full epistasis run starts.
 - Laptop repo: lightweight checks, manuscript writing, final review.
 
+## Head Node Safety
+
+Do not run analysis-scale Python or R commands directly on `farm22-head*` or
+`farm22-pam-01`. The farm head nodes are only for editing, `git`, `bsub`,
+`bjobs`, small log checks, and file transfer. Model fits, full merges over chunk
+directories, large CSV scans, row-count sweeps across permutation chunks, and
+missing-chunk reruns must be submitted through LSF.
+
+In particular, do not run these directly on a head node:
+
+- `run_epistasis_chunk.py`
+- `run_epistasis_permutation_chunk.py`
+- `merge_epistasis_chunks.py`
+- ad hoc Python loops over all `epistasis_perm_p_values.chunk_*.csv`
+- full R/Rmd manuscript rebuilds or any script that reads all permutation chunks
+
+Use the `lsf/submit_*.sh` scripts below. If a single chunk needs debugging, use
+`bsub` or an interactive LSF session rather than running the Python command
+directly on the login/head node. This matters even for "just one chunk": a
+pathological LMM fit can burn CPU on the head node long enough to trigger
+Arbiter penalties.
+
 ## 1. Clone the branch on the farm
 
 ```bash
@@ -81,8 +103,9 @@ export N_PERMUTATIONS=100
 ## 5. Run the golden original-logic validation
 
 Before trusting any corrected output, create the additive old-vs-new comparison
-files. This writes `added_markers.csv` and reports raw-vs-adjusted p-value
-counts for audit.
+files. This step is lightweight, but if the head node is under Arbiter penalty
+or the data filesystem is slow, submit it via LSF rather than running it
+directly.
 
 ```bash
 mkdir -p "$FARM_OUT/additive"
@@ -180,13 +203,9 @@ After the observed and permutation jobs finish:
 bash analysis/02-Genotype_to_phenotype_analyses/farm_reruns/lsf/submit_merge.sh
 ```
 
-Or run directly:
-
-```bash
-$PYTHON analysis/02-Genotype_to_phenotype_analyses/farm_reruns/merge_epistasis_chunks.py \
-  --chunk-dir "$FARM_OUT/chunks" \
-  --out-dir "$FARM_OUT/merged"
-```
+Do not run `merge_epistasis_chunks.py` directly on a head node. It reads all
+observed, effect-size, and permutation chunk files and can trigger head-node CPU
+or I/O penalties.
 
 Merged outputs include:
 
@@ -209,17 +228,7 @@ tables.
 ## 11. Rebuild review outputs, not manuscript/ directly
 
 ```bash
-$PYTHON analysis/02-Genotype_to_phenotype_analyses/farm_reruns/merge_exact_unilmm.py \
-  --legacy-dir "$OLD_DIR" \
-  --new-dir "$DATA_DIR" \
-  --out-dir "$FARM_OUT/merged"
-
-$PYTHON analysis/02-Genotype_to_phenotype_analyses/farm_reruns/build_corrected_evidence_table.py \
-  --legacy-dir "$OLD_DIR" \
-  --new-dir "$DATA_DIR" \
-  --support-dir "$SUPPORT_DIR" \
-  --analysis-out "$FARM_OUT/merged" \
-  --output-dir "$FARM_OUT/manuscript_outputs"
+bash analysis/02-Genotype_to_phenotype_analyses/farm_reruns/lsf/submit_review_outputs.sh
 ```
 
 This writes:
@@ -234,6 +243,25 @@ This writes:
 
 Only after review should these files be deliberately copied over
 `manuscript/` outputs in one provenance-noted commit.
+
+## Missing Or Stalled Permutation Chunks
+
+If permutation chunks stall or are missing, do not rerun them directly on a head
+node. Use the missing-chunk LSF submitter:
+
+```bash
+export ON_FIT_ERROR=pvalue-one
+export FIT_TIMEOUT_SECONDS=300
+bash analysis/02-Genotype_to_phenotype_analyses/farm_reruns/lsf/submit_missing_permutation_chunks.sh
+```
+
+This scans for missing expected permutation chunk files, writes the missing list
+to `$FARM_OUT/missing_permutation_chunks.tsv`, and submits one LSF job per
+missing chunk. With `ON_FIT_ERROR=pvalue-one` and `FIT_TIMEOUT_SECONDS=300`, a
+pathological fit becomes an explicit conservative p=1 permutation row instead of
+hanging indefinitely. If a chunk still cannot complete, record any synthetic
+conservative fallback in `$FARM_OUT/synthetic_conservative_permutation_chunks.tsv`
+before merging.
 
 ## 12. Copy small final outputs back if needed
 
