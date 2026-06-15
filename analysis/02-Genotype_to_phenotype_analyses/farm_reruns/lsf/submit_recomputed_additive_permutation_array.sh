@@ -11,6 +11,7 @@ N_PERMUTATIONS="${N_PERMUTATIONS:-100}"
 BASE_SEED="${BASE_SEED:-2}"
 QUEUE="${QUEUE:-normal}"
 MEM_MB="${MEM_MB:-8000}"
+MAX_CONCURRENT="${MAX_CONCURRENT:-200}"
 SCRIPT_DIR="$PROJECT_ROOT/analysis/02-Genotype_to_phenotype_analyses/farm_reruns"
 
 mkdir -p "$CHUNK_DIR" "$FARM_OUT/logs"
@@ -22,19 +23,22 @@ print(pd.read_csv(Path(sys.argv[1]) / "S.pneumo_map_dummy_gen_test_markers.csv",
 PY
 )
 JOBS=$(( (TOTAL + CHUNK_SIZE - 1) / CHUNK_SIZE ))
-echo "Submitting $N_PERMUTATIONS additive permutation arrays, $JOBS chunks each"
+TASKS=$(( N_PERMUTATIONS * JOBS ))
+echo "Submitting one additive permutation array with $TASKS tasks: $N_PERMUTATIONS permutations x $JOBS chunks"
 
-for PERM in $(seq 1 "$N_PERMUTATIONS"); do
-  bsub -q "$QUEUE" -M "$MEM_MB" -R "select[mem>$MEM_MB] rusage[mem=$MEM_MB]" \
-    -J "recomp_add_perm_${PERM}[1-$JOBS]" \
-    -oo "$FARM_OUT/logs/additive_perm_${PERM}.%I.%J.out" \
-    -eo "$FARM_OUT/logs/additive_perm_${PERM}.%I.%J.err" \
-    "$PYTHON '$SCRIPT_DIR/run_additive_chunk.py' \
-      --data-dir '$DATA_DIR' \
-      --out-dir '$CHUNK_DIR' \
-      --array-index \${LSB_JOBINDEX} \
-      --chunk-size '$CHUNK_SIZE' \
-      --permutation-index '$PERM' \
-      --base-seed '$BASE_SEED' \
-      --pvalues-only"
-done
+bsub -q "$QUEUE" -M "$MEM_MB" -R "select[mem>$MEM_MB] rusage[mem=$MEM_MB]" \
+  -J "recomp_add_perm[1-$TASKS]%$MAX_CONCURRENT" \
+  -oo "$FARM_OUT/logs/additive_perm.%I.%J.out" \
+  -eo "$FARM_OUT/logs/additive_perm.%I.%J.err" <<EOF
+set -euo pipefail
+PERM=\$(( (LSB_JOBINDEX - 1) / $JOBS + 1 ))
+CHUNK_INDEX=\$(( (LSB_JOBINDEX - 1) % $JOBS + 1 ))
+"$PYTHON" "$SCRIPT_DIR/run_additive_chunk.py" \\
+  --data-dir "$DATA_DIR" \\
+  --out-dir "$CHUNK_DIR" \\
+  --array-index "\$CHUNK_INDEX" \\
+  --chunk-size "$CHUNK_SIZE" \\
+  --permutation-index "\$PERM" \\
+  --base-seed "$BASE_SEED" \\
+  --pvalues-only
+EOF

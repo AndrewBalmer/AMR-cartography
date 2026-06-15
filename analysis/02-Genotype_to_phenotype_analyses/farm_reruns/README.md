@@ -294,6 +294,7 @@ export DATA_DIR=$PROJECT_ROOT/AMRC-repo-files/pythonProject1-additive-production
 export OLD_DIR=$PROJECT_ROOT/AMRC-repo-files/pythonProject1
 export SUPPORT_DIR="$PROJECT_ROOT/AMRC-repo-files/Streptococcus pneumoniae analysis"
 export N_PERMUTATIONS=100
+export MAX_CONCURRENT=200
 ```
 
 Submit jobs through LSF only:
@@ -334,6 +335,12 @@ Primary recomputed thresholds use the original lowest-min-p policy: compute the
 minimum p-value within each of the 100 null/permutation repeats, then use the
 lowest of those 100 minima as the analysis threshold. The scripts store both raw
 and Galwey-adjusted threshold equivalents in `$FARM_OUT/thresholds/`.
+
+The array wrappers use LSF's `%` concurrency limit. `MAX_CONCURRENT` defaults to
+100 for observed arrays and 200 for permutation arrays; lower it if the cluster
+is busy or IT asks for gentler scheduling. The permutation wrappers submit one
+combined LSF array and map each task to a `(permutation, chunk)` pair, rather
+than submitting 100 separate arrays.
 
 Primary recomputed outputs are valid only if
 `$FARM_OUT/validation/recomputed_170_validation_report.md` reports all checks

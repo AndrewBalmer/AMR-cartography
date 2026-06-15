@@ -10,6 +10,7 @@ CHUNK_DIR="${CHUNK_DIR:-$FARM_OUT/uvlmm/chunks}"
 CHUNK_SIZE="${CHUNK_SIZE:-5}"
 QUEUE="${QUEUE:-normal}"
 MEM_MB="${MEM_MB:-8000}"
+MAX_CONCURRENT="${MAX_CONCURRENT:-100}"
 SCRIPT_DIR="$PROJECT_ROOT/analysis/02-Genotype_to_phenotype_analyses/farm_reruns"
 
 mkdir -p "$CHUNK_DIR" "$FARM_OUT/logs"
@@ -24,7 +25,7 @@ JOBS=$(( (TOTAL + CHUNK_SIZE - 1) / CHUNK_SIZE ))
 echo "Submitting $JOBS uvLMM chunks for $TOTAL markers"
 
 bsub -q "$QUEUE" -M "$MEM_MB" -R "select[mem>$MEM_MB] rusage[mem=$MEM_MB]" \
-  -J "recomp_uv[1-$JOBS]" \
+  -J "recomp_uv[1-$JOBS]%$MAX_CONCURRENT" \
   -oo "$FARM_OUT/logs/uvlmm.%I.%J.out" \
   -eo "$FARM_OUT/logs/uvlmm.%I.%J.err" \
   "$PYTHON '$SCRIPT_DIR/run_exact_unilmm_chunk.py' \
