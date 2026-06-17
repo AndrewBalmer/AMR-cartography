@@ -526,6 +526,18 @@ def build_audit(
                 "inspect `fit_status`/`fit_error` before changing manuscript claims."
             )
 
+    if thresholds:
+        audit.extend(
+            [
+                "",
+                "## Recomputed threshold summary",
+                "",
+                "```json",
+                json.dumps(thresholds, indent=2, sort_keys=True),
+                "```",
+            ]
+        )
+
     audit.extend(
         [
             "",
@@ -578,14 +590,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-    if thresholds:
-        audit.extend(
-            [
-                "",
-                "## Recomputed threshold summary",
-                "",
-                "```json",
-                json.dumps(thresholds, indent=2, sort_keys=True),
-                "```",
-            ]
-        )
