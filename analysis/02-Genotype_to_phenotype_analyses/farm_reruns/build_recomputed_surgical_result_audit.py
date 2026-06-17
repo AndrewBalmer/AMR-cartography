@@ -154,6 +154,7 @@ def build_replacement_text(
     top = multi_df(recomputed).head(1).iloc[0]
     strong = multi_df(recomputed)[multi_df(recomputed)["Evidence"].eq("Strong")]
     strong_list = ", ".join(f"PBP{row.PBP} {row.Substitution}" for row in strong.itertuples(index=False))
+    marker_multi = int(sum(marker_summary[label] for label in ["Very Strong", "Strong", "Moderate"]))
     epistasis = manifest.get("epistasis", {})
     additive = manifest.get("additive", {})
 
@@ -181,6 +182,8 @@ def build_replacement_text(
                 f"({rec['multi_positions_by_pbp']['1A']} PBP1A, "
                 f"{rec['multi_positions_by_pbp']['2B']} PBP2B, "
                 f"{rec['multi_positions_by_pbp']['2X']} PBP2X positions). "
+                f"In the separate marker-level audit frame, {marker_multi} of 170 markers had "
+                "two or more evidence streams. "
                 f"This compares with {old['multi_rows']} substitutions at {old['multi_unique_positions']} positions "
                 "in the old preprint and "
                 f"{hist['multi_rows']} substitutions at {hist['multi_unique_positions']} positions "
