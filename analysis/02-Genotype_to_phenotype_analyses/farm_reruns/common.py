@@ -25,11 +25,6 @@ def install_pandas_limix_shim() -> None:
 
 install_pandas_limix_shim()
 
-from glimix_core.lmm import Kron2Sum  # noqa: E402
-from numpy import eye, sqrt  # noqa: E402
-from numpy_sugar.linalg import ddot, economic_qs_linear  # noqa: E402
-
-
 HISTORICAL_ADDITIVE_THRESHOLD = 0.000588
 HISTORICAL_UV_THRESHOLD = 0.001
 HISTORICAL_EPISTASIS_THRESHOLD = 0.0007620121
@@ -200,13 +195,16 @@ def lowrank_multitrait_scan(
     linear kinship matrix, but avoids constructing/eigendecomposing a dense
     n-by-n kinship matrix for every interaction.
     """
+    from glimix_core.lmm import Kron2Sum
+    from numpy_sugar.linalg import ddot, economic_qs_linear
+
     qs = economic_qs_linear(normalized_relatedness_features(relatedness_features))
-    kg = ddot(qs[0][0], sqrt(qs[1]))
+    kg = ddot(qs[0][0], np.sqrt(qs[1]))
 
     lmm = Kron2Sum(y, trait_design, covariates, kg, restricted=False)
     lmm.fit(verbose=False)
     scanner = lmm.get_fast_scanner()
-    result = scanner.scan(eye(y.shape[1]), candidate)
+    result = scanner.scan(np.eye(y.shape[1]), candidate)
 
     lml0 = float(lmm.lml())
     lml2 = float(result["lml"])

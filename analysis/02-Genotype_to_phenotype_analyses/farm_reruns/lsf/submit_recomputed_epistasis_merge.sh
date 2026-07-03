@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Merge the completed recomputed epistasis observed/permutation chunks.
+# This uses the recomputed 4,052-interaction Galwey meff and the original
+# lowest-minimum permutation threshold policy, then applies the lower-bound
+# effect filter to define supported interactions.
+
 PROJECT_ROOT="${PROJECT_ROOT:?Set PROJECT_ROOT to the checked-out repo path}"
 PYTHON="${PYTHON:-python}"
 FARM_OUT="${FARM_OUT:-$PROJECT_ROOT/farm_outputs/recomputed_170_thresholds}"

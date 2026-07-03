@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Build the manuscript-review outputs after additive, uvLMM, epistasis, and
+# threshold merges are complete. This writes into the recomputed FARM_OUT review
+# directory only; it intentionally does not copy files into manuscript/.
+
 PROJECT_ROOT="${PROJECT_ROOT:?Set PROJECT_ROOT to the checked-out repo path}"
 PYTHON="${PYTHON:-python}"
 FARM_OUT="${FARM_OUT:-$PROJECT_ROOT/farm_outputs/recomputed_170_thresholds}"

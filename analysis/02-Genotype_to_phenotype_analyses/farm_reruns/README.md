@@ -45,6 +45,31 @@ directly on the login/head node. This matters even for "just one chunk": a
 pathological LMM fit can burn CPU on the head node long enough to trigger
 Arbiter penalties.
 
+## Verification runs (agent-permitted, LSF-only exception)
+
+Lightweight verification and equivalence checks *are* permitted as part of
+auditing this rebuild — including when run by an automated coding agent (Claude
+Code / codex) acting on the maintainer's behalf. Examples: the low-rank vs exact
+limix engine-equivalence check, committed-output reproducibility cross-checks,
+and small smoke fits.
+
+This is a scoped exception to "do not run analysis here", not a relaxation of the
+head-node CPU rule. Verification jobs still fit LMMs, so they **must** be
+submitted through LSF (`bsub`) and **must never** be run directly on a farm head
+node. Reading small summary CSV/JSON/Markdown artifacts and directory listings on
+the head node remains fine; model fits and full chunk scans do not.
+
+Reference verification submitter:
+
+```bash
+bash analysis/02-Genotype_to_phenotype_analyses/farm_reruns/lsf/submit_verify_epistasis_engine.sh
+```
+
+This runs `verify_epistasis_engine_equivalence.py` under LSF, comparing the
+recomputed low-rank epistatic mvLMM engine against the original manuscript limix
+dense call on the most-significant plus a random sample of interactions, and
+writes `validation/engine_equivalence/` outputs.
+
 ## 1. Clone the branch on the farm
 
 ```bash

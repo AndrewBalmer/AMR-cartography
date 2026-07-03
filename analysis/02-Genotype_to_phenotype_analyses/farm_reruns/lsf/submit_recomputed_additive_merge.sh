@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Merge the completed recomputed additive mvLMM observed/permutation chunks.
+# This derives the additive threshold from the lowest of the 100 permutation
+# minima, writes adjusted p-values, and must be run after the observed and
+# permutation additive arrays have completed.
+
 PROJECT_ROOT="${PROJECT_ROOT:?Set PROJECT_ROOT to the checked-out repo path}"
 PYTHON="${PYTHON:-python}"
 FARM_OUT="${FARM_OUT:-$PROJECT_ROOT/farm_outputs/recomputed_170_thresholds}"
