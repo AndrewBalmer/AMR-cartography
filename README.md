@@ -104,4 +104,4 @@ We also acknowledge the CDC/ABC programme for making data available, and the col
 * Rmds are designed to be run independently once inputs are prepared.
 * Note, some steps (e.g., bootstrap MDS or mvLMM grids) can be compute‑intensive; scripts cache intermediates (`*.rds`, `*.RData`).
 * For this repo, outputs are git‑ignored; re‑running the Rmds will regenerate the figures/tables.
-* The recomputed 170-marker PBP mvLMM/epistasis workflow is documented in `analysis/02-Genotype_to_phenotype_analyses/farm_reruns/`. Older numbered R/Rmd scripts are retained as historical manuscript-generation scripts.
+* The recomputed 170-marker PBP mvLMM/epistasis workflow is documented in `analysis/02-Genotype_to_phenotype_analyses/recomputed_170_workflow/`. Older numbered R/Rmd scripts are retained as historical manuscript-generation scripts.

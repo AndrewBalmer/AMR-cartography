@@ -14,7 +14,7 @@ from common import EXPECTED_CORRECTED_ADDITIVE_MARKERS, EXPECTED_CORRECTED_EPIST
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--farm-out", required=True, type=Path)
+    parser.add_argument("--results-dir", required=True, type=Path)
     parser.add_argument("--out-report", type=Path)
     parser.add_argument("--expected-permutations", default=100, type=int)
     parser.add_argument("--expected-drugs", default=6, type=int)
@@ -57,11 +57,11 @@ def main() -> None:
         "",
     ]
 
-    additive_dir = args.farm_out / "additive" / "merged"
-    uvlmm_dir = args.farm_out / "uvlmm" / "merged"
-    epi_dir = args.farm_out / "epistasis" / "merged"
-    threshold_dir = args.farm_out / "thresholds"
-    manuscript_dir = args.farm_out / "manuscript_outputs"
+    additive_dir = args.results_dir / "additive" / "merged"
+    uvlmm_dir = args.results_dir / "uvlmm" / "merged"
+    epi_dir = args.results_dir / "epistasis" / "merged"
+    threshold_dir = args.results_dir / "thresholds"
+    manuscript_dir = args.results_dir / "manuscript_outputs"
 
     additive = read_csv(additive_dir / "mvLMM_p_values_normal_pneumo_low_freq_vars.csv")
     additive_effects = read_csv(additive_dir / "mvLMM_effect_sizes_normal_pneumo_low_freq_vars.csv")
@@ -111,7 +111,7 @@ def main() -> None:
     check_equal("marker-level table rows", len(marker), EXPECTED_CORRECTED_ADDITIVE_MARKERS, report)
 
     report.extend(["", "## Result", "", "All recomputed 170-marker validation checks passed."])
-    out_report = args.out_report or (args.farm_out / "validation" / "recomputed_170_validation_report.md")
+    out_report = args.out_report or (args.results_dir / "validation" / "recomputed_170_validation_report.md")
     out_report.parent.mkdir(parents=True, exist_ok=True)
     out_report.write_text("\n".join(report) + "\n")
     print("\n".join(report))

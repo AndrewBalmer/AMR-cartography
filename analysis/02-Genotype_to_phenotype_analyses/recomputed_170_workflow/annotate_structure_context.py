@@ -24,7 +24,7 @@ import pandas as pd
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_SF1 = (
     PROJECT_ROOT
-    / "farm_outputs"
+    / "analysis_outputs"
     / "recomputed_170_thresholds"
     / "manuscript_outputs"
     / "Supplementary_File_1.csv"
@@ -37,7 +37,7 @@ DEFAULT_PRIOR = (
 )
 DEFAULT_OUTDIR = (
     PROJECT_ROOT
-    / "farm_outputs"
+    / "analysis_outputs"
     / "recomputed_170_thresholds"
     / "manuscript_outputs"
     / "structure_context"
@@ -117,6 +117,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--sf1", type=Path, default=DEFAULT_SF1)
     parser.add_argument("--prior-overlap", type=Path, default=DEFAULT_PRIOR)
     parser.add_argument("--outdir", type=Path, default=DEFAULT_OUTDIR)
+    parser.add_argument(
+        "--results-dir",
+        type=Path,
+        default=None,
+        help="Optional recomputed-analysis output root. When supplied, the "
+        "default --sf1 and --outdir paths are resolved under this directory.",
+    )
     parser.add_argument(
         "--pdb-dir",
         type=Path,
@@ -746,6 +753,12 @@ Histograms use counts, continuous 1-Angstrom bins, and stacked bars.
 
 def main() -> None:
     args = parse_args()
+    if args.results_dir is not None:
+        if args.sf1 == DEFAULT_SF1:
+            args.sf1 = args.results_dir / "manuscript_outputs" / "Supplementary_File_1.csv"
+        if args.outdir == DEFAULT_OUTDIR:
+            args.outdir = args.results_dir / "manuscript_outputs" / "structure_context"
+
     pdb_dir = args.pdb_dir or (args.outdir / "pdb")
     coords_by_pbp: dict[str, dict[int, tuple[float, float, float]]] = {}
     provenance: dict[str, dict[str, str]] = {}

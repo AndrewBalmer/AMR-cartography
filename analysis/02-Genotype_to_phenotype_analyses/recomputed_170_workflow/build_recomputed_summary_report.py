@@ -18,7 +18,7 @@ EVIDENCE_ORDER = ["Very Strong", "Strong", "Moderate", "Weak", "Weak/No Evidence
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--farm-out", required=True, type=Path)
+    parser.add_argument("--results-dir", required=True, type=Path)
     parser.add_argument("--original-logic-public", type=Path)
     parser.add_argument("--out-dir", type=Path)
     return parser.parse_args()
@@ -86,11 +86,11 @@ def markdown_table(rows: list[dict[str, object]]) -> list[str]:
 
 def main() -> None:
     args = parse_args()
-    out_dir = args.out_dir or (args.farm_out / "manuscript_outputs")
+    out_dir = args.out_dir or (args.results_dir / "manuscript_outputs")
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    threshold_dir = args.farm_out / "thresholds"
-    epistasis_dir = args.farm_out / "epistasis" / "merged"
+    threshold_dir = args.results_dir / "thresholds"
+    epistasis_dir = args.results_dir / "epistasis" / "merged"
     manifest = {
         "threshold_policy": "lowest permutation minimum",
         "meff": load_json(threshold_dir / "recomputed_meff.json"),

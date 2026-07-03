@@ -50,11 +50,11 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--added-marker-file",
-        default=Path("farm_outputs/original_logic_rebuild/additive/added_markers.csv"),
+        default=Path("analysis_outputs/original_logic_rebuild/additive/added_markers.csv"),
         type=Path,
     )
     parser.add_argument("--rebuilt-output-dir", default=None, type=Path)
-    parser.add_argument("--out-dir", default=Path("farm_outputs/original_logic_rebuild/validation"), type=Path)
+    parser.add_argument("--out-dir", default=Path("analysis_outputs/original_logic_rebuild/validation"), type=Path)
     return parser.parse_args()
 
 

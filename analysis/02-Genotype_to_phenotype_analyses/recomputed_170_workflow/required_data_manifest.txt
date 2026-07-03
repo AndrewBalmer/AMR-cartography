@@ -1,7 +1,7 @@
-# Required ignored data bundle for corrected mvLMM/epistasis farm rerun
+# Required ignored data bundle for corrected mvLMM/epistasis recomputation
 #
-# Transfer the full AMRC-repo-files/ directory by rsync for the first farm run.
-# The files below are the minimum inputs used by the farm rerun scripts.
+# Copy or symlink the full AMRC-repo-files/ directory before running the workflow.
+# The files below are the minimum inputs used by the recomputation scripts.
 
 AMRC-repo-files/pythonProject1/S.pneumo_map_mvlmm_MIC_values.csv
 AMRC-repo-files/pythonProject1/uniLMM_p_val_normal_MIC_pneumo.csv

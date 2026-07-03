@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build manuscript-facing evidence tables after corrected farm reruns."""
+"""Build manuscript-facing evidence tables after corrected recomputation."""
 
 from __future__ import annotations
 
@@ -54,7 +54,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--analysis-label", default="Corrected rerun")
     parser.add_argument(
         "--output-dir",
-        default=Path("farm_outputs/original_logic_rebuild/manuscript_outputs"),
+        default=Path("analysis_outputs/original_logic_rebuild/manuscript_outputs"),
         type=Path,
         help="Directory for rebuilt outputs. Defaults away from manuscript/ until validation passes.",
     )

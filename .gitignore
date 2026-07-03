@@ -49,21 +49,21 @@ AMRC-repo-files/
 AMRC-repo-files
 local-data/
 local-data
-farm_outputs/
-farm_outputs
+analysis_outputs/
+analysis_outputs
 
 # Private manuscript/reference drafts and local review artifacts
 AMRC Manuscript draft V9*.pdf
 AMRC - Supplementary Information v8*.pdf
 BBSRC PhD thesis*.pdf
 fmb.12.2.pdf
-analysis/02-Genotype_to_phenotype_analyses/farm_reruns/claude_*.md
-analysis/02-Genotype_to_phenotype_analyses/farm_reruns/claude_*.pdf
-analysis/02-Genotype_to_phenotype_analyses/farm_reruns/manuscript_v9_*.md
-analysis/02-Genotype_to_phenotype_analyses/farm_reruns/manuscript_v9_*.pdf
-analysis/02-Genotype_to_phenotype_analyses/farm_reruns/publication_readiness_*.md
-analysis/02-Genotype_to_phenotype_analyses/farm_reruns/publication_readiness_*.pdf
-analysis/02-Genotype_to_phenotype_analyses/farm_reruns/rerun_branch_code_change_manual_review.*
-analysis/02-Genotype_to_phenotype_analyses/farm_reruns/supplement_visualisation_and_legacy_stream_audit.*
-analysis/02-Genotype_to_phenotype_analyses/farm_reruns/hakenbeck_2012_lab_label_check.*
-analysis/02-Genotype_to_phenotype_analyses/farm_reruns/pandoc_thin_table_rules.tex
+analysis/02-Genotype_to_phenotype_analyses/recomputed_170_workflow/claude_*.md
+analysis/02-Genotype_to_phenotype_analyses/recomputed_170_workflow/claude_*.pdf
+analysis/02-Genotype_to_phenotype_analyses/recomputed_170_workflow/manuscript_v9_*.md
+analysis/02-Genotype_to_phenotype_analyses/recomputed_170_workflow/manuscript_v9_*.pdf
+analysis/02-Genotype_to_phenotype_analyses/recomputed_170_workflow/publication_readiness_*.md
+analysis/02-Genotype_to_phenotype_analyses/recomputed_170_workflow/publication_readiness_*.pdf
+analysis/02-Genotype_to_phenotype_analyses/recomputed_170_workflow/rerun_branch_code_change_manual_review.*
+analysis/02-Genotype_to_phenotype_analyses/recomputed_170_workflow/supplement_visualisation_and_legacy_stream_audit.*
+analysis/02-Genotype_to_phenotype_analyses/recomputed_170_workflow/hakenbeck_2012_lab_label_check.*
+analysis/02-Genotype_to_phenotype_analyses/recomputed_170_workflow/pandoc_thin_table_rules.tex

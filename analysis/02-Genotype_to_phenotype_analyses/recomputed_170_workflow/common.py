@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Shared utilities for corrected-panel mvLMM farm reruns."""
+"""Shared utilities for corrected-panel mvLMM recomputation."""
 
 from __future__ import annotations
 
@@ -173,7 +173,7 @@ def marker_order_from_effects(effect_file: Path) -> list[str]:
 
 def chunk_bounds(total: int, chunk_size: int, array_index: int) -> tuple[int, int]:
     if array_index < 1:
-        raise ValueError("LSF array indexes are 1-based; got array_index < 1")
+        raise ValueError("Chunk array indexes are 1-based; got array_index < 1")
     start = (array_index - 1) * chunk_size
     end = min(start + chunk_size, total)
     if start >= total:

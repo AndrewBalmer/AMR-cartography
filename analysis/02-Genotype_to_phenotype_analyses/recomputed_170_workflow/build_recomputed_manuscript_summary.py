@@ -22,11 +22,11 @@ VARIABLE_PBP_POSITIONS = 285
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--farm-out", required=True, type=Path)
+    parser.add_argument("--results-dir", required=True, type=Path)
     parser.add_argument(
         "--historical-public",
         type=Path,
-        default=Path("farm_outputs/original_logic_rebuild/manuscript_outputs/Supplementary_File_1.csv"),
+        default=Path("analysis_outputs/original_logic_rebuild/manuscript_outputs/Supplementary_File_1.csv"),
     )
     parser.add_argument("--out-dir", type=Path)
     return parser.parse_args()
@@ -251,14 +251,14 @@ def build_replacement_text(
 
 def main() -> None:
     args = parse_args()
-    out_dir = args.out_dir or (args.farm_out / "manuscript_outputs" / "manuscript_summary")
+    out_dir = args.out_dir or (args.results_dir / "manuscript_outputs" / "manuscript_summary")
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    recomputed_public = pd.read_csv(args.farm_out / "manuscript_outputs" / "Supplementary_File_1.csv")
-    marker_level = pd.read_csv(args.farm_out / "manuscript_outputs" / "Supplementary_File_1_corrected_marker_level.csv")
+    recomputed_public = pd.read_csv(args.results_dir / "manuscript_outputs" / "Supplementary_File_1.csv")
+    marker_level = pd.read_csv(args.results_dir / "manuscript_outputs" / "Supplementary_File_1_corrected_marker_level.csv")
     historical_public = pd.read_csv(args.historical_public)
     old_public = load_main_public()
-    manifest = load_json(args.farm_out / "thresholds" / "recomputed_thresholds.json")
+    manifest = load_json(args.results_dir / "thresholds" / "recomputed_thresholds.json")
 
     tables = {
         "old_preprint": old_public,

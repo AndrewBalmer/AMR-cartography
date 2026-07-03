@@ -8,12 +8,8 @@ call (``scan(G=product, Y=map_coords, K=linear_kinship(dropped), M=parents,
 A=mod_matrix)``, matching ``31-mvLMM-heritability-and-epistatic-mvLMM.py``) and
 checks that the two engines agree on ``pv20`` and the joint effect sizes.
 
-It also cross-checks the committed recomputed observed p-values, confirming the
-merged farm outputs are reproducible from the current code.
-
-HEAD-NODE SAFETY: this fits LMMs and must be submitted through LSF
-(``lsf/submit_verify_epistasis_engine.sh``), never run directly on a farm head
-node.
+It also cross-checks the committed recomputed observed p-values, confirming that
+the merged analysis outputs are reproducible from the current code.
 """
 
 from __future__ import annotations

@@ -12,12 +12,12 @@ suppressPackageStartupMessages({
 
 args <- commandArgs(trailingOnly = TRUE)
 project_root <- if (length(args) >= 1) args[[1]] else getwd()
-farm_root <- if (length(args) >= 2) args[[2]] else file.path(project_root, "farm_outputs", "recomputed_170_thresholds")
-out_dir <- if (length(args) >= 3) args[[3]] else file.path(farm_root, "manuscript_outputs", "supplement_figures", "original_style")
+results_root <- if (length(args) >= 2) args[[2]] else file.path(project_root, "analysis_outputs", "recomputed_170_thresholds")
+out_dir <- if (length(args) >= 3) args[[3]] else file.path(results_root, "manuscript_outputs", "supplement_figures", "original_style")
 
 dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
-thresholds <- fromJSON(file.path(farm_root, "thresholds", "recomputed_thresholds.json"))
+thresholds <- fromJSON(file.path(results_root, "thresholds", "recomputed_thresholds.json"))
 additive_threshold <- thresholds$additive$adjusted_threshold
 epistasis_threshold <- thresholds$epistasis$epistasis_threshold
 additive_meff <- thresholds$additive$galwey_meff
@@ -147,8 +147,8 @@ load_tpd_position_labels <- function() {
 }
 
 load_additive_effects <- function() {
-  pvals <- read_csv_base(file.path(farm_root, "additive", "merged", "mvLMM_p_values_normal_pneumo_low_freq_vars.csv"))
-  effects <- read_csv_base(file.path(farm_root, "additive", "merged", "mvLMM_effect_sizes_normal_pneumo_low_freq_vars.csv"))
+  pvals <- read_csv_base(file.path(results_root, "additive", "merged", "mvLMM_p_values_normal_pneumo_low_freq_vars.csv"))
+  effects <- read_csv_base(file.path(results_root, "additive", "merged", "mvLMM_effect_sizes_normal_pneumo_low_freq_vars.csv"))
 
   candidates <- effects %>%
     filter(effect_type == "candidate") %>%
@@ -171,8 +171,8 @@ load_additive_effects <- function() {
 }
 
 load_epistasis_effects <- function() {
-  epi <- read_csv_base(file.path(farm_root, "epistasis", "merged", "corrected_epistasis_p_values.csv"))
-  interaction_counts <- read_csv_base(file.path(farm_root, "interactions", "corrected_epistasis_interactions.csv")) %>%
+  epi <- read_csv_base(file.path(results_root, "epistasis", "merged", "corrected_epistasis_p_values.csv"))
+  interaction_counts <- read_csv_base(file.path(results_root, "interactions", "corrected_epistasis_interactions.csv")) %>%
     select(interaction, min_cell_count)
 
   epi %>%
@@ -191,7 +191,7 @@ make_s17 <- function() {
   require_exact_package("tidygraph", "Supplementary Figure S17B")
 
   epi <- load_epistasis_effects()
-  marker_support <- read_csv_base(file.path(farm_root, "epistasis", "merged", "corrected_epistasis_marker_support.csv")) %>%
+  marker_support <- read_csv_base(file.path(results_root, "epistasis", "merged", "corrected_epistasis_marker_support.csv")) %>%
     mutate(PBP = parse_pbp(marker), position = first_position(marker))
 
   s17_scatter_source <- epi %>%
@@ -377,7 +377,7 @@ make_s18 <- function() {
 make_s19 <- function() {
   require_exact_package("nVennR", "Supplementary Figure S19")
 
-  sf1 <- read_csv_base(file.path(farm_root, "manuscript_outputs", "Supplementary_File_1.csv")) %>%
+  sf1 <- read_csv_base(file.path(results_root, "manuscript_outputs", "Supplementary_File_1.csv")) %>%
     mutate(
       rank = case_when(
         Evidence == "Very Strong" ~ 4,
