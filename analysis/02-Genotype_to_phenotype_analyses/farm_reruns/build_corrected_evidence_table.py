@@ -462,7 +462,7 @@ def write_legacy_public(table: pd.DataFrame, manuscript_dir: Path) -> None:
     table.to_csv(manuscript_dir / "Supplementary_File_1.csv", index=False, na_rep="NA")
 
 
-def build_audit(
+def build_summary(
     marker_table: pd.DataFrame,
     legacy_table: pd.DataFrame,
     analysis_out: Path,
@@ -481,8 +481,8 @@ def build_audit(
         ["Very Strong", "Strong", "Moderate", "Weak", "Weak/No Evidence"], fill_value=0
     )
 
-    audit = [
-        f"# {analysis_label} manuscript audit",
+    summary_lines = [
+        f"# {analysis_label} manuscript summary",
         "",
         f"- Additive markers tested: `{len(marker_table)}`.",
         f"- Public legacy-format Supplementary File 1 rows: `{len(legacy_table)}`.",
@@ -504,7 +504,7 @@ def build_audit(
     ]
 
     if summary:
-        audit.extend(
+        summary_lines.extend(
             [
                 "",
                 "## Corrected epistasis merge summary",
@@ -521,13 +521,13 @@ def build_audit(
             ]
         )
         if summary.get("permutation_non_ok_fit_rows", 0):
-            audit.append(
+            summary_lines.append(
                 "- Non-ok permutation rows were retained as conservative null rows in the merged output; "
                 "inspect `fit_status`/`fit_error` before changing manuscript claims."
             )
 
     if thresholds:
-        audit.extend(
+        summary_lines.extend(
             [
                 "",
                 "## Recomputed threshold summary",
@@ -538,17 +538,17 @@ def build_audit(
             ]
         )
 
-    audit.extend(
+    summary_lines.extend(
         [
             "",
             "## Output note",
             "",
             "- `Supplementary_File_1.csv` preserves the original manuscript/thesis component-level aggregation and column names.",
-            "- `Supplementary_File_1_corrected_marker_level.csv` is the 170-marker corrected rerun audit table.",
+            "- `Supplementary_File_1_corrected_marker_level.csv` is the 170-marker marker-level summary table.",
             "- The public legacy column `Adj. p-value` is retained for compatibility and contains Galwey-adjusted additive mvLMM p-values, never raw `pv20` values.",
         ]
     )
-    return audit
+    return summary_lines
 
 
 def main() -> None:
@@ -576,7 +576,7 @@ def main() -> None:
     write_marker_level_display(marker_table, output_dir)
     write_legacy_public(legacy_table, output_dir)
 
-    audit = build_audit(
+    summary_lines = build_summary(
         marker_table,
         legacy_table,
         epistasis_dir,
@@ -584,8 +584,8 @@ def main() -> None:
         analysis_label=args.analysis_label,
         threshold_file=args.threshold_file,
     )
-    (output_dir / "corrected_rerun_manuscript_audit.md").write_text("\n".join(audit) + "\n")
-    print("\n".join(audit))
+    (output_dir / "corrected_rerun_manuscript_summary.md").write_text("\n".join(summary_lines) + "\n")
+    print("\n".join(summary_lines))
 
 
 if __name__ == "__main__":

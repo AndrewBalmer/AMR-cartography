@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Build the manuscript-review outputs after additive, uvLMM, epistasis, and
-# threshold merges are complete. This writes into the recomputed FARM_OUT review
+# Build the manuscript outputs after additive, uvLMM, epistasis, and threshold
+# merges are complete. This writes into the recomputed FARM_OUT manuscript
 # directory only; it intentionally does not copy files into manuscript/.
 
 PROJECT_ROOT="${PROJECT_ROOT:?Set PROJECT_ROOT to the checked-out repo path}"
@@ -57,5 +57,8 @@ bsub -q "$QUEUE" -M "$MEM_MB" -R "select[mem>$MEM_MB] rusage[mem=$MEM_MB]" \
     --farm-out '$FARM_OUT' \
     --original-logic-public '$ORIGINAL_LOGIC_PUBLIC' \
     --out-dir '$OUTPUT_DIR' && \
+   $PYTHON '$SCRIPT_DIR/build_recomputed_manuscript_summary.py' \
+    --farm-out '$FARM_OUT' \
+    --historical-public '$ORIGINAL_LOGIC_PUBLIC' && \
    $PYTHON '$SCRIPT_DIR/validate_recomputed_outputs.py' \
     --farm-out '$FARM_OUT'"

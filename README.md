@@ -72,10 +72,8 @@ If you use **AMR Cartography** (methods or code), **please cite**:
 > Balmer AJ, Murray GGR, Lo S, Restif O, Weinert LA. *Antimicrobial Resistance Cartography: A Generalisable Framework for Studying Multivariate Drug Resistance*.
 >
 > **Preprint**: https://doi.org/10.1101/2025.09.12.675231
->
-> **Journal article**: *link coming soon*
 
-A BibTeX entry will be provided once the DOI is available.
+Use the preprint DOI above when citing this repository or manuscript.
 
 ---
 
@@ -83,8 +81,6 @@ A BibTeX entry will be provided once the DOI is available.
 
 This project is released under the **MIT License** (permissive).
 **Attribution**: in academic or public outputs that use the methods or scripts here, please include the citation above.
-
-See [`LICENSE`](#) (to be added) for full terms.
 
 ---
 
@@ -98,7 +94,7 @@ We also acknowledge the CDC/ABC programme for making data available, and the col
 ## Contact & contributions
 
 * Lead/contact: **Andrew J. Balmer** (ab69@sanger.ac.uk)
-* Issues and improvements via GitHub Issues*/PRs are welcome.
+* Issues and improvements via GitHub Issues/PRs are welcome.
 * Please open an issue for reproducibility questions or environment pinning (we can provide an `renv.lock`).
 
 ---
@@ -108,3 +104,4 @@ We also acknowledge the CDC/ABC programme for making data available, and the col
 * Rmds are designed to be run independently once inputs are prepared.
 * Note, some steps (e.g., bootstrap MDS or mvLMM grids) can be compute‑intensive; scripts cache intermediates (`*.rds`, `*.RData`).
 * For this repo, outputs are git‑ignored; re‑running the Rmds will regenerate the figures/tables.
+* The recomputed 170-marker PBP mvLMM/epistasis workflow is documented in `analysis/02-Genotype_to_phenotype_analyses/farm_reruns/`. Older numbered R/Rmd scripts are retained as historical manuscript-generation scripts.

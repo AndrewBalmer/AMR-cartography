@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build surgical old-vs-recomputed result audit artifacts."""
+"""Build old-vs-recomputed manuscript result summary artifacts."""
 
 from __future__ import annotations
 
@@ -162,7 +162,7 @@ def build_replacement_text(
         [
             "# Manuscript Replacement Text Draft",
             "",
-            "Use this as draft wording only; do not paste into the manuscript until independently audited.",
+            "Use this as draft wording only; review against the manuscript before pasting.",
             "",
             "## Results: Evidence Overview",
             "",
@@ -182,7 +182,7 @@ def build_replacement_text(
                 f"({rec['multi_positions_by_pbp']['1A']} PBP1A, "
                 f"{rec['multi_positions_by_pbp']['2B']} PBP2B, "
                 f"{rec['multi_positions_by_pbp']['2X']} PBP2X positions). "
-                f"In the separate marker-level audit frame, {marker_multi} of 170 markers had "
+                f"In the separate marker-level table, {marker_multi} of 170 markers had "
                 "two or more evidence streams. "
                 f"This compares with {old['multi_rows']} substitutions at {old['multi_unique_positions']} positions "
                 "in the old preprint and "
@@ -251,7 +251,7 @@ def build_replacement_text(
 
 def main() -> None:
     args = parse_args()
-    out_dir = args.out_dir or (args.farm_out / "manuscript_outputs" / "surgical_result_audit")
+    out_dir = args.out_dir or (args.farm_out / "manuscript_outputs" / "manuscript_summary")
     out_dir.mkdir(parents=True, exist_ok=True)
 
     recomputed_public = pd.read_csv(args.farm_out / "manuscript_outputs" / "Supplementary_File_1.csv")
@@ -336,7 +336,7 @@ def main() -> None:
     ]
 
     report = [
-        "# Recomputed 170-Marker Surgical Result Audit",
+        "# Recomputed 170-Marker Manuscript Result Summary",
         "",
         "All counts use the original component-expanded public Supplementary File 1 frame unless labelled otherwise.",
         "",
@@ -380,7 +380,7 @@ def main() -> None:
             replacement,
         ]
     )
-    (out_dir / "recomputed_170_surgical_result_audit.md").write_text("\n".join(report) + "\n")
+    (out_dir / "recomputed_170_manuscript_result_summary.md").write_text("\n".join(report) + "\n")
     print("\n".join(report))
 
 
