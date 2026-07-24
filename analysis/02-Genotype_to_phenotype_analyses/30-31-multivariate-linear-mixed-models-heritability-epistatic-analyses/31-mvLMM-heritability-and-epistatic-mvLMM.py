@@ -1,3 +1,21 @@
+# =============================================================================
+# PROVENANCE / RERUN NOTE (added 2026-07-01)
+# -----------------------------------------------------------------------------
+# This is the ORIGINAL, published-manuscript Limix script; its analysis logic is
+# retained UNCHANGED. The additive mvLMM, permutation FWAS, epistatic mvLMM, and
+# univariate LMM implemented here were subsequently RE-RUN on a corrected
+# 170-marker PBP panel (the original 157-marker panel omitted 13 valid markers)
+# in a separate, self-contained farm workflow:
+#     ../recomputed_170_workflow/            (see recomputed_170_workflow/README.md)
+# The rerun re-derives the Galwey effective-test counts, permutation thresholds,
+# and epistasis interaction universe on the corrected panel, and (for speed on
+# the farm) reimplements the epistatic/univariate fits with algebraically
+# equivalent glimix-core low-rank engines while keeping the additive fit on real
+# limix. An independent audit found the recomputed additive p-values reproduce
+# this script's values on the 157 shared markers to r ~ 0.99999.
+# Manuscript-facing outputs should be taken from the corrected rerun, NOT this
+# file. Only this note was added to the original.
+# =============================================================================
 
 
 ### Setup - this script requires many different functions from versions of Limix and other packages

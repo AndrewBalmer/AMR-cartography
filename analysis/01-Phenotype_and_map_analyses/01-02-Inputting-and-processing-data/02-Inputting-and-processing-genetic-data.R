@@ -1,6 +1,7 @@
 
 ### Read in genetic data for S. pneumoniae
 remove(list = ls())  # Remove all objects in the current workspace
+source(Sys.getenv("AMRC_CONFIG", unset = path.expand("~/AMR-cartography/analysis/config.R")))  # portable data dir + map constants (see analysis/config.R)
 
 # Install and load necessary packages
 # install.packages("tidyverse")
@@ -14,7 +15,7 @@ library(ape)
 library(ggdendro)
 
 # Set working directory
-setwd("/Users/ajb306/AMR-cartography-results/data/")
+setwd(AMRC_DATA_DIR)
 
 # Set DOI
 doi <- "10.1186/s12864-017-4017-7"

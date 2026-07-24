@@ -9,6 +9,7 @@ output: html_document
 
 # Clear the workspace
 remove(list = ls())
+source(Sys.getenv("AMRC_CONFIG", unset = path.expand("~/AMR-cartography/analysis/config.R")))  # portable data dir + map constants (see analysis/config.R)
 
 # Load required packages
 library(tidyverse)     # For data manipulation and visualization
@@ -22,16 +23,16 @@ library(foreach)
 library(doParallel)
 
 # Set the working directory
-setwd("/Users/ajb306/AMR-cartography/analysis/01-Phenotype_and_map_analyses/13-Dimensionality-tests/")
+# non-portable setwd() removed; knitr uses the document directory
 
 # Read the MIC table data
-tablemic <- read.csv("/Users/ajb306/AMR-cartography-results/data/MIC_table_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+tablemic <- read.csv(amrc_data_path("MIC_table_Spneumoniae.csv"), header=TRUE, sep=",", skip = 0)
 
 # Read in the relevant meta data
-tablemic_meta <- read.csv("/Users/ajb306/AMR-cartography-results/data/meta_data_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+tablemic_meta <- read.csv(amrc_data_path("meta_data_Spneumoniae.csv"), header=TRUE, sep=",", skip = 0)
 
 # Specify the full path to the data file
-phen_map <- "/Users/ajb306/AMR-cartography-results/data/Spneumo_3628_PCA_start_2D_METRIC.RData"
+phen_map <- amrc_data_path("Spneumo_3628_PCA_start_2D_METRIC.RData")
 
 # Load the pre-computed PCA start 2D metric data
 load(phen_map)
@@ -351,7 +352,7 @@ one_dim_map <- as_tibble(torg_met_1D$conf)
 two_dim_map <- as_tibble(torg_met_2D$conf)
 
 # Dilation from your previous fit
-slope <- 0.1842996
+slope <- AMRC_PHEN_DILATION_SLOPE
 dilation <- 1 / slope
 colnames(two_dim_map) <- c("D1","D2")
 
@@ -387,7 +388,7 @@ one_two_dim_comp <- left_join(one_and_two_dim_map_comp_pairwise_dist, torg_met_c
 one_two_dim_comp$spp_1D <- as.numeric(one_two_dim_comp$spp_1D)
 
 # Rotate both 2D and 1D coordinates (as you do elsewhere)
-theta <- 326 * pi / 180
+theta <- AMRC_MAP_ROTATION_DEGREES * pi / 180
 rot <- matrix(c(cos(theta), sin(theta), -sin(theta), cos(theta)), ncol = 2)
 one_two_dim_comp[, 1:2] <- as.matrix(one_two_dim_comp[, 1:2]) %*% rot
 one_two_dim_comp[, 3:4] <- as.matrix(one_two_dim_comp[, 3:4]) %*% rot

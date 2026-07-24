@@ -1,0 +1,30 @@
+# Required ignored data bundle for corrected mvLMM/epistasis recomputation
+#
+# Copy or symlink the full AMRC-repo-files/ directory before running the workflow.
+# The files below are the minimum inputs used by the recomputation scripts.
+
+AMRC-repo-files/pythonProject1/S.pneumo_map_mvlmm_MIC_values.csv
+AMRC-repo-files/pythonProject1/uniLMM_p_val_normal_MIC_pneumo.csv
+AMRC-repo-files/pythonProject1/uniLMM_effect_normal_MIC_pneumo.csv
+AMRC-repo-files/pythonProject1/mvLMM_p_values_normal_pneumo_low_freq_vars.csv
+AMRC-repo-files/pythonProject1/mvLMM_effect_sizes_normal_pneumo_low_freq_vars.csv
+
+AMRC-repo-files/pythonProject1-additive-production-20260507-150112/S.pneumo_map_dummy_gen_relatedness_matrix.csv
+AMRC-repo-files/pythonProject1-additive-production-20260507-150112/S.pneumo_map_dummy_gen_test_markers.csv
+AMRC-repo-files/pythonProject1-additive-production-20260507-150112/S.pneumo_map_mvlmm_map_coords.csv
+AMRC-repo-files/pythonProject1-additive-production-20260507-150112/S.pneumo_map_mvlmm_mod_matrix.csv
+AMRC-repo-files/pythonProject1-additive-production-20260507-150112/mvLMM_p_values_normal_pneumo_low_freq_vars.csv
+AMRC-repo-files/pythonProject1-additive-production-20260507-150112/mvLMM_effect_sizes_normal_pneumo_low_freq_vars.csv
+AMRC-repo-files/pythonProject1-additive-production-20260507-150112/uniLMM_exact_added_markers_p_values.csv
+AMRC-repo-files/pythonProject1-additive-production-20260507-150112/uniLMM_exact_added_markers_effect_sizes.csv
+
+AMRC-repo-files/Streptococcus pneumoniae analysis/Single_subs_all_S.pneumo.csv
+AMRC-repo-files/Streptococcus pneumoniae analysis/Sig_AA_subs_Cluster_gen2_S.pneumo.csv
+AMRC-repo-files/Streptococcus pneumoniae analysis/Sig_AA_subs_Cluster_gen3_S.pneumo.csv
+AMRC-repo-files/Streptococcus pneumoniae analysis/Sig_AA_subs_Cluster_gen4_S.pneumo.csv
+AMRC-repo-files/Streptococcus pneumoniae analysis/Sig_AA_subs_Cluster_gen5_S.pneumo.csv
+AMRC-repo-files/Streptococcus pneumoniae analysis/Sig_AA_subs_Cluster_gen7_S.pneumo.csv
+AMRC-repo-files/Streptococcus pneumoniae analysis/Sig_AA_subs_Cluster_gen8_S.pneumo.csv
+AMRC-repo-files/Streptococcus pneumoniae analysis/Sig_AA_subs_Cluster_gen10_S.pneumo.csv
+AMRC-repo-files/Streptococcus pneumoniae analysis/Sig_AA_subs_Cluster_gen12_S.pneumo.csv
+AMRC-repo-files/Streptococcus pneumoniae analysis/CDC_GWAS_overlap_TPD.csv

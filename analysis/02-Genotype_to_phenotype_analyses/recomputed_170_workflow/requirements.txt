@@ -1,0 +1,6 @@
+numpy
+pandas
+scipy
+limix==3.0.4
+glimix-core
+numpy-sugar

@@ -15,6 +15,7 @@ Thumbs.db
 __pycache__/
 *.py[cod]
 .ipynb_checkpoints/
+.venv*/
 
 # Common build / cache / outputs
 *.log
@@ -33,3 +34,46 @@ output/
 figures/
 data/
 cache/
+
+# Local manuscript review notes (never commit)
+reviewer-comments/
+manuscript_revision_workspace/
+travel_audit_pack_*/
+travel_audit_pack_*.tar.gz
+travel_audit_pack_*.tar.gz.sha256
+
+# Superseded manuscript drafts and internal pre-submission QA notes (kept local)
+manuscript/legacy/
+manuscript/Final_Pre-Submission_Audit.pdf
+
+# Local audit notes (never commit; adjust this line to push selectively)
+audit/
+
+# Local external data bundles used for reproducibility
+AMRC-repo-files/
+AMRC-repo-files
+local-data/
+local-data
+analysis_outputs/
+analysis_outputs
+farm_outputs/
+farm_outputs
+
+# Private manuscript/reference drafts and local review artifacts
+AMRC Manuscript draft*.pdf
+AMRC Manuscript draft*.docx
+AMRC - Supplementary Information*.pdf
+AMRC - Supplementary Information*.docx
+BBSRC PhD thesis*.pdf
+BBSRC PhD thesis*.docx
+fmb.12.2.pdf
+analysis/02-Genotype_to_phenotype_analyses/recomputed_170_workflow/claude_*.md
+analysis/02-Genotype_to_phenotype_analyses/recomputed_170_workflow/claude_*.pdf
+analysis/02-Genotype_to_phenotype_analyses/recomputed_170_workflow/manuscript_v9_*.md
+analysis/02-Genotype_to_phenotype_analyses/recomputed_170_workflow/manuscript_v9_*.pdf
+analysis/02-Genotype_to_phenotype_analyses/recomputed_170_workflow/publication_readiness_*.md
+analysis/02-Genotype_to_phenotype_analyses/recomputed_170_workflow/publication_readiness_*.pdf
+analysis/02-Genotype_to_phenotype_analyses/recomputed_170_workflow/rerun_branch_code_change_manual_review.*
+analysis/02-Genotype_to_phenotype_analyses/recomputed_170_workflow/supplement_visualisation_and_legacy_stream_audit.*
+analysis/02-Genotype_to_phenotype_analyses/recomputed_170_workflow/hakenbeck_2012_lab_label_check.*
+analysis/02-Genotype_to_phenotype_analyses/recomputed_170_workflow/pandoc_thin_table_rules.tex

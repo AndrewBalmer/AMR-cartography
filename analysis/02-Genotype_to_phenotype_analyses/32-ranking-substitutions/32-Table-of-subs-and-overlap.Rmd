@@ -5,9 +5,24 @@ date: "2024-04-08"
 output: html_document
 ---
 
+> **Provenance / rerun note (added 2026-07-01).** This is the original,
+> published-manuscript script and its logic is retained **unchanged**. It builds
+> the ranked substitution / evidence table (Supplementary File 1) from the
+> additive mvLMM, epistatic mvLMM, single-substitution, and clustering streams.
+> The mvLMM and epistasis inputs were subsequently **re-run on a corrected
+> 170-marker PBP panel** (the original 157-marker panel omitted 13 valid markers)
+> in a separate farm workflow at [`../recomputed_170_workflow/`](../recomputed_170_workflow/) (see
+> `recomputed_170_workflow/README.md`); the single-substitution and clustering streams were
+> carried over unchanged. In the corrected rebuild, Supplementary File 1 grows
+> from 354 to 394 component-expanded rows and multi-method support from 88 to 117
+> substitutions, while the sole Very Strong (I371T) and the 5 Strong
+> substitutions are stable. Manuscript-facing tables should be taken from the
+> corrected rerun outputs, not from this file. Only this note was added.
+
 ```{r setup, include = F}
 
 remove(list = ls())
+source(Sys.getenv("AMRC_CONFIG", unset = path.expand("~/AMR-cartography/analysis/config.R")))  # portable data dir + map constants (see analysis/config.R)
 library(tidyverse)
 library(RColorBrewer)
 library(stringr)
@@ -17,7 +32,7 @@ library(eulerr)
 
 library(FactoMineR)
 
-setwd("/Users/ajb306/Google Drive/PhD - Andrew Balmer/Chapters/AMR cartography/MIC data/Streptococcus pneumoniae analysis/")
+setwd(AMRC_PNEUMO_ANALYSIS_DIR)
 
 #cluster_1 <- read_csv("../Streptococcus pneumoniae analysis/Sig_AA_subs_Cluster_gen1_S.pneumo.csv") # no useful information in this cluster
 cluster_2 <- read_csv("../Streptococcus pneumoniae analysis/Sig_AA_subs_Cluster_gen2_S.pneumo.csv")
@@ -34,9 +49,9 @@ cluster_12 <- read_csv("../Streptococcus pneumoniae analysis/Sig_AA_subs_Cluster
 
 #read in data file
 single_subs <- read_csv("../Streptococcus pneumoniae analysis/Single_subs_all_S.pneumo.csv")
-mv_lmm <- read_csv("/Users/ajb306/Google Drive/PhD - Andrew Balmer/Chapters/AMR cartography/MIC data/Streptococcus pneumoniae analysis/Sub_effect_sizes_mv_pneumo.csv")
-mv_lmm_epi_all <- read_csv("/Users/ajb306/Google Drive/PhD - Andrew Balmer/Chapters/AMR cartography/MIC data/Streptococcus pneumoniae analysis/Sig_AA_subs_all_epistatic_interactions_incl_nonsig_S.pneumo.csv")
-mv_lmm_epi <- read_csv("/Users/ajb306/Google Drive/PhD - Andrew Balmer/Chapters/AMR cartography/MIC data/Streptococcus pneumoniae analysis/Sig_AA_subs_all_epistatic_interactions_S.pneumo.csv")
+mv_lmm <- read_csv(amrc_pneumo_path("Sub_effect_sizes_mv_pneumo.csv"))
+mv_lmm_epi_all <- read_csv(amrc_pneumo_path("Sig_AA_subs_all_epistatic_interactions_incl_nonsig_S.pneumo.csv"))
+mv_lmm_epi <- read_csv(amrc_pneumo_path("Sig_AA_subs_all_epistatic_interactions_S.pneumo.csv"))
 
 
 ```
@@ -221,20 +236,20 @@ ggsave("effect_sizes_S.pneumo.jpg")
   options(dplyr.summarise.inform = FALSE)
   
   # Set working directory
-  setwd("/Users/ajb306/AMR-cartography-results/data/")
+  setwd(AMRC_DATA_DIR)
   
   # Specify the full path to the data file
-  phen_map <- "/Users/ajb306/AMR-cartography-results/data/Spneumo_3628_PCA_start_2D_METRIC.RData"
+  phen_map <- amrc_data_path("Spneumo_3628_PCA_start_2D_METRIC.RData")
   
  
 # Read in the relevant meta data
-tablemic_meta <- read.csv("/Users/ajb306/AMR-cartography-results/data/meta_data_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+tablemic_meta <- read.csv(amrc_data_path("meta_data_Spneumoniae.csv"), header=TRUE, sep=",", skip = 0)
 
   
   # Read in phenotype map data and rotate to make it more readable
   load(phen_map)
   res_samp <- torg_met
-  theta <- 326*pi/180 ## degrees to radians
+  theta <- AMRC_MAP_ROTATION_DEGREES * pi / 180 ## degrees to radians
   rot <- matrix(c(cos(theta), sin(theta), -sin(theta), cos(theta)), ncol = 2)
   res_samp$conf <- res_samp$conf %*% rot ## rotated configurations
   
@@ -246,8 +261,8 @@ tablemic_meta <- read.csv("/Users/ajb306/AMR-cartography-results/data/meta_data_
                            "2014200662" , "5869-99" , "2513-99")
   
   # Specify the full path to the data file
-  gen_map <- "/Users/ajb306/AMR-cartography-results/data/Spneumo_3628_PCA_start_2D_METRIC_genetic.RData"
-  load('/Users/ajb306/AMR-cartography-results/data/tablemic_pneumo_gen_3628.RData')
+  gen_map <- amrc_data_path("Spneumo_3628_PCA_start_2D_METRIC_genetic.RData")
+  load(amrc_data_path("tablemic_pneumo_gen_3628.RData"))
   
   # Load the precomputed PCA start 2D metric data
   load(gen_map)
@@ -257,7 +272,7 @@ tablemic_meta <- read.csv("/Users/ajb306/AMR-cartography-results/data/meta_data_
 colnames(genotype_mds) <- c("G1","G2")
   
   
-slope <- 0.1842996
+slope <- AMRC_PHEN_DILATION_SLOPE
 dilation <- 1/slope
 slope
 map_coords <- as.data.frame(res_samp$conf)
@@ -293,7 +308,7 @@ gen_clustering$gen_cluster <- res.hcpc[[1]]$clust
 AA_matrix_phenotype <- left_join(AA_matrix_phenotype, select(gen_clustering, PBP_type, gen_cluster), by = "PBP_type") %>% bind_cols(PBPseq)%>% ungroup 
 
 
-gen_slope <- 0.01814108
+gen_slope <- AMRC_GEN_DILATION_SLOPE
 gen_dilation <- 1/gen_slope
 gen_slope
 
@@ -712,7 +727,7 @@ table_of_subs_evidence <- table_of_subs_evidence %>%
 colnames(table_of_subs_evidence)
 write.csv(table_of_subs_evidence, file = "Final_Table_of_subs_for_Spneumoniae.csv", row.names=FALSE)
 
-comparison_all <- read.csv("/Users/ajb306/PycharmProjects/pythonProject1/comparison_all_output.csv") %>%
+comparison_all <- read.csv(amrc_pyproject_path("comparison_all_output.csv")) %>%
   rename(Location = Substitution) %>%
   select(PBP,Location, mv_sig, uv_sig) %>%
   separate_rows(Location, sep = "/")
@@ -1133,7 +1148,7 @@ table_of_subs_evidence <- table_of_subs %>%
 
 
 ### euler plot of overlap
-setwd("/Users/ajb306/Google Drive/PhD - Andrew Balmer/Chapters/AMR cartography/MIC data/Streptococcus pneumoniae analysis/")
+setwd(AMRC_PNEUMO_ANALYSIS_DIR)
 
 
 CDC_GWAS_overlap <- read.csv(file = "CDC_GWAS_overlap_TPD.csv")
@@ -1200,7 +1215,7 @@ table_of_subs_evidence <- table_of_subs %>%
 
 
 ### euler plot of overlap
-setwd("/Users/ajb306/Google Drive/PhD - Andrew Balmer/Chapters/AMR cartography/MIC data/Streptococcus pneumoniae analysis/")
+setwd(AMRC_PNEUMO_ANALYSIS_DIR)
 
 
 CDC_GWAS_overlap <- read.csv(file = "CDC_GWAS_overlap_TPD.csv")
@@ -1266,7 +1281,7 @@ table_of_subs_evidence <- table_of_subs %>%
   mutate(Cartography = TRUE)
 
 # Load CDC/GWAS data
-setwd("/Users/ajb306/Google Drive/PhD - Andrew Balmer/Chapters/AMR cartography/MIC data/Streptococcus pneumoniae analysis/")
+setwd(AMRC_PNEUMO_ANALYSIS_DIR)
 CDC_GWAS_overlap <- read.csv(file = "CDC_GWAS_overlap_TPD.csv")
 
 CDC_GWAS_overlap <- CDC_GWAS_overlap %>%

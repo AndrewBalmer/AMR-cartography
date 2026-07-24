@@ -13,6 +13,7 @@ It is important to ensure MDS solutions represent the data accurately. There are
 
 # Clear the workspace
 remove(list = ls())
+source(Sys.getenv("AMRC_CONFIG", unset = path.expand("~/AMR-cartography/analysis/config.R")))  # portable data dir + map constants (see analysis/config.R)
 
 # Load required packages
 library(tidyverse)     # For data manipulation and visualization
@@ -20,13 +21,13 @@ library(smacof)        # For multidimensional scaling
 library(RColorBrewer)  # For color palettes
 
 # Set the working directory
-setwd("/Users/ajb306/AMR-cartography/analysis/01-Phenotype_and_map_analyses/05-07-Estimating-goodness-of-fit")
+# non-portable setwd() removed; knitr uses the document directory
 
 # Read the MIC table data
-tablemic <- read.csv("/Users/ajb306/AMR-cartography-results/data/MIC_table_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+tablemic <- read.csv(amrc_data_path("MIC_table_Spneumoniae.csv"), header=TRUE, sep=",", skip = 0)
 
 # Specify the full path to the data file
-phen_map <- "/Users/ajb306/AMR-cartography-results/data/Spneumo_3628_PCA_start_2D_METRIC.RData"
+phen_map <- amrc_data_path("Spneumo_3628_PCA_start_2D_METRIC.RData")
 
 # Load the precomputed PCA start 2D metric data
 load(phen_map)
@@ -109,7 +110,7 @@ for (i in 1:ncol(torg_met$conf)) {
 }
 
 # Rotate configuration by 326 degrees
-theta <- 326 * pi / 180  # convert degrees to radians
+theta <- AMRC_MAP_ROTATION_DEGREES * pi / 180  # convert degrees to radians
 rot <- matrix(c(cos(theta), sin(theta), -sin(theta), cos(theta)), ncol = 2)
 torg_met$conf <- torg_met$conf %*% rot  # rotated configuration
 
@@ -369,7 +370,7 @@ head(ellipses_conf)
 #         D2 = D2 *dilation)
 #head(ellipses_conf)
   
-#theta <- 326*pi/180 ## degrees to radians
+#theta <- AMRC_MAP_ROTATION_DEGREES * pi / 180 ## degrees to radians
 #rot <- matrix(c(cos(theta), sin(theta), -sin(theta), cos(theta)), ncol = 2)
 #x <- as.data.frame(as.matrix(ellipses_conf[,1:2]) %*% rot) ## rotated configurations
 x <- ellipses_conf[,1:2]
@@ -385,7 +386,7 @@ head(centroids)
 #         D2 = D2 *dilation)
 
   
-#theta <- 326*pi/180 ## degrees to radians
+#theta <- AMRC_MAP_ROTATION_DEGREES * pi / 180 ## degrees to radians
 #rot <- matrix(c(cos(theta), sin(theta), -sin(theta), cos(theta)), ncol = 2)
 #x <- as.data.frame(as.matrix(centroids[,1:2]) %*% rot) ## rotated configurations
 

@@ -1,6 +1,7 @@
 
 # Clear the environment
 remove(list = ls())
+source(Sys.getenv("AMRC_CONFIG", unset = path.expand("~/AMR-cartography/analysis/config.R")))  # portable data dir + map constants (see analysis/config.R)
 
 # Install and load necessary packages
 #install.packages("tidyverse")
@@ -11,7 +12,7 @@ library(tidyverse)
 library(curl)
 
 # Set working directory
-setwd("/Users/ajb306/AMR-cartography-results/data")
+setwd(AMRC_DATA_DIR)
 
 # Replace "YOUR_DOI" with the actual DOI
 doi <- "10.1186/s12864-017-4017-7"
@@ -95,13 +96,13 @@ for (i in seq(nrow(replacement_table))) {
 tablemic_meta$PT <- gsub("/", "-", tablemic_meta$PT)
 
 # Save the dataframe as a CSV file
-write.csv(tablemic, file = "/Users/ajb306/AMR-cartography-results/data/MIC_table_Spneumoniae.csv", row.names = FALSE)
-write.csv(tablemic_meta, file = "/Users/ajb306/AMR-cartography-results/data/meta_data_Spneumoniae.csv", row.names = FALSE)
+write.csv(tablemic, file = amrc_data_path("MIC_table_Spneumoniae.csv"), row.names = FALSE)
+write.csv(tablemic_meta, file = amrc_data_path("meta_data_Spneumoniae.csv"), row.names = FALSE)
 
 # Generate distance matrix
 dist_pne <- dist(slice_sample(tablemic)) # Use this analysis if you would like to replicate the full analysis (be aware this may take a long time to run).
 #dist_pne <- dist(slice_sample(tablemic, n = 200))
 
 # Save file
-save(dist_pne, file="/Users/ajb306/AMR-cartography-results/data/phenotype_distance_matrix_Spneumoniae.Rdata")
+save(dist_pne, file=amrc_data_path("phenotype_distance_matrix_Spneumoniae.Rdata"))
 

@@ -8,6 +8,7 @@ output: html_document
 ```{r setup, include=FALSE}
 
 remove(list = ls())
+source(Sys.getenv("AMRC_CONFIG", unset = path.expand("~/AMR-cartography/analysis/config.R")))  # portable data dir + map constants (see analysis/config.R)
 library(smacof)
 library(RColorBrewer)
 library(hrbrthemes)
@@ -22,17 +23,17 @@ library(tidyverse)
 options(dplyr.summarise.inform = FALSE)
 
 ### ==== Set working directory
-setwd("/Users/ajb306/AMR-cartography-results/data/")
+setwd(AMRC_DATA_DIR)
 
 # Read in genetic distance matrix for the full dataset
-load('/Users/ajb306/AMR-cartography-results/data/tablemic_pneumo_3628_meta_gen_distance_matrix.RData')
-load('/Users/ajb306/AMR-cartography-results/data/tablemic_pneumo_gen_3628.RData')
+load(amrc_data_path("tablemic_pneumo_3628_meta_gen_distance_matrix.RData"))
+load(amrc_data_path("tablemic_pneumo_gen_3628.RData"))
 
 # Read in the relevant meta data
-tablemic_meta <- read.csv("/Users/ajb306/AMR-cartography-results/data/meta_data_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+tablemic_meta <- read.csv(amrc_data_path("meta_data_Spneumoniae.csv"), header=TRUE, sep=",", skip = 0)
 
 # Specify the full path to the data file
-phen_map <- "/Users/ajb306/AMR-cartography-results/data/Spneumo_3628_PCA_start_2D_METRIC.RData"
+phen_map <- amrc_data_path("Spneumo_3628_PCA_start_2D_METRIC.RData")
 
 load(phen_map)
 
@@ -40,7 +41,7 @@ load(phen_map)
 test_2 <- as.data.frame(as.matrix(pbp_dist))
 
 ### ==== Rotate phenotype map for visualisation purposes 
-theta <- 326*pi/180 ## degrees to radians
+theta <- AMRC_MAP_ROTATION_DEGREES * pi / 180 ## degrees to radians
 rot <- matrix(c(cos(theta), sin(theta), -sin(theta), cos(theta)), ncol = 2)
 torg_met$conf <- torg_met$conf %*% rot ## rotated configurations
 
@@ -63,7 +64,7 @@ isolates_with_PBP_deletion <- c("20156696" , "20162849" , "20151885" ,
 map_coords <- map_coords %>% filter(!LABID %in% isolates_with_PBP_deletion) 
 
 #mod.matrix <- cov(select(map_coords, D1, D2))/colMeans(select(map_coords, D1, D2))
-slope <- 0.1842996
+slope <- AMRC_PHEN_DILATION_SLOPE
 dilation <- 1/slope
 
 map_coords$V1 <- map_coords$V1 * dilation
@@ -697,7 +698,7 @@ ggplot(aes(x = Substitution_of_interest, y = median_phenotypic_distance)) +
 
 ggsave("Spneumoniae_individual_subs_figure.jpg")
 
-setwd("/Users/ajb306/Google Drive/PhD - Andrew Balmer/Chapters/AMR cartography/MIC data/Streptococcus pneumoniae analysis/")
+setwd(AMRC_PNEUMO_ANALYSIS_DIR)
 
 write.csv(nat_exp_rankings_summary, file = "Single_subs_all_S.pneumo.csv", row.names=FALSE)
 

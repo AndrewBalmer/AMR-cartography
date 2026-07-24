@@ -8,6 +8,7 @@ output: html_document
 ```{r setup, include=FALSE}
 
 remove(list = ls())
+source(Sys.getenv("AMRC_CONFIG", unset = path.expand("~/AMR-cartography/analysis/config.R")))  # portable data dir + map constants (see analysis/config.R)
 library(tidyverse)
 library(cluster)
 library(smacof)
@@ -18,16 +19,16 @@ library(vcd)
 options(dplyr.summarise.inform = FALSE)
 
 # Set the working directory
-setwd("/Users/ajb306/AMR-cartography/analysis/01-Phenotype_and_map_analyses/13-Dimensionality-tests/")
+# non-portable setwd() removed; knitr uses the document directory
 
 # Read the MIC table data
-tablemic <- read.csv("/Users/ajb306/AMR-cartography-results/data/MIC_table_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+tablemic <- read.csv(amrc_data_path("MIC_table_Spneumoniae.csv"), header=TRUE, sep=",", skip = 0)
 
 # Read in the relevant meta data
-tablemic_meta <- read.csv("/Users/ajb306/AMR-cartography-results/data/meta_data_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+tablemic_meta <- read.csv(amrc_data_path("meta_data_Spneumoniae.csv"), header=TRUE, sep=",", skip = 0)
 
 # Specify the full path to the data file
-phen_map <- "/Users/ajb306/AMR-cartography-results/data/Spneumo_3628_PCA_start_2D_METRIC.RData"
+phen_map <- amrc_data_path("Spneumo_3628_PCA_start_2D_METRIC.RData")
 
 # Load the pre-computed PCA start 2D metric data
 load(phen_map)
@@ -41,7 +42,7 @@ plot(torg_met, main = "Classical start metric", label.conf = list(label = FALSE)
 ```{r, echo=F}
 
 # Rotate configuration by 326 degrees
-theta <- 326 * pi / 180 ## degrees to radians
+theta <- AMRC_MAP_ROTATION_DEGREES * pi / 180 ## degrees to radians
 rot <- matrix(c(cos(theta), sin(theta), -sin(theta), cos(theta)), ncol = 2)
 torg_met$conf <- torg_met$conf %*% rot ## rotated configurations
 
@@ -55,7 +56,7 @@ samples_to_exclude <- c("20156696", "20162849", "20151885", "20153985", "2015450
 AA_matrix_phenotype <- AA_matrix_phenotype %>%
   filter(!LABID %in% samples_to_exclude)
 
-slope <- 0.1842996
+slope <- AMRC_PHEN_DILATION_SLOPE
 dilation <- 1 / slope
 
 AA_matrix_phenotype$D1 <- AA_matrix_phenotype$V1 * dilation

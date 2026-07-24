@@ -9,6 +9,7 @@ output: html_document
 
 # Clear the workspace
 remove(list = ls())
+source(Sys.getenv("AMRC_CONFIG", unset = path.expand("~/AMR-cartography/analysis/config.R")))  # portable data dir + map constants (see analysis/config.R)
 
 # Load required packages
 library(tidyverse)     # For data manipulation and visualization
@@ -22,16 +23,16 @@ library(foreach)
 library(doParallel)
 
 # Set the working directory
-setwd("/Users/ajb306/AMR-cartography/analysis/01-Phenotype_and_map_analyses/09-12-Cross-validation-analyses/")
+# non-portable setwd() removed; knitr uses the document directory
 
 # Read the MIC table data
-tablemic <- read.csv("/Users/ajb306/AMR-cartography-results/data/MIC_table_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+tablemic <- read.csv(amrc_data_path("MIC_table_Spneumoniae.csv"), header=TRUE, sep=",", skip = 0)
 
 # Read in the relevant meta data
-tablemic_meta <- read.csv("/Users/ajb306/AMR-cartography-results/data/meta_data_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+tablemic_meta <- read.csv(amrc_data_path("meta_data_Spneumoniae.csv"), header=TRUE, sep=",", skip = 0)
 
 # Specify the full path to the data file
-phen_map <- "/Users/ajb306/AMR-cartography-results/data/Spneumo_3628_PCA_start_2D_METRIC.RData"
+phen_map <- amrc_data_path("Spneumo_3628_PCA_start_2D_METRIC.RData")
 
 # Load the pre-computed PCA start 2D metric data
 load(phen_map)
@@ -264,7 +265,7 @@ Here, I load in the S. pneumoniae phenotype map object and rotate/dilate it to a
 
 ```{r, echo =F}
 # Set the rotation angle in radians
-theta <- 326 * pi / 180
+theta <- AMRC_MAP_ROTATION_DEGREES * pi / 180
 
 # Create a rotation matrix
 rot <- matrix(c(cos(theta), sin(theta), -sin(theta), cos(theta)), ncol = 2)
