@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Build manuscript-facing evidence tables after corrected recomputation."""
+"""Build manuscript-facing evidence tables after corrected recomputation.
+
+This is the main downstream table builder. It rebuilds the public
+component-expanded Supplementary File 1 frame, a separate marker-level audit
+table, and a summary report. Keep the two frames separate: manuscript
+substitution/position counts come from the component-expanded public table.
+"""
 
 from __future__ import annotations
 

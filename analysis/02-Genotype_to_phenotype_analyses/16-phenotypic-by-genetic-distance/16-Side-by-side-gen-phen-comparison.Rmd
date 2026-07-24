@@ -8,6 +8,7 @@ output: html_document
 ```{r setup, include=FALSE}
 
 remove(list = ls())
+source(Sys.getenv("AMRC_CONFIG", unset = path.expand("~/AMR-cartography/analysis/config.R")))  # portable data dir + map constants (see analysis/config.R)
 
 library(tidyverse)
 library(cluster)
@@ -20,14 +21,14 @@ library(ggExtra)
 options(dplyr.summarise.inform = FALSE)
 
 # Read in the relevant meta data
-tablemic_meta <- read.csv("/Users/ajb306/AMR-cartography-results/data/meta_data_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+tablemic_meta <- read.csv(amrc_data_path("meta_data_Spneumoniae.csv"), header=TRUE, sep=",", skip = 0)
 
 # Specify the full path to the data file
-phen_map <- "/Users/ajb306/AMR-cartography-results/data/Spneumo_3628_PCA_start_2D_METRIC.RData"
+phen_map <- amrc_data_path("Spneumo_3628_PCA_start_2D_METRIC.RData")
 
 load(phen_map)
   res_samp <- torg_met
-  theta <- 326*pi/180 ## degrees to radians
+  theta <- AMRC_MAP_ROTATION_DEGREES * pi / 180 ## degrees to radians
   rot <- matrix(c(cos(theta), sin(theta), -sin(theta), cos(theta)), ncol = 2)
   res_samp$conf <- res_samp$conf %*% rot ## rotated configurations
   
@@ -38,7 +39,7 @@ load(phen_map)
                            "2014200662" , "5869-99" , "2513-99")
   
 # Specify the full path to the data file
-gen_map <- "/Users/ajb306/AMR-cartography-results/data/Spneumo_3628_PCA_start_2D_METRIC_genetic.RData"
+gen_map <- amrc_data_path("Spneumo_3628_PCA_start_2D_METRIC_genetic.RData")
 
 # Load the precomputed PCA start 2D metric data
 load(gen_map)
@@ -47,7 +48,7 @@ load(gen_map)
   
   colnames(genotype_mds) <- c("G1","G2")
   
-slope <- 0.1842996
+slope <- AMRC_PHEN_DILATION_SLOPE
 dilation <- 1/slope
 slope
 map_coords <- as.data.frame(res_samp$conf)
@@ -82,7 +83,7 @@ gen_clustering$gen_cluster <- res.hcpc[[1]]$clust
 
 AA_matrix_phenotype <- left_join(AA_matrix_phenotype, select(gen_clustering, PBP_type, gen_cluster), by = "PBP_type")
 
-gen_slope <- 0.01814108
+gen_slope <- AMRC_GEN_DILATION_SLOPE
 gen_dilation <- 1/gen_slope
 gen_slope
 

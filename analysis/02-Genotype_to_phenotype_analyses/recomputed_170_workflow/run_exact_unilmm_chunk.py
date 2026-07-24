@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Run exact leave-one-marker-out univariate LMM chunks for the full corrected panel."""
+"""Run exact leave-one-marker-out univariate LMM chunks for the corrected panel.
+
+The uvLMM stream is a display/comparison analysis, not an evidence stream. This
+runner fits 170 markers x 6 drugs in chunks while excluding the tested marker
+from the relatedness features for that test.
+"""
 
 from __future__ import annotations
 

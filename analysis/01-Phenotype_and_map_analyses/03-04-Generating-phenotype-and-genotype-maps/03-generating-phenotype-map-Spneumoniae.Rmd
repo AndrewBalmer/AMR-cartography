@@ -20,6 +20,7 @@ Lastly, this markdown will recreate the pairwise scatterplot for S. pneumoniae M
 
 # Clear the environment
 remove(list = ls())
+source(Sys.getenv("AMRC_CONFIG", unset = path.expand("~/AMR-cartography/analysis/config.R")))  # portable data dir + map constants (see analysis/config.R)
 set.seed(1234)
 
 # Load required packages
@@ -28,14 +29,14 @@ library(smacof)
 library(psych)
 
 # Set working directory
-setwd("/Users/ajb306/AMR-cartography-results/data")
+setwd(AMRC_DATA_DIR)
 
 # Read MIC data from two CSV files
-tablemic <- read.csv("/Users/ajb306/AMR-cartography-results/data/MIC_table_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+tablemic <- read.csv(amrc_data_path("MIC_table_Spneumoniae.csv"), header=TRUE, sep=",", skip = 0)
 
 
 # Read in the relevant meta data
-tablemic_meta <- read.csv("/Users/ajb306/AMR-cartography-results/data/meta_data_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+tablemic_meta <- read.csv(amrc_data_path("meta_data_Spneumoniae.csv"), header=TRUE, sep=",", skip = 0)
 
 
 
@@ -44,7 +45,7 @@ dist_pne <- dist(tablemic) # Use this analysis if you would like to replicate th
 #dist_pne <- dist(slice_sample(tablemic, n = 200))
 
 # Save file
-#save(dist_pne, file="/Users/ajb306/AMR-cartography-results/data/phenotype_distance_matrix_Spneumoniae.Rdata")
+#save(dist_pne, file=amrc_data_path("phenotype_distance_matrix_Spneumoniae.Rdata"))
 
 ```
 

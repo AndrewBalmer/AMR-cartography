@@ -71,9 +71,9 @@ STRUCTURES: dict[str, StructureConfig] = {
         pdb_id="2WAF",
         chain_id="A",
         motifs={
-            "S386TMK": range(386, 390),
+            "S386VVK": range(386, 390),
             "S443SN": range(443, 446),
-            "K614TG": range(614, 617),
+            "K615TG": range(615, 618),
         },
         transpeptidase_range=range(379, 657),
         source_url="https://www.rcsb.org/structure/2WAF",

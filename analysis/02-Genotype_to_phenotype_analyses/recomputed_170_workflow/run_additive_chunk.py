@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Run a chunk of corrected-panel additive mvLMM marker tests."""
+"""Run a chunk of corrected-panel additive mvLMM marker tests.
+
+This is the model runner for additive mvLMM evidence. It can run observed
+marker chunks or one random-phenotype permutation repeat. The merge script
+combines these chunks and derives the additive permutation threshold.
+"""
 
 from __future__ import annotations
 

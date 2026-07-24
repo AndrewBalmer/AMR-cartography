@@ -5,6 +5,19 @@ date: "2024-03-25"
 output: html_document
 ---
 
+> **Provenance / rerun note (added 2026-07-01).** This is the original,
+> published-manuscript script and its analysis logic is retained **unchanged**.
+> The additive mvLMM, univariate LMM, and epistatic mvLMM analyses implemented
+> here were subsequently **re-run on a corrected 170-marker PBP panel** (the
+> original 157-marker panel omitted 13 valid markers) in a separate,
+> self-contained farm workflow at [`../recomputed_170_workflow/`](../recomputed_170_workflow/) (see
+> `recomputed_170_workflow/README.md`). The rerun re-derives the Galwey effective-test
+> counts, permutation thresholds, and epistasis interaction universe on the
+> corrected panel. An independent audit found the recomputed additive p-values
+> reproduce this script's values on the 157 shared markers to r ≈ 0.99999.
+> Manuscript-facing tables should be taken from the corrected rerun outputs, not
+> from this file. Only this note was added to the original.
+
 ### mvLMM data setup
 
 In this script, I set up the required files for the mvLMM. This includes the amino acid dummy variables which will be tested.  
@@ -12,6 +25,7 @@ In this script, I set up the required files for the mvLMM. This includes the ami
 ```{r setup, include=FALSE}
 
 remove(list = ls())
+source(Sys.getenv("AMRC_CONFIG", unset = path.expand("~/AMR-cartography/analysis/config.R")))  # portable data dir + map constants (see analysis/config.R)
 library(stringr)
 library(tidyverse)
 library(smacof)
@@ -29,19 +43,19 @@ options(dplyr.summarise.inform = FALSE)
 
 
 # Set working directory
-setwd("/Users/ajb306/AMR-cartography-results/data/")
+setwd(AMRC_DATA_DIR)
 
 # Specify the full path to the data file
-phen_map <- "/Users/ajb306/AMR-cartography-results/data/Spneumo_3628_PCA_start_2D_METRIC.RData"
+phen_map <- amrc_data_path("Spneumo_3628_PCA_start_2D_METRIC.RData")
 
 load(phen_map)
 
 # Read in the relevant meta data
-tablemic_meta <- read.csv("/Users/ajb306/AMR-cartography-results/data/meta_data_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+tablemic_meta <- read.csv(amrc_data_path("meta_data_Spneumoniae.csv"), header=TRUE, sep=",", skip = 0)
 
 
   res_samp <- torg_met
-  theta <- 326*pi/180 ## degrees to radians
+  theta <- AMRC_MAP_ROTATION_DEGREES * pi / 180 ## degrees to radians
   rot <- matrix(c(cos(theta), sin(theta), -sin(theta), cos(theta)), ncol = 2)
   res_samp$conf <- res_samp$conf %*% rot ## rotated configurations
 
@@ -51,8 +65,8 @@ tablemic_meta <- read.csv("/Users/ajb306/AMR-cartography-results/data/meta_data_
                            "2014200662" , "5869-99" , "2513-99")
   
 # Specify the full path to the data file
-gen_map <- "/Users/ajb306/AMR-cartography-results/data/Spneumo_3628_PCA_start_2D_METRIC_genetic.RData"
-load('/Users/ajb306/AMR-cartography-results/data/tablemic_pneumo_gen_3628.RData')
+gen_map <- amrc_data_path("Spneumo_3628_PCA_start_2D_METRIC_genetic.RData")
+load(amrc_data_path("tablemic_pneumo_gen_3628.RData"))
 
 # Load the precomputed PCA start 2D metric data
 load(gen_map)
@@ -62,7 +76,7 @@ genotype_mds <- as.data.frame(torg_met$conf)
 colnames(genotype_mds) <- c("G1","G2")
   
   
-slope <- 0.1842996
+slope <- AMRC_PHEN_DILATION_SLOPE
 dilation <- 1/slope
 slope
 map_coords <- as.data.frame(res_samp$conf)
@@ -80,7 +94,7 @@ AA_matrix_phenotype <- bind_cols(map_coords, tablemic_meta) %>%
                          bind_cols(genotype_mds)
 
 ## import MDS transformations for phenoptype and genotype maps
-gen_slope <- 0.01814108
+gen_slope <- AMRC_GEN_DILATION_SLOPE
 
 ### As I only want to cluster on distinct PBP types, I 
 gen_clustering <- cbind(dplyr::select(AA_matrix_phenotype, G1,G2, PBP_type)) %>%
@@ -109,7 +123,7 @@ map_coords <- AA_matrix_phenotype %>% select( D1, D2)
 mod.matrix <- cov(map_coords)
 
 ## the following files are the LABIDs for the isolates, along with the phenotypic map coordinates, and the covariance matrix of the two map dimensions
-setwd("/Users/ajb306/PycharmProjects/pythonProject1/")
+setwd(AMRC_PYPROJECT_DIR)
 genetic_markers <-read.csv("S.pneumo_map_dummy_gen_test_markers.csv")
 
 # Get the current working directory
@@ -124,7 +138,7 @@ write.csv(mod.matrix, file = "S.pneumo_map_mvlmm_mod_matrix.csv", row.names=FALS
 
 
 # Read the MIC table data
-tablemic <- read.csv("/Users/ajb306/AMR-cartography-results/data/MIC_table_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+tablemic <- read.csv(amrc_data_path("MIC_table_Spneumoniae.csv"), header=TRUE, sep=",", skip = 0)
 
 # Transform the data so that it is easier to work with noise added values later - the relative euclidean distances between the points will remain the same
 for (i in 1:ncol(tablemic)) {
@@ -275,8 +289,8 @@ genetic_markers <-read.csv("S.pneumo_map_dummy_gen_test_markers.csv")
 library(ggforce)
 
 # Read the MIC table data - https://www.frontiersin.org/journals/microbiology/articles/10.3389/fmicb.2018.02670/full
-tablemic_metadata_MLST <- read.csv("/Users/ajb306/AMR-cartography-results/data/MIC_S.Pneumo_metadata.csv", header=TRUE, sep=",", skip = 0)
-tablemic_metadata_MLST_post2015 <- read.csv("/Users/ajb306/AMR-cartography-results/data/Meta_data_spneumoniae_isolates_post_2015.csv", header=TRUE, sep=",", skip = 0) %>%
+tablemic_metadata_MLST <- read.csv(amrc_data_path("MIC_S.Pneumo_metadata.csv"), header=TRUE, sep=",", skip = 0)
+tablemic_metadata_MLST_post2015 <- read.csv(amrc_data_path("Meta_data_spneumoniae_isolates_post_2015.csv"), header=TRUE, sep=",", skip = 0) %>%
   rename(LABID = Sample,
          MLST = ST,
          YEAR = Year.of.isolation,
@@ -353,7 +367,7 @@ write.csv(Counts_of_each_AA_combination, file = "Counts_of_each_AA_combination_e
 test_matrix <- test_matrix %>% select(c(Counts_of_each_AA_combination$PBP_AA_location))
 
 
-setwd("/Users/ajb306/PycharmProjects/pythonProject1/")
+setwd(AMRC_PYPROJECT_DIR)
 write.csv(test_matrix, file = "S.pneumo_map_test_markers_incl_2nd_order_epistatic.csv", row.names=FALSE)
 
 
@@ -379,7 +393,7 @@ I have presented their raw p-values in the below plot However, substitutions wer
 
 ```{r, echo =F}
 
-setwd("/Users/ajb306/PycharmProjects/pythonProject1/")
+setwd(AMRC_PYPROJECT_DIR)
 
 #### reading in p-values and effect sizes === Dimension 1 (x axis)
 p_values <- read.csv(file = 'mvLMM_p_values_normal_pneumo_low_freq_vars.csv')
@@ -474,7 +488,7 @@ library(readr)
 library(tidyr)
 library(stringr)
 
-setwd("/Users/ajb306/PycharmProjects/pythonProject1/")
+setwd(AMRC_PYPROJECT_DIR)
 
 # --- Step 1: Load MLST GWAS results (adjusted for structure) ---
 mlst_gwas <- read_csv("mvLMM_p_values_with_MLST.csv")  # <-- adjust filename if needed
@@ -706,7 +720,7 @@ no_sig <- filter(no_sig, Joint_effsize >=2)%>%
   separate_rows(PBP_AA_location, sep = "/")
 nrow(no_sig)
 
-write.csv(All_pos, file = "/Users/ajb306/Google Drive/PhD - Andrew Balmer/Chapters/AMR cartography/MIC data/Streptococcus pneumoniae analysis/Sub_effect_sizes_mv_pneumo.csv", row.names=FALSE)
+write.csv(All_pos, file = amrc_pneumo_path("Sub_effect_sizes_mv_pneumo.csv"), row.names=FALSE)
 
 
 ```
@@ -747,7 +761,7 @@ kable(Epistatic_interactions, caption = "Coding an epistatic interaction between
 #```
 
 
-In this case, there are 914 positions across the three PBP TPD regions, of which 284 are variant. In my last markdown I coded the 284 positions as dummy variables and removed invariant, identical, and precisely opposite positions. I also removed the 'sensitive' representative AAs. (file:///Users/ajb306/Downloads/Chapter%203%20-%20LMM%20further%20analysis%20(3).html)
+In this case, there are 914 positions across the three PBP TPD regions, of which 284 are variant. In my last markdown I coded the 284 positions as dummy variables and removed invariant, identical, and precisely opposite positions. I also removed the 'sensitive' representative AAs.
 
 After doing this I had many dummy variables. Coding the interaction terms resulted in a total of >3k interaction variables to be tested after removing invariant interactions. I then had a series of interaction variables with varying numbers of isolates representing each group. For example, an interaction with loci_A and loci_B would have four possible combinations  (a/b - 0_0, 0_1, 1_0, and 1_1). However, for many interactions, there was a very low number of isolates for each combination. I therefore wanted to exclude positions where I didnt have a good enough sample size to estimate effects. 
 
@@ -765,7 +779,7 @@ Below, I have presented their -log10 p-values on the x-axis and their joint effe
 
 ```{r, echo = F}
 
-setwd("/Users/ajb306/PycharmProjects/pythonProject1/")
+setwd(AMRC_PYPROJECT_DIR)
 
 test_matrix <- read.csv(file = 'S.pneumo_map_test_markers_incl_2nd_order_epistatic.csv')
 names(test_matrix) <-str_replace_all(names(test_matrix), "[.]", ":")
@@ -937,11 +951,11 @@ counts_of_no_positions <- No_sig_V1 %>%
 Sub_effect_sizes_interaction <- No_sig_V1 %>%
   distinct(Location,  .keep_all = T)
 
-setwd("/Users/ajb306/Google Drive/PhD - Andrew Balmer/Chapters/AMR cartography/MIC data/Streptococcus pneumoniae analysis/")
+setwd(AMRC_PNEUMO_ANALYSIS_DIR)
 
-write.csv(uvLMM_V1_epi, file = "/Users/ajb306/Google Drive/PhD - Andrew Balmer/Chapters/AMR cartography/MIC data/Streptococcus pneumoniae analysis/Sig_AA_subs_all_epistatic_interactions_incl_nonsig_S.pneumo.csv", row.names=FALSE)
+write.csv(uvLMM_V1_epi, file = amrc_pneumo_path("Sig_AA_subs_all_epistatic_interactions_incl_nonsig_S.pneumo.csv"), row.names=FALSE)
 
-write.csv(Sub_effect_sizes_interaction, file = "/Users/ajb306/Google Drive/PhD - Andrew Balmer/Chapters/AMR cartography/MIC data/Streptococcus pneumoniae analysis/Sig_AA_subs_all_epistatic_interactions_S.pneumo.csv", row.names=FALSE)
+write.csv(Sub_effect_sizes_interaction, file = amrc_pneumo_path("Sig_AA_subs_all_epistatic_interactions_S.pneumo.csv"), row.names=FALSE)
 
 #count total number of locations with sig interaction effects
 count <- Sub_effect_sizes_interaction %>%
@@ -1181,7 +1195,7 @@ geom_node_label(aes(label = PBP_AA_location$position), size = 5, hjust = 0.5, vj
 
 ```{r, echo =F}
 
-setwd("/Users/ajb306/PycharmProjects/pythonProject1/")
+setwd(AMRC_PYPROJECT_DIR)
 genetic_markers <-read.csv("S.pneumo_map_dummy_gen_test_markers.csv")
 
 #### reading in p-values and effect sizes === Dimension 1 (x axis)
@@ -1463,12 +1477,22 @@ https://www.ebi.ac.uk/sites/ebi.ac.uk/files/shared/documents/phdtheses/Casale-Th
 
 https://www.biorxiv.org/content/10.1101/003905v2.full.pdf 
 
-Narrow sense heritability estimates for each axis were moderate, yet broadly in line with previously published estimates for beta-lactam resistance in S. pneumoniae, albeit slightly lower (typically 0.7-0.8). However, as mentioned above, here I have only considered variation at a small portion of the genome, and used AA sequences rather than genetic sequences. For both of these reasons we might expect a lower proportion of the total phenotype variation to be explained. 
+Narrow sense heritability estimates for each axis were moderate, yet broadly in line with previously published estimates for beta-lactam resistance in S. pneumoniae, albeit slightly lower (typically 0.7-0.8). However, as mentioned above, here I have only considered variation at a small portion of the genome, and used AA sequences rather than genetic sequences. For both of these reasons we might expect a lower proportion of the total phenotype variation to be explained.
 
+> **Provenance / rerun note (added 2026-07-22).** The two `print()` values
+> below (0.746, 0.597) were computed on the *original* 157-marker relatedness
+> matrix and are **not** the manuscript-facing figures — they predate the
+> 157→170 marker-panel correction described in the note at the top of this
+> file. Re-running this same `limix.her.estimate` calculation on the
+> corrected 170-marker relatedness matrix
+> (`AMRC-repo-files/pythonProject1-additive-production-20260507-150112/S.pneumo_map_dummy_gen_relatedness_matrix.csv`)
+> gives h² = 0.714 (axis 1) and 0.578 (axis 2), matching the manuscript and
+> Supplementary Table S10's reported 71%/57.2%. Do not quote 0.746/0.597 as
+> the current analysis's narrow-sense heritability.
 
 ```{r, echo = F}
-print("Narrow sense heritability - Map axis 1: 0.746")
-print("Narrow sense heritability - Map axis 2: 0.597")
+print("Narrow sense heritability - Map axis 1: 0.746 (OLD 157-marker run; NOT the manuscript value, see provenance note above)")
+print("Narrow sense heritability - Map axis 2: 0.597 (OLD 157-marker run; NOT the manuscript value, see provenance note above)")
 
 ```
 
@@ -1553,7 +1577,7 @@ Notably however, in most cases, the most accurate predictions were for those wit
 
 ```{r, echo =F}
 
-setwd("/Users/ajb306/PycharmProjects/pythonProject1/")
+setwd(AMRC_PYPROJECT_DIR)
 
 #### reading in p-values and effect sizes === Dimension 2 (y axis)
 blups_predictions_fold_1 <- read.csv(file = 'blups_predictions_fold_1.csv')

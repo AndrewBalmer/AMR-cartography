@@ -12,6 +12,8 @@ As MDS is an iterative method with a range of different options, is important to
 
 ```{r setup, include=FALSE}
 remove(list = ls())
+source(Sys.getenv("AMRC_CONFIG", unset = path.expand("~/AMR-cartography/analysis/config.R")))  # portable data dir + map constants (see analysis/config.R)
+set.seed(1234)  # reproducibility for the random-start MDS below (finding #4)
 
 # load packages
 library(tidyverse)
@@ -19,16 +21,16 @@ library(smacof)
 
 
 # Set working directory
-setwd("/Users/ajb306/AMR-cartography-results/data")
+setwd(AMRC_DATA_DIR)
 
 # Here we just use a small subsample of the full dataset for illustration purposes
-#load('/Users/ajb306/AMR-cartography-results/data/tablemic_pneumo_3628_meta_gen_distance_matrix_200_subsample.RData')
+#load(amrc_data_path("tablemic_pneumo_3628_meta_gen_distance_matrix_200_subsample.RData"))
 
 # Rename for script
 #pbp_dist <- pbp_dist_200
 
 # Read in genetic distance matrix for the full dataset
-load('/Users/ajb306/AMR-cartography-results/data/tablemic_pneumo_3628_meta_gen_distance_matrix.RData')
+load(amrc_data_path("tablemic_pneumo_3628_meta_gen_distance_matrix.RData"))
 print(getwd())
 
 ```

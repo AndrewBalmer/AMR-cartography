@@ -1,355 +1,395 @@
-"Evidence","PBP","Substitution","Phenotypic Distance","SE","No. isolates","Confidence","β Joint","Adj. p-value","Effect Size Axis 1","Effect Size Axis 2","No. Sig. interactions","total","Sig. mvLMM/uvLMM (No. drugs"
-"Very Strong","2X","I371T","4.149","0.058","3/136","Strong",3.079,"<1e-16","2.761","1.364","36",4,"Yes/Yes (6)"
-"Strong","2X","E320K","-","-","-/-","Strong",1.365,"<1e-16","-0.823","1.09","19",3,"Yes/No (0)"
-"Strong","2X","A369V","-","-","-/-","Strong",1.345,"<1e-16","-0.185","1.332","9",3,"Yes/No (0)"
-"Strong","2X","A491V","-","-","-/-","Strong",1.22,"<1e-16","0.588","1.068","20",3,"Yes/Yes (1)"
-"Strong","2X","M343T","-","-","-/-","Strong",1.22,"<1e-16","0.505","1.11","20",3,"Yes/Yes (1)"
-"Strong","2X","T490S","-","-","-/-","Strong",1.158,"<1e-16","0.538","1.026","20",3,"Yes/Yes (1)"
-"Moderate","2X","N444S","-","-","-/-","-",2.668,"<1e-16","2.407","1.15","31",2,"Yes/No (0)"
-"Moderate","2B","G467L","-","-","-/-","-",2.398,"<1e-16","-2.264","0.791","4",2,"Yes/Yes (1)"
-"Moderate","2B","S469N","-","-","-/-","-",2.398,"<1e-16","-2.264","0.791","4",2,"Yes/Yes (1)"
-"Moderate","2B","G483A","-","-","-/-","-",2.398,"<1e-16","-2.264","0.791","4",2,"Yes/Yes (1)"
-"Moderate","2B","A490S","-","-","-/-","-",2.398,"<1e-16","-2.264","0.791","4",2,"Yes/Yes (1)"
-"Moderate","2X","S531Y","-","-","-/-","-",2.377,"<1e-16","2.158","0.997","30",2,"Yes/No (0)"
-"Moderate","1A","T371S","-","-","-/-","Weak",2.334,"<1e-16","2.173","0.85","9",2,"Yes/Yes (2)"
-"Moderate","1A","L611F","-","-","-/-","Weak",2.192,"4.958e-04","1.883","1.121","37",2,"Yes/Yes (1)"
-"Moderate","1A","R413H","-","-","-/-","Weak",2.069,"<1e-16","1.941","0.716","1",2,"Yes/Yes (1)"
-"Moderate","2B","P568S","-","-","-/-","-",2.061,"<1e-16","-1.706","1.157","5",2,"Yes/No (0)"
-"Moderate","1A","N443D","-","-","-/-","Weak",2.029,"3.957e-06","1.61","1.235","59",2,"Yes/Yes (1)"
-"Moderate","2B","T489A","-","-","-/-","Weak",2.027,"<1e-16","1.299","1.556","49",2,"Yes/Yes (3)"
-"Moderate","2X","V523L","-","-","-/-","Weak",2.023,"8.938e-09","1.785","0.952","41",2,"Yes/No (0)"
-"Moderate","2X","D278N","-","-","-/-","Weak",2.011,"<1e-16","-0.087","2.009","4",2,"Yes/No (0)"
-"Moderate","1A","G414V","-","-","-/-","Weak",1.998,"3.749e-07","1.788","0.893","5",2,"Yes/Yes (1)"
-"Moderate","2X","L364F","-","-","-/-","Weak",1.984,"<1e-16","1.835","0.754","30",2,"Yes/Yes (2)"
-"Moderate","2B","L609S","-","-","-/-","-",1.96,"<1e-16","-1.421","1.35","5",2,"Yes/No (0)"
-"Moderate","2B","V503I","-","-","-/-","-",1.955,"<1e-16","-1.439","1.324","3",2,"Yes/No (0)"
-"Moderate","2B","E476G","-","-","-/-","-",1.949,"<1e-16","1.073","1.627","13",2,"Yes/Yes (2)"
-"Moderate","2X","P486T","-","-","-/-","-",1.915,"6.231e-08","1.691","0.899","42",2,"Yes/No (0)"
-"Moderate","2B","S508N","-","-","-/-","-",1.871,"<1e-16","-1.681","0.821","10",2,"Yes/No (0)"
-"Moderate","1A","I459M","-","-","-/-","Weak",1.817,"3.966e-07","1.401","1.156","56",2,"Yes/Yes (2)"
-"Moderate","2X","L510Q","-","-","-/-","Strong",1.814,"<1e-16","-0.708","1.67","-",2,"Yes/No (0)"
-"Moderate","2X","V423I","-","-","-/-","Strong",1.807,"<1e-16","-0.893","1.571","-",2,"Yes/No (0)"
-"Moderate","2B","A624E","-","-","-/-","-",1.799,"<1e-16","-0.806","1.609","12",2,"Yes/No (0)"
-"Moderate","2X","P268T","-","-","-/-","Weak",1.787,"<1e-16","-0.476","1.722","2",2,"Yes/Yes (1)"
-"Moderate","2X","P535A","-","-","-/-","Weak",1.778,"<1e-16","-0.673","1.646","4",2,"Yes/No (0)"
-"Moderate","2B","R545H","-","-","-/-","-",1.765,"<1e-16","-1.469","0.978","3",2,"Yes/No (0)"
-"Moderate","2X","I318L","-","-","-/-","Weak",1.746,"<1e-16","-0.688","1.604","9",2,"Yes/No (0)"
-"Moderate","2X","I366V","-","-","-/-","-",1.703,"<1e-16","-0.852","1.475","15",2,"Yes/No (0)"
-"Moderate","2X","S574A","-","-","-/-","-",1.703,"<1e-16","-0.657","1.571","1",2,"Yes/No (0)"
-"Moderate","2X","Y568N","-","-","-/-","Weak",1.694,"<1e-16","-0.818","1.484","10",2,"Yes/No (0)"
-"Moderate","2X","Q552E","-","-","-/-","-",1.682,"<1e-16","-0.775","1.493","10",2,"Yes/No (0)"
-"Moderate","1A","T612L","-","-","-/-","Weak",1.669,"6.230e-08","1.49","0.751","33",2,"Yes/Yes (1)"
-"Moderate","2B","A592S","-","-","-/-","-",1.666,"<1e-16","0.679","1.521","51",2,"Yes/Yes (2)"
-"Moderate","2B","N422Y","-","-","-/-","Weak",1.637,"2.048e-10","1.45","0.76","32",2,"Yes/Yes (3)"
-"Moderate","2B","T426K","-","-","-/-","Weak",1.637,"2.048e-10","1.45","0.76","32",2,"Yes/Yes (3)"
-"Moderate","2B","Q427L","-","-","-/-","Weak",1.637,"2.048e-10","1.45","0.76","32",2,"Yes/Yes (3)"
-"Moderate","2B","E506D","-","-","-/-","-",1.622,"<1e-16","0.279","1.598","7",2,"Yes/No (0)"
-"Moderate","1A","T540A","-","-","-/-","Weak",1.602,"<1e-16","-1.522","0.499","5",2,"Yes/No (0)"
-"Moderate","2X","I483L","-","-","-/-","-",1.596,"<1e-16","-1.103","1.154","28",2,"Yes/No (0)"
-"Moderate","2X","L510V","-","-","-/-","Strong",1.524,"<1e-16","-0.503","1.438","-",2,"Yes/No (0)"
-"Moderate","2B","Q438E","-","-","-/-","Weak",1.517,"<1e-16","0.893","1.225","34",2,"Yes/Yes (2)"
-"Moderate","2X","A507T","-","-","-/-","Strong",1.502,"6.851e-07","1.391","0.568","-",2,"Yes/Yes (1)"
-"Moderate","2X","T513D","-","-","-/-","Strong",1.497,"<1e-16","-1.004","1.11","-",2,"Yes/No (0)"
-"Moderate","2X","T538N","-","-","-/-","Weak",1.481,"<1e-16","-0.802","1.245","4",2,"Yes/No (0)"
-"Moderate","2B","L455I","-","-","-/-","Weak",1.444,"<1e-16","0.831","1.18","34",2,"Yes/Yes (2)"
-"Moderate","2B","T446A","-","-","-/-","-",1.403,"<1e-16","0.559","1.287","13",2,"Yes/Yes (2)"
-"Moderate","2B","L609A","-","-","-/-","-",1.386,"<1e-16","-1.004","0.955","5",2,"Yes/No (0)"
-"Moderate","2B","S412P","-","-","-/-","Weak",1.358,"<1e-16","0.835","1.071","55",2,"Yes/Yes (3)"
-"Moderate","2X","T230K","-","-","-/-","Weak",1.259,"<1e-16","-0.348","1.21","29",2,"Yes/No (0)"
-"Moderate","2X","T401S","-","-","-/-","Weak",1.221,"1.652e-04","1.08","0.569","45",2,"Yes/No (0)"
-"Moderate","1A","T574N","-","-","-/-","Weak",1.208,"5.698e-12","0.863","0.845","31",2,"Yes/No (0)"
-"Moderate","1A","S575T","-","-","-/-","Weak",1.208,"5.698e-12","0.863","0.845","31",2,"Yes/No (0)"
-"Moderate","1A","Q576G","-","-","-/-","Weak",1.208,"5.698e-12","0.863","0.845","31",2,"Yes/No (0)"
-"Moderate","1A","F577Y","-","-","-/-","Weak",1.208,"5.698e-12","0.863","0.845","31",2,"Yes/No (0)"
-"Moderate","2B","Q628E","-","-","-/-","-",1.207,"<1e-16","0.385","1.144","54",2,"Yes/Yes (2)"
-"Moderate","2X","V358Y","-","-","-/-","Weak",1.203,"7.151e-06","0.931","0.761","56",2,"Yes/No (0)"
-"Moderate","1A","D473N","-","-","-/-","Weak",1.189,"<1e-16","0.709","0.955","48",2,"Yes/No (0)"
-"Moderate","2X","S389L","-","-","-/-","Weak",1.174,"1.050e-04","0.915","0.736","33",2,"Yes/Yes (2)"
-"Moderate","1A","L382I","-","-","-/-","Weak",1.166,"<1e-16","-0.807","0.842","36",2,"Yes/No (0)"
-"Moderate","1A","Y641F","-","-","-/-","Weak",1.162,"<1e-16","-1.13","0.27","28",2,"Yes/No (0)"
-"Moderate","1A","I459L","-","-","-/-","Weak",1.154,"<1e-16","-0.986","0.599","5",2,"Yes/No (0)"
-"Moderate","1A","T543I","-","-","-/-","Weak",1.154,"<1e-16","-1.029","0.522","3",2,"Yes/No (0)"
-"Moderate","2X","Q447M","-","-","-/-","-",1.091,"<1e-16","-0.827","0.711","13",2,"Yes/No (0)"
-"Moderate","2X","N501K","-","-","-/-","Strong",1.061,"1.338e-02","0.781","0.719","28",2,"No/No (0)"
-"Moderate","2X","K505E","-","-","-/-","Strong",1.061,"1.338e-02","0.781","0.719","28",2,"No/No (0)"
-"Moderate","2B","T569K","-","-","-/-","-",1.056,"<1e-16","-0.069","1.054","55",2,"Yes/No (0)"
-"Moderate","2B","D578E","-","-","-/-","-",1.056,"<1e-16","-0.069","1.054","55",2,"Yes/No (0)"
-"Moderate","1A","N546G","-","-","-/-","Weak",1.055,"2.997e-11","0.735","0.757","31",2,"Yes/No (0)"
-"Moderate","1A","A550P","-","-","-/-","Weak",1.055,"2.997e-11","0.735","0.757","31",2,"Yes/No (0)"
-"Moderate","2B","T489S","-","-","-/-","Weak",1.055,"<1e-16","-0.248","1.025","24",2,"Yes/No (0)"
-"Moderate","2X","S449A","-","-","-/-","-",1.046,"<1e-16","-0.527","0.904","12",2,"Yes/No (0)"
-"Moderate","1A","T540V","-","-","-/-","Weak",1.008,"<1e-16","-0.423","0.915","3",2,"Yes/No (0)"
-"Moderate","2X","A572V","0","0","17/1","Strong",0.973,"<1e-16","0.067","0.97","50",2,"No/No (0)"
-"Moderate","2X","E378D","-","-","-/-","Strong",0.889,"<1e-16","-0.542","0.706","18",2,"No/No (0)"
-"Moderate","2X","L565S","-","-","-/-","Strong",0.843,"<1e-16","0.178","0.823","42",2,"No/No (0)"
-"Moderate","2X","N514H","-","-","-/-","Strong",0.679,"<1e-16","-0.148","0.662","38",2,"No/No (0)"
-"Moderate","2X","I462L","-","-","-/-","Strong",0.676,"4.120e-01","0.517","0.435","49",2,"No/No (0)"
-"Moderate","2X","L510T","-","-","-/-","Strong",0.468,"3.991e-16","0.441","-0.156","20",2,"No/No (0)"
-"Moderate","2X","T513N","-","-","-/-","Strong",0.468,"3.991e-16","0.441","-0.156","20",2,"No/No (0)"
-"Moderate","2X","D506E","-","-","-/-","Strong",0.33,"1.000e+00","0.28","0.174","52",2,"No/No (0)"
-"Weak","1A","K475H","-","-","-/-","Weak",2.358,"<1e-16","-2.348","0.222","-",1,"Yes/No (0)"
-"Weak","1A","L606I","-","-","-/-","Weak",2.143,"9.013e-04","1.836","1.105","37",1,"Yes/Yes (1)"
-"Weak","2X","V523R","-","-","-/-","Weak",1.927,"<1e-16","-0.45","1.874","-",1,"Yes/No (0)"
-"Weak","1A","P432T","-","-","-/-","Weak",1.899,"7.581e-03","1.523","1.134","38",1,"No/No (0)"
-"Weak","1A","S462A","-","-","-/-","Weak",1.876,"1.056e-02","1.506","1.118","39",1,"No/No (0)"
-"Weak","2B","D561N","0.263","0.136","2/11","-",1.83,"<1e-16","-0.648","1.711","-",1,"Yes/No (0)"
-"Weak","2B","D561N","0.014","0.01","367/1","-",1.83,"<1e-16","-0.648","1.711","-",1,"Yes/No (0)"
-"Weak","2X","S481T","-","-","-/-","Weak",1.775,"<1e-16","-0.914","1.521","-",1,"Yes/No (0)"
-"Weak","2X","H394L","-","-","-/-","Weak",1.761,"<1e-16","-0.429","1.708","-",1,"Yes/No (0)"
-"Weak","2X","V523T","-","-","-/-","Weak",1.524,"<1e-16","-0.503","1.438","-",1,"Yes/No (0)"
-"Weak","1A","N630Q","-","-","-/-","Weak",1.495,"<1e-16","-1.398","0.529","-",1,"Yes/No (0)"
-"Weak","1A","T447N","-","-","-/-","-",1.377,"<1e-16","-0.619","1.23","-",1,"Yes/No (0)"
-"Weak","2X","S531K","-","-","-/-","-",1.353,"<1e-16","-0.78","1.105","-",1,"Yes/No (0)"
-"Weak","2X","G382T","-","-","-/-","Weak",1.325,"1.440e-03","1.072","0.778","30",1,"No/Yes (2)"
-"Weak","2B","Q567D","-","-","-/-","-",1.234,"4.242e-02","1.075","0.606","34",1,"No/Yes (1)"
-"Weak","1A","V607I","-","-","-/-","-",1.231,"5.891e-14","1.204","0.255","-",1,"Yes/No (0)"
-"Weak","1A","T420S","-","-","-/-","-",1.159,"1.151e-13","1.142","0.198","-",1,"Yes/No (0)"
-"Weak","2X","A347S","-","-","-/-","-",1.03,"7.716e-04","0.804","0.644","58",1,"Yes/Yes (2)"
-"Weak","1A","S592A","-","-","-/-","Weak",0.99,"<1e-16","-0.554","0.821","3",1,"No/No (0)"
-"Weak","2B","P568T","-","-","-/-","-",0.958,"7.186e-01","0.826","0.485","34",1,"No/No (0)"
-"Weak","2X","T338A","-","-","-/-","Weak",0.94,"5.345e-02","0.768","0.541","48",1,"No/No (0)"
-"Weak","2X","L517M","-","-","-/-","-",0.904,"<1e-16","-0.442","0.789","12",1,"No/No (0)"
-"Weak","2X","V563T","-","-","-/-","-",0.9,"<1e-16","-0.377","0.817","12",1,"No/No (0)"
-"Weak","2X","S576H","-","-","-/-","Weak",0.9,"<1e-16","-0.377","0.817","12",1,"No/No (0)"
-"Weak","2X","N417K","-","-","-/-","-",0.883,"<1e-16","0.872","0.142","30",1,"No/No (0)"
-"Weak","2X","R254Q","-","-","-/-","Weak",0.857,"<1e-16","-0.083","0.853","2",1,"No/No (0)"
-"Weak","1A","E638D","-","-","-/-","Weak",0.847,"<1e-16","-0.734","0.423","26",1,"No/No (0)"
-"Weak","1A","H571Y","-","-","-/-","Weak",0.842,"2.070e-01","0.654","0.531","51",1,"No/No (0)"
-"Weak","2X","A346S","-","-","-/-","Weak",0.841,"<1e-16","0.836","0.097","39",1,"No/No (0)"
-"Weak","2X","M256V","-","-","-/-","Weak",0.839,"<1e-16","-0.021","0.839","1",1,"No/No (0)"
-"Weak","1A","N570K","-","-","-/-","Weak",0.828,"4.186e-06","0.58","0.59","48",1,"No/No (0)"
-"Weak","1A","V518A","-","-","-/-","-",0.777,"2.925e-01","0.596","0.499","59",1,"No/No (0)"
-"Weak","1A","N630H","-","-","-/-","Weak",0.776,"1.444e-10","0.773","0.07","2",1,"No/No (0)"
-"Weak","1A","N609D","-","-","-/-","Weak",0.742,"1.752e-10","0.468","0.575","32",1,"No/No (0)"
-"Weak","2X","G355S","-","-","-/-","-",0.704,"1.944e-08","0.677","0.191","37",1,"No/No (0)"
-"Weak","2X","D488N","0.321","0.321","3/3","-",0.641,"<1e-16","0.239","0.595","48",1,"No/No (0)"
-"Weak","2X","D488N","0.033","0.023","142/1","-",0.641,"<1e-16","0.239","0.595","48",1,"No/No (0)"
-"Weak","2X","I265L","-","-","-/-","Weak",0.636,"<1e-16","0.629","-0.099","32",1,"No/No (0)"
-"Weak","2X","S576N","0.014","0.01","1/367","Weak",0.616,"<1e-16","-0.105","0.607","28",1,"No/No (0)"
-"Weak","1A","V505I","-","-","-/-","-",0.597,"<1e-16","0.093","0.59","52",1,"No/No (0)"
-"Weak","2X","L241V","-","-","-/-","Weak",0.58,"<1e-16","0.554","-0.172","6",1,"No/No (0)"
-"Weak","1A","I393M","-","-","-/-","Weak",0.576,"<1e-16","0.147","0.557","36",1,"No/No (0)"
-"Weak","1A","H395N","-","-","-/-","Weak",0.576,"<1e-16","0.147","0.557","36",1,"No/No (0)"
-"Weak","1A","E397I","-","-","-/-","Weak",0.576,"<1e-16","0.147","0.557","36",1,"No/No (0)"
-"Weak","1A","N405S","-","-","-/-","Weak",0.576,"<1e-16","0.147","0.557","36",1,"No/No (0)"
-"Weak","1A","G414A","-","-","-/-","Weak",0.576,"<1e-16","0.147","0.557","36",1,"No/No (0)"
-"Weak","2X","R384G","-","-","-/-","Weak",0.575,"<1e-16","-0.043","0.574","51",1,"No/No (0)"
-"Weak","1A","K475Q","-","-","-/-","Weak",0.558,"2.467e-02","0.359","0.428","47",1,"No/No (0)"
-"Weak","1A","A585V","-","-","-/-","Weak",0.544,"2.528e-09","0.299","0.454","33",1,"No/No (0)"
-"Weak","2X","Q250L","-","-","-/-","Weak",0.511,"<1e-16","0.458","-0.227","6",1,"No/No (0)"
-"Weak","1A","N405D","-","-","-/-","Weak",0.463,"4.727e-11","0.141","0.442","31",1,"No/No (0)"
-"Weak","2X","Q281L","-","-","-/-","-",0.417,"<1e-16","0.362","-0.206","31",1,"No/No (0)"
-"Weak","1A","I636M","0.13","0.051","198/1","Weak",0.396,"<1e-16","-0.136","0.371","18",1,"No/No (0)"
-"Weak","1A","I636M","0.022","0.011","142/3","Weak",0.396,"<1e-16","-0.136","0.371","18",1,"No/No (0)"
-"Weak","2X","T536I","0.056","0.042","1/122","-",0.395,"1.166e-03","0.387","0.077","42",1,"No/No (0)"
-"Weak","2X","T536I","0","0","1/91","-",0.395,"1.166e-03","0.387","0.077","42",1,"No/No (0)"
-"Weak","1A","L583M","-","-","-/-","Weak",0.38,"2.099e-09","0.138","0.354","35",1,"No/No (0)"
-"Weak","1A","T540S","0","0","2/5","Weak",0.337,"<1e-16","0.124","-0.313","4",1,"No/No (0)"
-"Weak","1A","T540S","0","0","24/1","Weak",0.337,"<1e-16","0.124","-0.313","4",1,"No/No (0)"
-"Weak","1A","T540S","0","0","3/7","Weak",0.337,"<1e-16","0.124","-0.313","4",1,"No/No (0)"
-"Weak","1A","T540S","0.139","0.037","59/3","Weak",0.337,"<1e-16","0.124","-0.313","4",1,"No/No (0)"
-"Weak","1A","T540S","0.085","0.002","367/198","Weak",0.337,"<1e-16","0.124","-0.313","4",1,"No/No (0)"
-"Weak","1A","T540S","0.033","0.002","91/142","Weak",0.337,"<1e-16","0.124","-0.313","4",1,"No/No (0)"
-"Weak","1A","T540S","0.092","0.014","17/77","Weak",0.337,"<1e-16","0.124","-0.313","4",1,"No/No (0)"
-"Weak","2X","L565V","0.053","0.053","1/48","Strong",0.284,"<1e-16","0.125","-0.255","-",1,"No/No (0)"
-"Weak","2X","L565V","0.234","0.036","17/173","Strong",0.284,"<1e-16","0.125","-0.255","-",1,"No/No (0)"
-"Weak","1A","T623S","-","-","-/-","-",0.276,"1.000e+00","-0.244","-0.129","39",1,"No/No (0)"
-"Weak","1A","E566D","-","-","-/-","-",0.243,"8.110e-03","0.023","0.242","35",1,"No/No (0)"
-"Weak","1A","G628D","-","-","-/-","Weak",0.233,"1.327e-01","0.073","0.222","25",1,"No/No (0)"
-"Weak","1A","N635T","-","-","-/-","Weak",0.233,"1.327e-01","0.073","0.222","25",1,"No/No (0)"
-"Weak","1A","V386I","0","0","1/6","Strong",0.191,"2.120e-07","0.068","-0.178","-",1,"No/No (0)"
-"Weak","1A","V386I","0","0","2/7","Strong",0.191,"2.120e-07","0.068","-0.178","-",1,"No/No (0)"
-"Weak","1A","V386I","0","0","2/3","Strong",0.191,"2.120e-07","0.068","-0.178","-",1,"No/No (0)"
-"Weak","1A","V386I","0","-","1/4","Strong",0.191,"2.120e-07","0.068","-0.178","-",1,"No/No (0)"
-"Weak","1A","V386I","0.027","0.005","10/198","Strong",0.191,"2.120e-07","0.068","-0.178","-",1,"No/No (0)"
-"Weak","1A","V386I","0.091","0.007","24/142","Strong",0.191,"2.120e-07","0.068","-0.178","-",1,"No/No (0)"
-"Weak","1A","V386I","0.091","0.034","3/77","Strong",0.191,"2.120e-07","0.068","-0.178","-",1,"No/No (0)"
-"Weak","1A","E632G","-","-","-/-","-",0.162,"8.725e-02","-0.086","0.137","37",1,"No/No (0)"
-"Weak","2B","M571I","0.065","0.019","3/122","-",0.145,"5.695e-02","0.058","-0.133","13",1,"No/No (0)"
-"Weak","2B","M571I","0.014","0.007","2/367","-",0.145,"5.695e-02","0.058","-0.133","13",1,"No/No (0)"
-"Weak","2B","M571I","0.067","0.004","77/91","-",0.145,"5.695e-02","0.058","-0.133","13",1,"No/No (0)"
-"Weak","2B","M571I","0.045","0.011","5/198","-",0.145,"5.695e-02","0.058","-0.133","13",1,"No/No (0)"
-"Weak","1A","D533E","0","-","2/1","-",0.114,"4.339e-02","-0.065","0.094","46",1,"No/No (0)"
-"Weak","1A","S629D","-","-","-/-","Weak",0.107,"1.000e+00","0.079","0.072","34",1,"No/No (0)"
-"Weak","1A","M622I","-","-","-/-","Weak",0.107,"1.000e+00","0.069","0.082","23",1,"No/No (0)"
-"Weak","2X","V516I","-","-","-/-","Weak",0.095,"1.000e+00","0.094","-0.014","43",1,"No/No (0)"
-"Weak","2X","D311N","-","-","-/-","-",0.084,"9.693e-01","0.036","-0.076","62",1,"No/No (0)"
-"Weak","2B","N538D","0","0","1/2","-",0.071,"7.574e-01","-0.046","0.054","11",1,"No/No (0)"
-"Weak","2X","A491S","0.03","0.017","168/1","Strong",NA,"Not Tested Due to Low Sample Size","-","-","-",1,"No/No (0)"
-"Weak","1A","V386F","0.18","0.055","2/59","Strong",NA,"Not Tested Due to Low Sample Size","-","-","-",1,"No/No (0)"
-"Weak","2X","M339","-","-","-/-","Strong",NA,"Not Tested Due to Low Sample Size","-","-","-",1,"No/No (0)"
-"Weak","2X","D378E","1.254","0.172","19/1","-",NA,"Not Tested Due to Low Sample Size","-","-","-",1,"No/No (0)"
-"Weak","2B","V542M","1.324","0.368","1/11","-",NA,"Not Tested Due to Low Sample Size","-","-","-",1,"No/No (0)"
-"Weak","1A","G417D","1.057","0.073","1/148","-",NA,"Not Tested Due to Low Sample Size","-","-","-",1,"No/No (0)"
-"Weak","2B","A446T","1.376","-","1/1","-",NA,"Not Tested Due to Low Sample Size","-","-","-",1,"No/No (0)"
-"Weak","2X","A551G","1.132","0.184","19/1","-",NA,"Not Tested Due to Low Sample Size","-","-","-",1,"No/No (0)"
-"Weak","2X","N326D","1.013","0.047","136/1","-",NA,"Not Tested Due to Low Sample Size","-","-","-",1,"No/No (0)"
-"Weak","2X","K230T","1.028","0.252","1/9","-",NA,"Not Tested Due to Low Sample Size","-","-","-",1,"No/No (0)"
-"Weak","2X","T400M","1.077","-","1/9","-",NA,"Not Tested Due to Low Sample Size","-","-","-",1,"No/No (0)"
-"Weak","2B","G404E","1.429","0.178","1/138","-",NA,"Not Tested Due to Low Sample Size","-","-","-",1,"No/No (0)"
-"Weak","2B","D483G","1.518","0.076","1/138","-",NA,"Not Tested Due to Low Sample Size","-","-","-",1,"No/No (0)"
-"Weak","2X","V572A","1.462","0","1/2","-",NA,"Not Tested Due to Low Sample Size","-","-","-",1,"No/No (0)"
-"Weak","2X","D378E","1.286","0.069","1/138","-",NA,"Not Tested Due to Low Sample Size","-","-","-",1,"No/No (0)"
-"Weak","2B","L504P","1.088","0.29","1/46","-",NA,"Not Tested Due to Low Sample Size","-","-","-",1,"No/No (0)"
-"Weak","2X","A550T","1.599","0.036","2/327","-",NA,"Not Tested Due to Low Sample Size","-","-","-",1,"No/No (0)"
-"Weak/No Evidence","2X","A434T","-","-","-/-","-",0.961,"3.564e-02","0.92","0.278","-",0,"No/No (0)"
-"Weak/No Evidence","1A","T371A","-","-","-/-","Weak",0.951,"3.802e-09","0.25","0.917","-",0,"No/No (0)"
-"Weak/No Evidence","1A","E512K","-","-","-/-","Weak",0.935,"1.000e+00","0.746","0.563","-",0,"No/No (0)"
-"Weak/No Evidence","2X","D567N","-","-","-/-","Weak",0.924,"<1e-16","0.033","0.923","-",0,"No/No (0)"
-"Weak/No Evidence","2B","N470K","-","-","-/-","-",0.91,"<1e-16","-0.532","0.739","-",0,"No/No (0)"
-"Weak/No Evidence","2X","V251I","-","-","-/-","-",0.855,"<1e-16","-0.417","0.747","-",0,"No/No (0)"
-"Weak/No Evidence","2B","A516S","-","-","-/-","Weak",0.697,"2.742e-04","0.683","0.139","-",0,"No/No (0)"
-"Weak/No Evidence","1A","N643S","-","-","-/-","-",0.662,"9.815e-03","0.639","0.172","-",0,"No/No (0)"
-"Weak/No Evidence","1A","S629T","-","-","-/-","Weak",0.321,"1.000e+00","0.255","0.196","-",0,"No/No (0)"
-"Weak/No Evidence","2B","G597E","0","-","1/1","-",0.289,"<1e-16","0.132","-0.257","-",0,"No/No (0)"
-"Weak/No Evidence","2B","G597E","0.08","0.027","96/2","-",0.289,"<1e-16","0.132","-0.257","-",0,"No/No (0)"
-"Weak/No Evidence","2B","G597E","0.065","0.019","3/122","-",0.289,"<1e-16","0.132","-0.257","-",0,"No/No (0)"
-"Weak/No Evidence","2B","G597E","0","0","2/10","-",0.289,"<1e-16","0.132","-0.257","-",0,"No/No (0)"
-"Weak/No Evidence","2B","G597E","0","0","2/24","-",0.289,"<1e-16","0.132","-0.257","-",0,"No/No (0)"
-"Weak/No Evidence","2B","G597E","0.014","0.006","3/367","-",0.289,"<1e-16","0.132","-0.257","-",0,"No/No (0)"
-"Weak/No Evidence","2B","G597E","0.221","0.009","59/91","-",0.289,"<1e-16","0.132","-0.257","-",0,"No/No (0)"
-"Weak/No Evidence","2B","G597E","0","0","1/17","-",0.289,"<1e-16","0.132","-0.257","-",0,"No/No (0)"
-"Weak/No Evidence","2B","G597E","0.26","0.02","48/173","-",0.289,"<1e-16","0.132","-0.257","-",0,"No/No (0)"
-"Weak/No Evidence","2B","G597E","0.35","0.303","1/41","-",0.289,"<1e-16","0.132","-0.257","-",0,"No/No (0)"
-"Weak/No Evidence","2B","G597E","0.289","0.024","7/198","-",0.289,"<1e-16","0.132","-0.257","-",0,"No/No (0)"
-"Weak/No Evidence","2B","G597E","0.022","0.011","3/142","-",0.289,"<1e-16","0.132","-0.257","-",0,"No/No (0)"
-"Weak/No Evidence","2B","G597E","0","0","12/3","-",0.289,"<1e-16","0.132","-0.257","-",0,"No/No (0)"
-"Weak/No Evidence","2B","G597E","0.224","0.049","16/30","-",0.289,"<1e-16","0.132","-0.257","-",0,"No/No (0)"
-"Weak/No Evidence","2X","A279S","-","-","-/-","-",0.26,"4.287e-01","-0.025","-0.258","-",0,"No/No (0)"
-"Weak/No Evidence","2B","A490E","0","-","2/1","-",0.253,"1.000e+00","-0.056","0.247","-",0,"No/No (0)"
-"Weak/No Evidence","2B","A490E","0.128","0.01","198/19","-",0.253,"1.000e+00","-0.056","0.247","-",0,"No/No (0)"
-"Weak/No Evidence","2B","S640Y","0.052","0.001","367/168","-",0.232,"1.169e-02","0.073","-0.221","-",0,"No/No (0)"
-"Weak/No Evidence","2X","T385M","-","-","-/-","-",0.227,"3.449e-07","-0.122","0.192","-",0,"No/No (0)"
-"Weak/No Evidence","1A","T392A","0.033","0.023","1/142","-",0.226,"2.723e-01","0.069","-0.215","-",0,"No/No (0)"
-"Weak/No Evidence","2B","S473F","-","-","-/-","Weak",0.22,"5.814e-01","0.103","-0.194","-",0,"No/No (0)"
-"Weak/No Evidence","2B","V383A","-","-","-/-","-",0.22,"5.814e-01","0.103","-0.194","-",0,"No/No (0)"
-"Weak/No Evidence","2X","I483V","-","-","-/-","-",0.219,"2.480e-01","0.141","-0.167","-",0,"No/No (0)"
-"Weak/No Evidence","1A","A522V","0.223","0.023","77/30","-",0.212,"1.000e+00","0.082","-0.195","-",0,"No/No (0)"
-"Weak/No Evidence","1A","S629R","0.987","0","1/3","Weak",0.091,"1.000e+00","0.079","-0.044","-",0,"No/No (0)"
-"Weak/No Evidence","1A","S629R","0","-","1/3","Weak",0.091,"1.000e+00","0.079","-0.044","-",0,"No/No (0)"
-"Weak/No Evidence","1A","S629R","0.239","0.018","41/142","Weak",0.091,"1.000e+00","0.079","-0.044","-",0,"No/No (0)"
-"Weak/No Evidence","2B","N656X","-","-","-/-","Weak",0.058,"1.000e+00","0.036","0.045","-",0,"No/No (0)"
-"Weak/No Evidence","2X","H394Y","0.069","0.03","122/1","Weak",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","N360","-","-","-/-","Weak",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","V544","-","-","-/-","Weak",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","1A","I568","-","-","-/-","Weak",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","1A","N443I","0.013","0.013","1/168","Weak",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","1A","S629N","0.404","0.085","3/29","Weak",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","1A","S629N","0.694","0.062","1/148","Weak",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2B","S480","-","-","-/-","Weak",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","1A","I572","-","-","-/-","Weak",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","1A","L603","-","-","-/-","Weak",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2B","A516V","0.011","0.011","173/1","Weak",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","M400I","0","0","1/77","Weak",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","1A","I386V","0.049","0.019","3/77","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2B","Q586K","0.963","-","1/1","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","T526S","0.828","0.045","1/96","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","1A","S540T","0.896","0.244","12/2","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","V565L","0.101","0.024","96/3","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","A393V","0.828","0.031","96/2","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","1A","S540T","0","0","96/2","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","1A","I386V","0","0","96/3","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","1A","S540T","0","0","3/2","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","1A","I386V","0.229","0.052","3/59","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","1A","I386V","0","-","1/1","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","V565L","0.064","0.025","2/122","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","1A","S540T","0","0","2/10","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","1A","I386V","0.03","0.01","2/367","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","M385T","0.065","0.015","122/5","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","1A","S540T","0.141","0.009","122/24","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","1A","I386V","0.085","0.004","122/91","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","1A","I386V","0.198","0.06","5/173","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2B","A529T","0","0","11/1","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","1A","I386V","0","0","11/1","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2B","G467D","0","0","1/2","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","V565L","0","0","2/2","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","V565L","0","0","10/24","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","M385T","0","0","10/3","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","1A","G639E","0","0","1/87","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","1A","V408I","0.017","0.012","2/142","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","1A","G417D","0.081","0.081","1/77","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","1A","T436I","0.743","0.067","1/148","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","1A","P457L","0.013","0.013","1/168","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","1A","P499A","0.367","0.124","1/59","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","1A","G610D","0.011","0.011","1/173","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","1A","V613I","0.034","0.014","3/91","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","1A","F626S","0.014","0.007","2/367","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2B","D538N","0","0","2/3","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","V565L","0","0","2/77","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","I480L","0.029","0.006","77/24","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","Y586H","0","0","1/24","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2B","S579F","0.058","0.02","1/367","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2B","V591I","0.011","0.011","1/173","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","V518I","0.887","0.03","2/59","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","V565L","0.076","0.024","3/59","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","M385T","0","0","3/1","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","I480L","0.076","0.043","59/1","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","M385T","0.249","0.013","59/48","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","A296V","0.146","0.022","59/8","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2B","D578N","0","0","1/3","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","1A","E533D","0","0","1/12","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","A393T","0.064","0.031","48/2","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","Y288D","0.014","0.01","1/367","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","V565L","0.05","0.002","367/91","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","Q542R","0.014","0.01","367/1","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","V393A","0.288","0.011","367/8","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","M385T","0.039","0.004","367/17","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","S354P","0.014","0.01","367/1","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","R286G","0.605","0.013","367/9","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2B","A634T","0.058","0.02","367/1","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","1A","E533D","0.014","0.007","367/2","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","1A","G441R","0.014","0.01","367/1","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","M385T","0.224","0.014","91/173","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","1A","E533D","0.081","0.005","91/61","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","1A","E514Q","0.034","0.017","91/2","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","M385T","0.963","0","8/2","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","A393V","0","0","17/2","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","1A","E533D","0","0","17/3","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","1A","G610D","0.235","0.235","1/7","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2B","Q458E","0.35","0.303","1/41","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","V284I","0.487","0.122","6/41","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2B","P433H","0.13","0.051","1/198","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","A393V","0.211","0.064","54/2","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","1A","A547S","0.651","0.067","54/1","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","L402F","0.963","0","1/6","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2B","D538N","0","0","6/3","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2B","V591I","0.965","0","1/4","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","V565L","0.177","0.177","7/3","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2B","I434V","0.235","0.235","7/1","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2B","T599I","0","0","1/29","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","T381N","0.096","0.046","1/77","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","G384R","0.027","0.015","1/198","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","I531S","0.133","0.007","29/198","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","V565L","0.091","0.003","198/142","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","M385T","0.157","0.006","198/77","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2B","Q411R","0.091","0.024","198/3","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2B","A391V","0.074","0.018","198/4","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","1A","D533N","0.074","0.014","198/6","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","D488V","0.017","0.008","142/4","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","A367V","0.033","0.023","142/1","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","V488N","0","0","1/4","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","T466A","0.096","0.046","1/77","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","V518I","0.096","0.046","1/77","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","V565L","0","-","1/3","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","V565L","0","0","1/5","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","M342I","0.049","0.049","1/61","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","V565L","0.049","0.034","2/61","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","M385T","0","0","2/3","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2B","A390T","0.049","0.049","61/1","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","1A","E645V","0.049","0.049","61/1","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","1A","A489T","0.098","0.054","16/3","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","1A","G510S","0.976","0.14","136/1","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2B","D506E","0.585","-","1/1","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","M342V","0.967","0.161","138/1","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","1A","M372I","0.543","0.231","1/46","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","1A","I386F","0","0","2/3","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","1A","T436N","0.056","0.042","1/122","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","1A","V506I","0.894","0.03","1/122","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2B","T435A","0","-","1/1","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2B","G467C","0.069","0.03","1/122","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","V518I","0.201","0.008","17/327","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","L562I","0.012","0.006","5/327","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2B","D538N","0.113","0.003","327/96","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2B","A533V","0","0","327/1","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","1A","I386V","0.028","0.015","327/2","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
-"Weak/No Evidence","2X","M385T","0","0","327/2","-",NA,"Not Tested Due to Low Sample Size","-","-","-",0,"No/No (0)"
+Evidence,PBP,Substitution,Phenotypic Distance,SE,No. isolates,Confidence,β Joint,Adj. p-value,Effect Size Axis 1,Effect Size Axis 2,No. Sig. interactions,total,Sig. mvLMM/uvLMM (No. drugs,Position,Motif interval,Nearest motif by sequence,Sequence distance to motif (aa),Nearest motif by 3D,3D C-alpha distance to motif (Angstrom),Previous evidence category,Previous evidence source
+Very Strong,2X,I371T,4.149,0.058,3/136,Strong,3.187,<1e-16,2.85,1.425,40,4,Yes/Yes (6),371,SXXK-SXN interval,S395SN,24,S395SN,7.394,same-position overlap,Li et al. CDC study; Laboratory (see Supplementary S3.2)
+Strong,2X,E320K,-,-,-/-,Strong,1.368,<1e-16,-0.854,1.069,18,3,Yes/No (0),320,before S337TMK,S337TMK,17,K547SG,33.592,not previously highlighted,none in existing overlap file
+Strong,2X,A491V,-,-,-/-,Strong,1.354,<1e-16,0.713,1.151,21,3,Yes/Yes (1),491,SXN-KTG/KSG interval,K547SG,56,S337TMK,38.42,same-position overlap,Chewapreecha et al. GWAS
+Strong,2X,T490S,-,-,-/-,Strong,1.341,<1e-16,0.707,1.139,21,3,Yes/Yes (2),490,SXN-KTG/KSG interval,K547SG,57,S337TMK,42.312,same-position overlap,Chewapreecha et al. GWAS
+Strong,2X,A369V,-,-,-/-,Strong,1.313,<1e-16,-0.251,1.288,9,3,Yes/Yes (1),369,SXXK-SXN interval,S395SN,26,S395SN,14.209,same-position overlap,Laboratory (see Supplementary S3.2)
+Strong,2X,M343T,-,-,-/-,Strong,1.246,<1e-16,0.53,1.128,21,3,Yes/Yes (1),343,SXXK-SXN interval,S337TMK,3,S337TMK,4.926,same-position overlap,Chewapreecha et al. GWAS; Laboratory (see Supplementary S3.2)
+Moderate,2X,N444S,-,-,-/-,-,2.741,<1e-16,2.468,1.192,36,2,Yes/Yes (1),444,SXN-KTG/KSG interval,S395SN,47,S337TMK,13.577,same-position overlap,Li et al. CDC study; Laboratory (see Supplementary S3.2)
+Moderate,2X,S531Y,-,-,-/-,-,2.445,<1e-16,2.215,1.036,35,2,Yes/No (0),531,SXN-KTG/KSG interval,K547SG,16,K547SG,18.945,same-position overlap,Li et al. CDC study; Laboratory (see Supplementary S3.2)
+Moderate,1A,T371S,-,-,-/-,Weak,2.362,<1e-16,2.198,0.867,8,2,Yes/Yes (2),371,within active-site motif,S370TMK,0,S370TMK,0.0,same-position overlap,Li et al. CDC study
+Moderate,2X,L364F,-,-,-/-,Weak,2.221,<1e-16,2.036,0.888,34,2,Yes/Yes (2),364,SXXK-SXN interval,S337TMK,24,S395SN,9.611,same-position overlap,Laboratory (see Supplementary S3.2)
+Moderate,1A,N443D,-,-,-/-,Weak,2.214,1.055e-06,1.764,1.338,64,2,Yes/Yes (1),443,SXXK-SXN interval,S466SN,23,S370TMK,15.995,not previously highlighted,none in existing overlap file
+Moderate,1A,L611F,-,-,-/-,Weak,2.189,3.829e-04,1.881,1.12,39,2,Yes/Yes (1),611,after KTG/KSG,K557TG,52,K557TG,10.275,not previously highlighted,none in existing overlap file
+Moderate,2B,T489A,-,-,-/-,Weak,2.161,<1e-16,1.414,1.633,51,2,Yes/Yes (3),489,SXN-KTG/KSG interval,S443SN,44,S386VVK,14.342,same-position overlap,Li et al. CDC study
+Moderate,1A,L606I,-,-,-/-,Weak,2.16,7.770e-04,1.85,1.115,39,2,Yes/Yes (1),606,after KTG/KSG,K557TG,47,K557TG,13.098,not previously highlighted,none in existing overlap file
+Moderate,2X,V523L,-,-,-/-,Weak,2.094,1.980e-09,1.844,0.992,45,2,Yes/No (0),523,SXN-KTG/KSG interval,K547SG,24,S395SN,12.194,not previously highlighted,none in existing overlap file
+Moderate,1A,G414V,-,-,-/-,Weak,2.09,6.235e-07,1.864,0.944,7,2,Yes/Yes (1),414,SXXK-SXN interval,S370TMK,41,S370TMK,16.942,not previously highlighted,none in existing overlap file
+Moderate,2B,L609S,-,-,-/-,-,2.053,<1e-16,-1.681,1.178,5,2,Yes/No (0),609,SXN-KTG/KSG interval,K615TG,6,K615TG,18.03,not previously highlighted,none in existing overlap file
+Moderate,2B,A533G,-,-,-/-,-,2.052,<1e-16,-1.687,1.169,4,2,Yes/No (0),533,SXN-KTG/KSG interval,K615TG,82,K615TG,12.353,not previously highlighted,none in existing overlap file
+Moderate,2B,D555E,-,-,-/-,-,2.052,<1e-16,-1.687,1.169,4,2,Yes/No (0),555,SXN-KTG/KSG interval,K615TG,60,K615TG,50.507,not previously highlighted,none in existing overlap file
+Moderate,2B,G597A,-,-,-/-,-,2.052,<1e-16,-1.687,1.169,4,2,Yes/No (0),597,SXN-KTG/KSG interval,K615TG,18,S443SN,12.313,not previously highlighted,none in existing overlap file
+Moderate,2B,H585Q,-,-,-/-,-,2.052,<1e-16,-1.687,1.169,4,2,Yes/No (0),585,SXN-KTG/KSG interval,K615TG,30,K615TG,10.701,not previously highlighted,none in existing overlap file
+Moderate,2B,K556Q,-,-,-/-,-,2.052,<1e-16,-1.687,1.169,4,2,Yes/No (0),556,SXN-KTG/KSG interval,K615TG,59,K615TG,49.602,not previously highlighted,none in existing overlap file
+Moderate,2B,L566V,-,-,-/-,-,2.052,<1e-16,-1.687,1.169,4,2,Yes/No (0),566,SXN-KTG/KSG interval,K615TG,49,S386VVK,30.175,not previously highlighted,none in existing overlap file
+Moderate,2B,M581V,-,-,-/-,-,2.052,<1e-16,-1.687,1.169,4,2,Yes/No (0),581,SXN-KTG/KSG interval,K615TG,34,S386VVK,13.474,not previously highlighted,none in existing overlap file
+Moderate,2B,Q565S,-,-,-/-,-,2.052,<1e-16,-1.678,1.182,4,2,Yes/No (0),565,SXN-KTG/KSG interval,K615TG,50,S386VVK,33.402,not previously highlighted,none in existing overlap file
+Moderate,2B,Q567E,-,-,-/-,-,2.052,<1e-16,-1.678,1.182,4,2,Yes/No (0),567,SXN-KTG/KSG interval,K615TG,48,S386VVK,28.333,not previously highlighted,none in existing overlap file
+Moderate,2B,T595G,-,-,-/-,-,2.052,<1e-16,-1.687,1.169,4,2,Yes/No (0),595,SXN-KTG/KSG interval,K615TG,20,S443SN,14.342,not previously highlighted,none in existing overlap file
+Moderate,2B,V542I,-,-,-/-,-,2.052,<1e-16,-1.687,1.169,4,2,Yes/No (0),542,SXN-KTG/KSG interval,K615TG,73,S386VVK,18.129,not previously highlighted,none in existing overlap file
+Moderate,2B,V574I,-,-,-/-,-,2.052,<1e-16,-1.687,1.169,4,2,Yes/No (0),574,SXN-KTG/KSG interval,K615TG,41,S386VVK,14.733,not previously highlighted,none in existing overlap file
+Moderate,2B,A490S,-,-,-/-,-,2.039,<1e-16,-1.65,1.198,4,2,Yes/No (0),490,SXN-KTG/KSG interval,S443SN,45,S386VVK,16.845,not previously highlighted,none in existing overlap file
+Moderate,2B,G467L,-,-,-/-,-,2.039,<1e-16,-1.65,1.198,4,2,Yes/No (0),467,SXN-KTG/KSG interval,S443SN,22,S443SN,21.607,not previously highlighted,none in existing overlap file
+Moderate,2B,G483A,-,-,-/-,-,2.039,<1e-16,-1.65,1.198,4,2,Yes/No (0),483,SXN-KTG/KSG interval,S443SN,38,S386VVK,11.8,not previously highlighted,none in existing overlap file
+Moderate,2B,S469N,-,-,-/-,-,2.039,<1e-16,-1.65,1.198,4,2,Yes/No (0),469,SXN-KTG/KSG interval,S443SN,24,S443SN,23.6,not previously highlighted,none in existing overlap file
+Moderate,1A,R413H,-,-,-/-,Weak,2.036,<1e-16,1.912,0.698,1,2,Yes/Yes (1),413,SXXK-SXN interval,S370TMK,40,S370TMK,15.866,not previously highlighted,none in existing overlap file
+Moderate,2B,P568S,-,-,-/-,-,2.028,<1e-16,-1.629,1.208,4,2,Yes/No (0),568,SXN-KTG/KSG interval,K615TG,47,S386VVK,24.576,not previously highlighted,none in existing overlap file
+Moderate,2B,S473T,-,-,-/-,Weak,1.996,4.746e-12,1.739,0.979,34,2,Yes/Yes (3),473,SXN-KTG/KSG interval,S443SN,28,S386VVK,19.893,not previously highlighted,none in existing overlap file
+Moderate,2B,S480A,-,-,-/-,Weak,1.996,4.746e-12,1.739,0.979,34,2,Yes/Yes (3),480,SXN-KTG/KSG interval,S443SN,35,S386VVK,13.782,not previously highlighted,none in existing overlap file
+Moderate,2X,D278N,-,-,-/-,Weak,1.994,<1e-16,-0.115,1.991,4,2,Yes/No (0),278,before S337TMK,S337TMK,59,K547SG,20.359,not previously highlighted,none in existing overlap file
+Moderate,2X,P486T,-,-,-/-,-,1.986,1.610e-08,1.75,0.939,46,2,Yes/No (0),486,SXN-KTG/KSG interval,K547SG,61,S337TMK,43.813,same-position overlap,Chewapreecha et al. GWAS
+Moderate,1A,T392S,-,-,-/-,-,1.939,2.079e-07,1.746,0.844,8,2,Yes/Yes (1),392,SXXK-SXN interval,S370TMK,19,S370TMK,16.583,not previously highlighted,none in existing overlap file
+Moderate,1A,V408L,-,-,-/-,-,1.939,2.079e-07,1.746,0.844,8,2,Yes/Yes (1),408,SXXK-SXN interval,S370TMK,35,S466SN,12.49,not previously highlighted,none in existing overlap file
+Moderate,2B,V503I,-,-,-/-,-,1.938,<1e-16,-1.372,1.368,2,2,Yes/No (0),503,SXN-KTG/KSG interval,S443SN,58,S386VVK,14.932,not previously highlighted,none in existing overlap file
+Moderate,1A,I459M,-,-,-/-,Weak,1.925,2.440e-07,1.491,1.217,61,2,Yes/Yes (2),459,SXXK-SXN interval,S466SN,7,S466SN,9.483,not previously highlighted,none in existing overlap file
+Moderate,2B,E476G,-,-,-/-,-,1.881,<1e-16,1.011,1.587,13,2,Yes/Yes (2),476,SXN-KTG/KSG interval,S443SN,31,S386VVK,16.38,same-position overlap,Li et al. CDC study; Laboratory (see Supplementary S3.2)
+Moderate,2X,V423I,-,-,-/-,Strong,1.825,<1e-16,-0.764,1.657,-,2,Yes/No (0),423,SXN-KTG/KSG interval,S395SN,26,S337TMK,16.133,not previously highlighted,none in existing overlap file
+Moderate,2X,L510Q,-,-,-/-,Strong,1.817,<1e-16,-0.692,1.68,-,2,Yes/No (0),510,SXN-KTG/KSG interval,K547SG,37,S337TMK,13.575,not previously highlighted,none in existing overlap file
+Moderate,1A,E397V,-,-,-/-,Weak,1.802,2.053e-06,1.623,0.782,11,2,Yes/Yes (1),397,SXXK-SXN interval,S370TMK,24,S370TMK,17.788,same-position overlap,Li et al. CDC study
+Moderate,1A,L421I,-,-,-/-,-,1.802,2.053e-06,1.623,0.782,11,2,Yes/Yes (1),421,SXXK-SXN interval,S466SN,45,S370TMK,11.911,not previously highlighted,none in existing overlap file
+Moderate,2X,P268T,-,-,-/-,Weak,1.8,<1e-16,-0.443,1.745,2,2,Yes/Yes (1),268,before S337TMK,S337TMK,69,K547SG,25.849,not previously highlighted,none in existing overlap file
+Moderate,2B,A624E,-,-,-/-,-,1.797,<1e-16,-0.827,1.595,14,2,Yes/No (0),624,after KTG/KSG,K615TG,7,K615TG,21.249,not previously highlighted,none in existing overlap file
+Moderate,1A,T612L,-,-,-/-,Weak,1.766,3.948e-08,1.571,0.806,36,2,Yes/Yes (1),612,after KTG/KSG,K557TG,53,K557TG,10.3,not previously highlighted,none in existing overlap file
+Moderate,2X,P535A,-,-,-/-,Weak,1.764,<1e-16,-0.737,1.603,9,2,Yes/No (0),535,SXN-KTG/KSG interval,K547SG,12,K547SG,11.366,not previously highlighted,none in existing overlap file
+Moderate,2X,I318L,-,-,-/-,Weak,1.741,<1e-16,-0.709,1.59,8,2,Yes/No (0),318,before S337TMK,S337TMK,19,K547SG,31.644,not previously highlighted,none in existing overlap file
+Moderate,2X,I366V,-,-,-/-,-,1.728,<1e-16,-0.681,1.589,20,2,Yes/No (0),366,SXXK-SXN interval,S337TMK,26,S395SN,13.254,same-position overlap,Chewapreecha et al. GWAS; Laboratory (see Supplementary S3.2)
+Moderate,2X,Y568N,-,-,-/-,Weak,1.698,<1e-16,-0.787,1.504,14,2,Yes/No (0),568,after KTG/KSG,K547SG,19,K547SG,10.37,not previously highlighted,none in existing overlap file
+Moderate,2X,S574A,-,-,-/-,-,1.692,<1e-16,-0.709,1.537,1,2,Yes/No (0),574,after KTG/KSG,K547SG,25,K547SG,6.51,not previously highlighted,none in existing overlap file
+Moderate,2X,Q552E,-,-,-/-,-,1.684,<1e-16,-0.761,1.502,14,2,Yes/No (0),552,after KTG/KSG,K547SG,3,S337TMK,9.754,same-position overlap,Laboratory (see Supplementary S3.2)
+Moderate,2B,G597P,-,-,-/-,-,1.641,1.806e-04,1.427,0.81,35,2,Yes/Yes (2),597,SXN-KTG/KSG interval,K615TG,18,S443SN,12.313,not previously highlighted,none in existing overlap file
+Moderate,2B,L609T,-,-,-/-,-,1.641,1.806e-04,1.427,0.81,35,2,Yes/Yes (2),609,SXN-KTG/KSG interval,K615TG,6,K615TG,18.03,not previously highlighted,none in existing overlap file
+Moderate,2B,N606D,-,-,-/-,-,1.641,1.806e-04,1.427,0.81,35,2,Yes/Yes (2),606,SXN-KTG/KSG interval,K615TG,9,K615TG,14.439,not previously highlighted,none in existing overlap file
+Moderate,2B,R545H,-,-,-/-,-,1.64,<1e-16,-1.066,1.246,5,2,Yes/No (0),545,SXN-KTG/KSG interval,K615TG,70,S386VVK,22.782,not previously highlighted,none in existing overlap file
+Moderate,2B,S508N,-,-,-/-,-,1.619,<1e-16,-1.001,1.272,11,2,Yes/No (0),508,SXN-KTG/KSG interval,S443SN,63,S443SN,18.719,not previously highlighted,none in existing overlap file
+Moderate,2X,I483L,-,-,-/-,-,1.597,<1e-16,-1.104,1.154,29,2,Yes/No (0),483,SXN-KTG/KSG interval,K547SG,64,S337TMK,34.277,not previously highlighted,none in existing overlap file
+Moderate,1A,T540A,-,-,-/-,Weak,1.593,<1e-16,-1.509,0.508,5,2,Yes/No (0),540,SXN-KTG/KSG interval,K557TG,17,K557TG,11.237,same-position overlap,Li et al. CDC study
+Moderate,2B,E506D,-,-,-/-,-,1.553,<1e-16,0.193,1.541,7,2,Yes/No (0),506,SXN-KTG/KSG interval,S443SN,61,S386VVK,21.572,not previously highlighted,none in existing overlap file
+Moderate,2B,L455I,-,-,-/-,Weak,1.547,<1e-16,0.922,1.242,35,2,Yes/Yes (3),455,SXN-KTG/KSG interval,S443SN,10,S386VVK,14.726,not previously highlighted,none in existing overlap file
+Moderate,2B,Q438E,-,-,-/-,Weak,1.546,<1e-16,0.919,1.243,35,2,Yes/Yes (3),438,SXXK-SXN interval,S443SN,5,S443SN,7.958,not previously highlighted,none in existing overlap file
+Moderate,2B,N422Y,-,-,-/-,Weak,1.512,2.439e-09,1.345,0.691,34,2,Yes/Yes (3),422,SXXK-SXN interval,S443SN,21,S443SN,6.839,not previously highlighted,none in existing overlap file
+Moderate,2B,Q427L,-,-,-/-,Weak,1.512,2.439e-09,1.345,0.691,34,2,Yes/Yes (3),427,SXXK-SXN interval,S443SN,16,S443SN,11.854,same-position overlap,Li et al. CDC study
+Moderate,2B,T426K,-,-,-/-,Weak,1.512,2.439e-09,1.345,0.691,34,2,Yes/Yes (3),426,SXXK-SXN interval,S443SN,17,S443SN,8.155,not previously highlighted,none in existing overlap file
+Moderate,2B,A592S,-,-,-/-,-,1.508,<1e-16,0.518,1.416,55,2,Yes/No (0),592,SXN-KTG/KSG interval,K615TG,23,K615TG,8.103,not previously highlighted,none in existing overlap file
+Moderate,2X,T538N,-,-,-/-,Weak,1.481,<1e-16,-0.816,1.236,8,2,Yes/No (0),538,SXN-KTG/KSG interval,K547SG,9,K547SG,12.383,not previously highlighted,none in existing overlap file
+Moderate,2X,L510V,-,-,-/-,Strong,1.48,<1e-16,-0.729,1.288,-,2,Yes/No (0),510,SXN-KTG/KSG interval,K547SG,37,S337TMK,13.575,not previously highlighted,none in existing overlap file
+Moderate,2X,T513D,-,-,-/-,Strong,1.48,<1e-16,-0.8,1.245,-,2,Yes/No (0),513,SXN-KTG/KSG interval,K547SG,34,K547SG,11.62,not previously highlighted,none in existing overlap file
+Moderate,2B,T446A,-,-,-/-,-,1.402,<1e-16,0.557,1.286,14,2,Yes/Yes (2),446,SXN-KTG/KSG interval,S443SN,1,S443SN,3.749,same-position overlap,Li et al. CDC study; Laboratory (see Supplementary S3.2)
+Moderate,2X,T401S,-,-,-/-,Weak,1.356,5.286e-05,1.193,0.645,50,2,Yes/No (0),401,SXN-KTG/KSG interval,S395SN,4,S395SN,6.471,same-position overlap,Li et al. CDC study; Laboratory (see Supplementary S3.2)
+Moderate,2B,L609A,-,-,-/-,-,1.352,<1e-16,-0.778,1.105,4,2,Yes/No (0),609,SXN-KTG/KSG interval,K615TG,6,K615TG,18.03,not previously highlighted,none in existing overlap file
+Moderate,2X,G382T,-,-,-/-,Weak,1.342,6.107e-04,1.086,0.788,33,2,Yes/Yes (3),382,SXXK-SXN interval,S395SN,13,S395SN,13.168,same-position overlap,Li et al. CDC study
+Moderate,2X,A507T,-,-,-/-,Strong,1.336,1.345e-06,1.249,0.476,-,2,Yes/Yes (1),507,SXN-KTG/KSG interval,K547SG,40,S337TMK,14.099,not previously highlighted,none in existing overlap file
+Moderate,1A,H503N,-,-,-/-,-,1.329,1.743e-05,1.014,0.859,63,2,Yes/No (0),503,SXN-KTG/KSG interval,S466SN,35,S370TMK,29.508,not previously highlighted,none in existing overlap file
+Moderate,1A,N517D,-,-,-/-,-,1.329,1.743e-05,1.014,0.859,63,2,Yes/No (0),517,SXN-KTG/KSG interval,K557TG,40,S370TMK,24.877,not previously highlighted,none in existing overlap file
+Moderate,1A,T495I,-,-,-/-,-,1.329,1.743e-05,1.014,0.859,63,2,Yes/No (0),495,SXN-KTG/KSG interval,S466SN,27,S370TMK,18.033,not previously highlighted,none in existing overlap file
+Moderate,1A,Y497H,-,-,-/-,-,1.329,1.743e-05,1.014,0.859,63,2,Yes/No (0),497,SXN-KTG/KSG interval,S466SN,29,S370TMK,18.257,not previously highlighted,none in existing overlap file
+Moderate,2X,S389L,-,-,-/-,Weak,1.317,1.387e-05,1.034,0.816,35,2,Yes/Yes (2),389,SXXK-SXN interval,S395SN,6,S395SN,10.369,not previously highlighted,none in existing overlap file
+Moderate,2B,S412P,-,-,-/-,Weak,1.301,<1e-16,0.784,1.038,59,2,Yes/Yes (2),412,SXXK-SXN interval,S386VVK,23,S443SN,9.603,not previously highlighted,none in existing overlap file
+Moderate,2X,T230K,-,-,-/-,Weak,1.264,<1e-16,-0.335,1.219,30,2,Yes/No (0),230,before S337TMK,S337TMK,107,S337TMK,45.8,not previously highlighted,none in existing overlap file
+Moderate,2X,V358Y,-,-,-/-,Weak,1.157,9.619e-06,0.893,0.736,61,2,Yes/No (0),358,SXXK-SXN interval,S337TMK,18,S395SN,12.82,same-position overlap,Chewapreecha et al. GWAS; Laboratory (see Supplementary S3.2)
+Moderate,1A,L382I,-,-,-/-,Weak,1.154,<1e-16,-0.73,0.894,37,2,Yes/No (0),382,SXXK-SXN interval,S370TMK,9,S370TMK,12.736,not previously highlighted,none in existing overlap file
+Moderate,2B,A619G,-,-,-/-,-,1.128,<1e-16,1.119,0.144,1,2,Yes/Yes (2),619,after KTG/KSG,K615TG,2,K615TG,6.837,not previously highlighted,none in existing overlap file
+Moderate,2B,D641E,-,-,-/-,-,1.128,<1e-16,1.119,0.144,1,2,Yes/Yes (2),641,after KTG/KSG,K615TG,24,K615TG,16.258,not previously highlighted,none in existing overlap file
+Moderate,1A,I459L,-,-,-/-,Weak,1.128,<1e-16,-0.932,0.635,5,2,Yes/No (0),459,SXXK-SXN interval,S466SN,7,S466SN,9.483,not previously highlighted,none in existing overlap file
+Moderate,2B,S640T,-,-,-/-,-,1.128,<1e-16,1.119,0.144,1,2,Yes/Yes (2),640,after KTG/KSG,K615TG,23,K615TG,12.684,not previously highlighted,none in existing overlap file
+Moderate,2B,Q628E,-,-,-/-,-,1.127,<1e-16,0.297,1.087,57,2,Yes/No (0),628,after KTG/KSG,K615TG,11,K615TG,16.001,not previously highlighted,none in existing overlap file
+Moderate,2B,D625G,-,-,-/-,-,1.116,<1e-16,0.294,1.076,57,2,Yes/Yes (1),625,after KTG/KSG,K615TG,8,K615TG,23.745,not previously highlighted,none in existing overlap file
+Moderate,2B,T630N,-,-,-/-,-,1.116,<1e-16,0.294,1.076,57,2,Yes/Yes (1),630,after KTG/KSG,K615TG,13,K615TG,9.526,not previously highlighted,none in existing overlap file
+Moderate,1A,D473N,-,-,-/-,Weak,1.097,<1e-16,0.626,0.901,50,2,Yes/No (0),473,SXN-KTG/KSG interval,S466SN,5,S466SN,12.17,not previously highlighted,none in existing overlap file
+Moderate,2X,Q447M,-,-,-/-,-,1.073,<1e-16,-0.764,0.754,15,2,Yes/No (0),447,SXN-KTG/KSG interval,S395SN,50,S395SN,8.606,same-position overlap,Laboratory (see Supplementary S3.2)
+Moderate,1A,Y641F,-,-,-/-,Weak,1.073,<1e-16,-1.016,0.346,29,2,Yes/No (0),641,after KTG/KSG,K557TG,82,K557TG,23.367,not previously highlighted,none in existing overlap file
+Moderate,2X,A347S,-,-,-/-,-,1.069,5.108e-04,0.836,0.665,63,2,Yes/Yes (1),347,SXXK-SXN interval,S337TMK,7,S337TMK,10.468,same-position overlap,Chewapreecha et al. GWAS
+Moderate,2X,S449A,-,-,-/-,-,1.06,<1e-16,-0.727,0.772,15,2,Yes/No (0),449,SXN-KTG/KSG interval,S395SN,52,S337TMK,6.567,same-position overlap,Laboratory (see Supplementary S3.2)
+Moderate,1A,T543I,-,-,-/-,Weak,1.048,<1e-16,-0.807,0.669,3,2,Yes/No (0),543,SXN-KTG/KSG interval,K557TG,14,K557TG,6.486,not previously highlighted,none in existing overlap file
+Moderate,2B,T489S,-,-,-/-,Weak,1.047,<1e-16,-0.268,1.012,25,2,Yes/No (0),489,SXN-KTG/KSG interval,S443SN,44,S386VVK,14.342,same-position overlap,Li et al. CDC study
+Moderate,1A,F577Y,-,-,-/-,Weak,1.032,1.147e-11,0.712,0.746,33,2,Yes/No (0),577,after KTG/KSG,K557TG,18,K557TG,14.105,same-position overlap,Chewapreecha et al. GWAS; Li et al. CDC study; Laboratory (see Supplementary S3.2)
+Moderate,1A,Q576G,-,-,-/-,Weak,1.032,1.147e-11,0.712,0.746,33,2,Yes/No (0),576,after KTG/KSG,K557TG,17,K557TG,17.807,same-position overlap,Chewapreecha et al. GWAS; Li et al. CDC study; Laboratory (see Supplementary S3.2)
+Moderate,1A,S575T,-,-,-/-,Weak,1.032,1.147e-11,0.712,0.746,33,2,Yes/No (0),575,after KTG/KSG,K557TG,16,K557TG,20.472,same-position overlap,Chewapreecha et al. GWAS; Li et al. CDC study; Laboratory (see Supplementary S3.2)
+Moderate,1A,T574N,-,-,-/-,Weak,1.032,1.147e-11,0.712,0.746,33,2,Yes/No (0),574,after KTG/KSG,K557TG,15,K557TG,20.998,same-position overlap,Li et al. CDC study; Laboratory (see Supplementary S3.2)
+Moderate,1A,T540V,-,-,-/-,Weak,1.016,<1e-16,-0.387,0.939,3,2,Yes/No (0),540,SXN-KTG/KSG interval,K557TG,17,K557TG,11.237,same-position overlap,Li et al. CDC study
+Moderate,2X,A572V,0,0,17/1,Strong,0.951,<1e-16,0.035,0.95,53,2,Yes/Yes (1),572,after KTG/KSG,K547SG,23,K547SG,4.066,not previously highlighted,none in existing overlap file
+Moderate,2X,K505E,-,-,-/-,Strong,0.939,1.691e-02,0.677,0.651,34,2,No/No (0),505,SXN-KTG/KSG interval,K547SG,42,S337TMK,18.045,not previously highlighted,none in existing overlap file
+Moderate,2X,N501K,-,-,-/-,Strong,0.939,1.691e-02,0.677,0.651,34,2,No/No (0),501,SXN-KTG/KSG interval,K547SG,46,S337TMK,17.657,not previously highlighted,none in existing overlap file
+Moderate,2X,E378D,-,-,-/-,Strong,0.892,<1e-16,-0.422,0.785,19,2,Yes/Yes (2),378,SXXK-SXN interval,S395SN,17,S395SN,12.915,not previously highlighted,none in existing overlap file
+Moderate,2X,L565S,-,-,-/-,Strong,0.837,<1e-16,0.171,0.819,47,2,Yes/No (0),565,after KTG/KSG,K547SG,16,K547SG,13.732,same-position overlap,Li et al. CDC study
+Moderate,2X,I462L,-,-,-/-,Strong,0.72,2.488e-01,0.554,0.46,54,2,No/No (0),462,SXN-KTG/KSG interval,S395SN,65,S337TMK,10.582,same-position overlap,Chewapreecha et al. GWAS
+Moderate,2X,N514H,-,-,-/-,Strong,0.678,<1e-16,-0.153,0.66,44,2,Yes/No (0),514,SXN-KTG/KSG interval,K547SG,33,K547SG,9.888,same-position overlap,Laboratory (see Supplementary S3.2)
+Moderate,2X,L510T,-,-,-/-,Strong,0.565,3.174e-16,0.56,-0.076,22,2,Yes/No (0),510,SXN-KTG/KSG interval,K547SG,37,S337TMK,13.575,not previously highlighted,none in existing overlap file
+Moderate,2X,T513N,-,-,-/-,Strong,0.565,3.174e-16,0.56,-0.076,22,2,Yes/No (0),513,SXN-KTG/KSG interval,K547SG,34,K547SG,11.62,not previously highlighted,none in existing overlap file
+Moderate,2X,D506E,-,-,-/-,Strong,0.374,1.000e+00,0.316,0.199,53,2,No/No (0),506,SXN-KTG/KSG interval,K547SG,41,S337TMK,17.482,not previously highlighted,none in existing overlap file
+Weak,1A,K475H,-,-,-/-,Weak,2.201,<1e-16,-2.176,0.337,-,1,Yes/No (0),475,SXN-KTG/KSG interval,S466SN,7,S466SN,12.056,not previously highlighted,none in existing overlap file
+Weak,2X,V523R,-,-,-/-,Weak,1.879,<1e-16,-0.582,1.787,-,1,Yes/No (0),523,SXN-KTG/KSG interval,K547SG,24,S395SN,12.194,not previously highlighted,none in existing overlap file
+Weak,2B,D561N,0.263,0.136,2/11,-,1.843,<1e-16,-0.599,1.743,-,1,Yes/No (0),561,SXN-KTG/KSG interval,K615TG,54,K615TG,41.072,not previously highlighted,none in existing overlap file
+Weak,2B,D561N,0.014,0.01,367/1,-,1.843,<1e-16,-0.599,1.743,-,1,Yes/No (0),561,SXN-KTG/KSG interval,K615TG,54,K615TG,41.072,not previously highlighted,none in existing overlap file
+Weak,2X,S481T,-,-,-/-,Weak,1.792,<1e-16,-0.761,1.623,-,1,Yes/No (0),481,SXN-KTG/KSG interval,K547SG,66,S337TMK,28.178,not previously highlighted,none in existing overlap file
+Weak,1A,P432T,-,-,-/-,Weak,1.749,1.259e-02,1.397,1.051,41,1,No/No (0),432,SXXK-SXN interval,S466SN,34,S370TMK,10.155,not previously highlighted,none in existing overlap file
+Weak,1A,S462A,-,-,-/-,Weak,1.731,1.703e-02,1.384,1.039,41,1,No/No (0),462,SXXK-SXN interval,S466SN,4,S466SN,6.185,not previously highlighted,none in existing overlap file
+Weak,2X,H394L,-,-,-/-,Weak,1.727,<1e-16,-0.522,1.647,-,1,Yes/No (0),394,SXXK-SXN interval,S395SN,1,S395SN,3.82,same-position overlap,Laboratory (see Supplementary S3.2)
+Weak,1A,N630Q,-,-,-/-,Weak,1.499,<1e-16,-1.404,0.526,-,1,Yes/No (0),630,after KTG/KSG,K557TG,71,K557TG,22.736,not previously highlighted,none in existing overlap file
+Weak,2X,V523T,-,-,-/-,Weak,1.48,<1e-16,-0.729,1.288,-,1,Yes/No (0),523,SXN-KTG/KSG interval,K547SG,24,S395SN,12.194,not previously highlighted,none in existing overlap file
+Weak,1A,D473S,-,-,-/-,Weak,1.446,1.821e-13,1.395,0.378,-,1,Yes/No (0),473,SXN-KTG/KSG interval,S466SN,5,S466SN,12.17,not previously highlighted,none in existing overlap file
+Weak,1A,L640V,-,-,-/-,-,1.446,1.821e-13,1.395,0.378,-,1,Yes/No (0),640,after KTG/KSG,K557TG,81,S370TMK,22.36,not previously highlighted,none in existing overlap file
+Weak,1A,T420S,-,-,-/-,-,1.419,6.596e-14,1.375,0.353,-,1,Yes/No (0),420,SXXK-SXN interval,S466SN,46,S370TMK,15.246,not previously highlighted,none in existing overlap file
+Weak,1A,S458D,-,-,-/-,-,1.38,<1e-16,-0.625,1.23,-,1,Yes/No (0),458,SXXK-SXN interval,S466SN,8,S466SN,10.814,not previously highlighted,none in existing overlap file
+Weak,1A,T447N,-,-,-/-,-,1.38,<1e-16,-0.597,1.244,-,1,Yes/No (0),447,SXXK-SXN interval,S466SN,19,S370TMK,14.658,not previously highlighted,none in existing overlap file
+Weak,1A,Y487F,-,-,-/-,-,1.38,<1e-16,-0.625,1.23,-,1,Yes/No (0),487,SXN-KTG/KSG interval,S466SN,19,K557TG,9.65,not previously highlighted,none in existing overlap file
+Weak,2X,S531K,-,-,-/-,-,1.367,<1e-16,-0.914,1.017,-,1,Yes/No (0),531,SXN-KTG/KSG interval,K547SG,16,K547SG,18.945,same-position overlap,Li et al. CDC study; Laboratory (see Supplementary S3.2)
+Weak,1A,V607I,-,-,-/-,-,1.29,4.636e-14,1.257,0.291,-,1,Yes/No (0),607,after KTG/KSG,K557TG,48,K557TG,14.498,not previously highlighted,none in existing overlap file
+Weak,1A,T371A,-,-,-/-,Weak,1.017,3.089e-09,0.321,0.965,-,1,Yes/No (0),371,within active-site motif,S370TMK,0,S370TMK,0.0,same-position overlap,Li et al. CDC study
+Weak,2X,D567N,-,-,-/-,Weak,1.006,<1e-16,0.142,0.996,-,1,Yes/No (0),567,after KTG/KSG,K547SG,18,K547SG,13.844,not previously highlighted,none in existing overlap file
+Weak,1A,S592A,-,-,-/-,Weak,0.995,<1e-16,-0.469,0.878,3,1,Yes/No (0),592,after KTG/KSG,K557TG,33,K557TG,11.784,not previously highlighted,none in existing overlap file
+Weak,1A,A550P,-,-,-/-,Weak,0.993,3.038e-11,0.681,0.722,33,1,Yes/No (0),550,SXN-KTG/KSG interval,K557TG,7,K557TG,16.537,same-position overlap,Li et al. CDC study
+Weak,1A,N546G,-,-,-/-,Weak,0.993,3.038e-11,0.681,0.722,33,1,Yes/No (0),546,SXN-KTG/KSG interval,K557TG,11,K557TG,9.901,same-position overlap,Chewapreecha et al. GWAS; Li et al. CDC study
+Weak,2X,N417K,-,-,-/-,-,0.978,<1e-16,0.957,0.2,35,1,Yes/Yes (1),417,SXN-KTG/KSG interval,S395SN,20,S337TMK,13.976,not previously highlighted,none in existing overlap file
+Weak,2B,D578E,-,-,-/-,-,0.964,<1e-16,-0.26,0.928,57,1,Yes/No (0),578,SXN-KTG/KSG interval,K615TG,37,S386VVK,17.879,not previously highlighted,none in existing overlap file
+Weak,2B,T569K,-,-,-/-,-,0.964,<1e-16,-0.26,0.928,57,1,Yes/No (0),569,SXN-KTG/KSG interval,K615TG,46,S386VVK,23.631,not previously highlighted,none in existing overlap file
+Weak,2X,L546V,-,-,-/-,-,0.96,2.630e-04,0.872,0.401,47,1,Yes/No (0),546,SXN-KTG/KSG interval,K547SG,1,K547SG,3.791,same-position overlap,Laboratory (see Supplementary S3.2)
+Weak,2X,S574T,-,-,-/-,-,0.96,2.630e-04,0.872,0.401,47,1,Yes/No (0),574,after KTG/KSG,K547SG,25,K547SG,6.51,not previously highlighted,none in existing overlap file
+Weak,2X,V537I,-,-,-/-,-,0.96,2.630e-04,0.872,0.401,47,1,Yes/No (0),537,SXN-KTG/KSG interval,K547SG,10,K547SG,9.89,not previously highlighted,none in existing overlap file
+Weak,2X,T338A,-,-,-/-,Weak,0.956,3.094e-02,0.781,0.551,52,1,No/Yes (1),338,within active-site motif,S337TMK,0,S337TMK,0.0,same-position overlap,Chewapreecha et al. GWAS; Li et al. CDC study; Laboratory (see Supplementary S3.2)
+Weak,2X,R254Q,-,-,-/-,Weak,0.919,<1e-16,0.016,0.919,2,1,Yes/Yes (1),254,before S337TMK,S337TMK,83,S337TMK,52.38,same-position overlap,Chewapreecha et al. GWAS; Li et al. CDC study
+Weak,2X,L517M,-,-,-/-,-,0.902,<1e-16,-0.508,0.745,13,1,Yes/No (0),517,SXN-KTG/KSG interval,K547SG,30,K547SG,9.637,not previously highlighted,none in existing overlap file
+Weak,2X,S576H,-,-,-/-,Weak,0.89,<1e-16,-0.519,0.723,13,1,Yes/No (0),576,after KTG/KSG,K547SG,27,K547SG,12.257,same-position overlap,Li et al. CDC study; Laboratory (see Supplementary S3.2)
+Weak,2X,V563T,-,-,-/-,-,0.89,<1e-16,-0.519,0.723,13,1,Yes/No (0),563,after KTG/KSG,K547SG,14,K547SG,16.476,not previously highlighted,none in existing overlap file
+Weak,1A,N630H,-,-,-/-,Weak,0.889,1.011e-10,0.878,0.14,3,1,Yes/No (0),630,after KTG/KSG,K557TG,71,K557TG,22.736,not previously highlighted,none in existing overlap file
+Weak,2X,M256V,-,-,-/-,Weak,0.881,<1e-16,0.039,0.88,1,1,Yes/Yes (1),256,before S337TMK,S337TMK,81,S337TMK,47.134,same-position overlap,Chewapreecha et al. GWAS; Li et al. CDC study
+Weak,1A,H571Y,-,-,-/-,Weak,0.87,1.451e-01,0.677,0.547,58,1,No/No (0),571,after KTG/KSG,K557TG,12,S466SN,19.585,not previously highlighted,none in existing overlap file
+Weak,2X,A346S,-,-,-/-,Weak,0.849,<1e-16,0.842,0.103,45,1,Yes/Yes (1),346,SXXK-SXN interval,S337TMK,6,S337TMK,9.655,same-position overlap,Chewapreecha et al. GWAS
+Weak,1A,E638D,-,-,-/-,Weak,0.8,<1e-16,-0.63,0.493,27,1,Yes/No (0),638,after KTG/KSG,K557TG,79,K557TG,25.129,not previously highlighted,none in existing overlap file
+Weak,1A,N609D,-,-,-/-,Weak,0.78,1.047e-10,0.501,0.598,35,1,Yes/No (0),609,after KTG/KSG,K557TG,50,K557TG,15.305,not previously highlighted,none in existing overlap file
+Weak,1A,E397I,-,-,-/-,Weak,0.777,<1e-16,0.351,0.693,43,1,Yes/No (0),397,SXXK-SXN interval,S370TMK,24,S370TMK,17.788,same-position overlap,Li et al. CDC study
+Weak,1A,G414A,-,-,-/-,Weak,0.777,<1e-16,0.351,0.693,43,1,Yes/No (0),414,SXXK-SXN interval,S370TMK,41,S370TMK,16.942,not previously highlighted,none in existing overlap file
+Weak,1A,H395N,-,-,-/-,Weak,0.777,<1e-16,0.351,0.693,43,1,Yes/No (0),395,SXXK-SXN interval,S370TMK,22,S370TMK,15.197,not previously highlighted,none in existing overlap file
+Weak,1A,I393M,-,-,-/-,Weak,0.777,<1e-16,0.351,0.693,43,1,Yes/No (0),393,SXXK-SXN interval,S370TMK,20,S370TMK,16.931,not previously highlighted,none in existing overlap file
+Weak,1A,N405S,-,-,-/-,Weak,0.777,<1e-16,0.351,0.693,43,1,Yes/No (0),405,SXXK-SXN interval,S370TMK,32,S466SN,18.826,same-position overlap,Li et al. CDC study
+Weak,2X,G355S,-,-,-/-,-,0.767,1.320e-08,0.732,0.228,42,1,Yes/Yes (1),355,SXXK-SXN interval,S337TMK,15,S395SN,14.177,same-position overlap,Chewapreecha et al. GWAS
+Weak,1A,V518A,-,-,-/-,-,0.739,3.159e-01,0.563,0.478,62,1,No/No (0),518,SXN-KTG/KSG interval,K557TG,39,S370TMK,24.519,not previously highlighted,none in existing overlap file
+Weak,2B,D561E,-,-,-/-,-,0.728,1.000e+00,0.652,0.324,37,1,No/No (0),561,SXN-KTG/KSG interval,K615TG,54,K615TG,41.072,not previously highlighted,none in existing overlap file
+Weak,2B,L566I,-,-,-/-,-,0.728,1.000e+00,0.652,0.324,37,1,No/No (0),566,SXN-KTG/KSG interval,K615TG,49,S386VVK,30.175,not previously highlighted,none in existing overlap file
+Weak,2B,Q565A,-,-,-/-,-,0.728,1.000e+00,0.652,0.324,37,1,No/No (0),565,SXN-KTG/KSG interval,K615TG,50,S386VVK,33.402,not previously highlighted,none in existing overlap file
+Weak,2B,S582A,-,-,-/-,-,0.728,1.000e+00,0.652,0.324,37,1,No/No (0),582,SXN-KTG/KSG interval,K615TG,33,K615TG,14.997,not previously highlighted,none in existing overlap file
+Weak,2X,D488N,0.321,0.321,3/3,-,0.725,<1e-16,0.321,0.65,53,1,Yes/No (0),488,SXN-KTG/KSG interval,K547SG,59,S337TMK,46.21,not previously highlighted,none in existing overlap file
+Weak,2X,D488N,0.033,0.023,142/1,-,0.725,<1e-16,0.321,0.65,53,1,Yes/No (0),488,SXN-KTG/KSG interval,K547SG,59,S337TMK,46.21,not previously highlighted,none in existing overlap file
+Weak,1A,K475Q,-,-,-/-,Weak,0.714,1.449e-02,0.492,0.517,49,1,No/No (0),475,SXN-KTG/KSG interval,S466SN,7,S466SN,12.056,not previously highlighted,none in existing overlap file
+Weak,2B,Q567D,-,-,-/-,-,0.705,1.000e+00,0.632,0.314,35,1,No/No (0),567,SXN-KTG/KSG interval,K615TG,48,S386VVK,28.333,not previously highlighted,none in existing overlap file
+Weak,2B,P568T,-,-,-/-,-,0.678,1.000e+00,0.592,0.331,36,1,No/No (0),568,SXN-KTG/KSG interval,K615TG,47,S386VVK,24.576,not previously highlighted,none in existing overlap file
+Weak,2X,I265L,-,-,-/-,Weak,0.665,<1e-16,0.66,-0.077,36,1,Yes/No (0),265,before S337TMK,S337TMK,72,S337TMK,24.111,not previously highlighted,none in existing overlap file
+Weak,2X,S576N,0.014,0.01,1/367,Weak,0.664,<1e-16,-0.021,0.664,29,1,Yes/No (0),576,after KTG/KSG,K547SG,27,K547SG,12.257,same-position overlap,Li et al. CDC study; Laboratory (see Supplementary S3.2)
+Weak,1A,N570K,-,-,-/-,Weak,0.595,1.056e-05,0.379,0.458,52,1,Yes/No (0),570,after KTG/KSG,K557TG,11,S466SN,20.684,not previously highlighted,none in existing overlap file
+Weak,2X,R384G,-,-,-/-,Weak,0.592,<1e-16,-0.018,0.592,54,1,Yes/No (0),384,SXXK-SXN interval,S395SN,11,S395SN,10.44,same-position overlap,Li et al. CDC study; Laboratory (see Supplementary S3.2)
+Weak,2X,L241V,-,-,-/-,Weak,0.575,<1e-16,0.547,-0.175,7,1,Yes/Yes (1),241,before S337TMK,S337TMK,96,not resolved,not resolved,not previously highlighted,none in existing overlap file
+Weak,2X,Q281L,-,-,-/-,-,0.562,<1e-16,0.556,-0.076,33,1,Yes/No (0),281,before S337TMK,S337TMK,56,K547SG,17.579,same-position overlap,Chewapreecha et al. GWAS; Laboratory (see Supplementary S3.2)
+Weak,2X,Q250L,-,-,-/-,Weak,0.521,<1e-16,0.475,-0.214,7,1,Yes/Yes (1),250,before S337TMK,S337TMK,87,not resolved,not resolved,not previously highlighted,none in existing overlap file
+Weak,1A,V505I,-,-,-/-,-,0.519,<1e-16,-0.016,0.519,53,1,Yes/No (0),505,SXN-KTG/KSG interval,S466SN,37,S466SN,34.546,not previously highlighted,none in existing overlap file
+Weak,2X,T536I,0.056,0.042,1/122,-,0.469,9.277e-04,0.453,0.122,47,1,Yes/No (0),536,SXN-KTG/KSG interval,K547SG,11,K547SG,10.22,not previously highlighted,none in existing overlap file
+Weak,2X,T536I,0,0,1/91,-,0.469,9.277e-04,0.453,0.122,47,1,Yes/No (0),536,SXN-KTG/KSG interval,K547SG,11,K547SG,10.22,not previously highlighted,none in existing overlap file
+Weak,1A,A585V,-,-,-/-,Weak,0.456,2.992e-09,0.217,0.401,36,1,Yes/No (0),585,after KTG/KSG,K557TG,26,K557TG,5.733,same-position overlap,Chewapreecha et al. GWAS; Li et al. CDC study
+Weak,1A,N405D,-,-,-/-,Weak,0.438,4.637e-11,0.111,0.423,35,1,Yes/No (0),405,SXXK-SXN interval,S370TMK,32,S466SN,18.826,same-position overlap,Li et al. CDC study
+Weak,1A,I636M,0.13,0.051,198/1,Weak,0.403,<1e-16,-0.116,0.386,19,1,Yes/No (0),636,after KTG/KSG,K557TG,77,K557TG,20.055,not previously highlighted,none in existing overlap file
+Weak,1A,I636M,0.022,0.011,142/3,Weak,0.403,<1e-16,-0.116,0.386,19,1,Yes/No (0),636,after KTG/KSG,K557TG,77,K557TG,20.055,not previously highlighted,none in existing overlap file
+Weak,1A,M622I,-,-,-/-,Weak,0.399,1.000e+00,0.315,0.245,28,1,No/No (0),622,after KTG/KSG,K557TG,63,K557TG,14.298,not previously highlighted,none in existing overlap file
+Weak,1A,L583M,-,-,-/-,Weak,0.349,1.826e-09,0.105,0.333,37,1,Yes/No (0),583,after KTG/KSG,K557TG,24,K557TG,4.768,same-position overlap,Chewapreecha et al. GWAS; Li et al. CDC study
+Weak,1A,T540S,0,0,2/5,Weak,0.337,<1e-16,0.124,-0.313,4,1,Yes/No (0),540,SXN-KTG/KSG interval,K557TG,17,K557TG,11.237,same-position overlap,Li et al. CDC study
+Weak,1A,T540S,0,0,24/1,Weak,0.337,<1e-16,0.124,-0.313,4,1,Yes/No (0),540,SXN-KTG/KSG interval,K557TG,17,K557TG,11.237,same-position overlap,Li et al. CDC study
+Weak,1A,T540S,0,0,3/7,Weak,0.337,<1e-16,0.124,-0.313,4,1,Yes/No (0),540,SXN-KTG/KSG interval,K557TG,17,K557TG,11.237,same-position overlap,Li et al. CDC study
+Weak,1A,T540S,0.139,0.037,59/3,Weak,0.337,<1e-16,0.124,-0.313,4,1,Yes/No (0),540,SXN-KTG/KSG interval,K557TG,17,K557TG,11.237,same-position overlap,Li et al. CDC study
+Weak,1A,T540S,0.085,0.002,367/198,Weak,0.337,<1e-16,0.124,-0.313,4,1,Yes/No (0),540,SXN-KTG/KSG interval,K557TG,17,K557TG,11.237,same-position overlap,Li et al. CDC study
+Weak,1A,T540S,0.033,0.002,91/142,Weak,0.337,<1e-16,0.124,-0.313,4,1,Yes/No (0),540,SXN-KTG/KSG interval,K557TG,17,K557TG,11.237,same-position overlap,Li et al. CDC study
+Weak,1A,T540S,0.092,0.014,17/77,Weak,0.337,<1e-16,0.124,-0.313,4,1,Yes/No (0),540,SXN-KTG/KSG interval,K557TG,17,K557TG,11.237,same-position overlap,Li et al. CDC study
+Weak,1A,G628D,-,-,-/-,Weak,0.313,1.158e-01,0.151,0.274,32,1,No/No (0),628,after KTG/KSG,K557TG,69,K557TG,23.622,not previously highlighted,none in existing overlap file
+Weak,1A,N635T,-,-,-/-,Weak,0.313,1.158e-01,0.151,0.274,32,1,No/No (0),635,after KTG/KSG,K557TG,76,K557TG,20.129,not previously highlighted,none in existing overlap file
+Weak,2X,L565V,0.053,0.053,1/48,Strong,0.284,<1e-16,0.124,-0.256,-,1,Yes/No (0),565,after KTG/KSG,K547SG,16,K547SG,13.732,same-position overlap,Li et al. CDC study
+Weak,2X,L565V,0.234,0.036,17/173,Strong,0.284,<1e-16,0.124,-0.256,-,1,Yes/No (0),565,after KTG/KSG,K547SG,16,K547SG,13.732,same-position overlap,Li et al. CDC study
+Weak,2X,V516I,-,-,-/-,Weak,0.278,1.000e+00,0.261,0.098,49,1,No/No (0),516,SXN-KTG/KSG interval,K547SG,31,K547SG,8.607,same-position overlap,Chewapreecha et al. GWAS
+Weak,1A,E566D,-,-,-/-,-,0.239,7.295e-03,-0.226,0.078,37,1,No/No (0),566,after KTG/KSG,K557TG,7,S466SN,16.395,not previously highlighted,none in existing overlap file
+Weak,1A,S629D,-,-,-/-,Weak,0.22,1.000e+00,0.174,0.135,38,1,No/No (0),629,after KTG/KSG,K557TG,70,K557TG,22.711,not previously highlighted,none in existing overlap file
+Weak,1A,V386I,0,0,1/6,Strong,0.19,2.045e-07,0.07,-0.177,-,1,Yes/No (0),386,SXXK-SXN interval,S370TMK,13,S370TMK,15.223,not previously highlighted,none in existing overlap file
+Weak,1A,V386I,0,0,2/7,Strong,0.19,2.045e-07,0.07,-0.177,-,1,Yes/No (0),386,SXXK-SXN interval,S370TMK,13,S370TMK,15.223,not previously highlighted,none in existing overlap file
+Weak,1A,V386I,0,0,2/3,Strong,0.19,2.045e-07,0.07,-0.177,-,1,Yes/No (0),386,SXXK-SXN interval,S370TMK,13,S370TMK,15.223,not previously highlighted,none in existing overlap file
+Weak,1A,V386I,0,-,1/4,Strong,0.19,2.045e-07,0.07,-0.177,-,1,Yes/No (0),386,SXXK-SXN interval,S370TMK,13,S370TMK,15.223,not previously highlighted,none in existing overlap file
+Weak,1A,V386I,0.027,0.005,10/198,Strong,0.19,2.045e-07,0.07,-0.177,-,1,Yes/No (0),386,SXXK-SXN interval,S370TMK,13,S370TMK,15.223,not previously highlighted,none in existing overlap file
+Weak,1A,V386I,0.091,0.007,24/142,Strong,0.19,2.045e-07,0.07,-0.177,-,1,Yes/No (0),386,SXXK-SXN interval,S370TMK,13,S370TMK,15.223,not previously highlighted,none in existing overlap file
+Weak,1A,V386I,0.091,0.034,3/77,Strong,0.19,2.045e-07,0.07,-0.177,-,1,Yes/No (0),386,SXXK-SXN interval,S370TMK,13,S370TMK,15.223,not previously highlighted,none in existing overlap file
+Weak,1A,E632G,-,-,-/-,-,0.185,8.156e-02,-0.016,0.185,40,1,No/No (0),632,after KTG/KSG,K557TG,73,K557TG,19.245,not previously highlighted,none in existing overlap file
+Weak,2X,D311N,-,-,-/-,-,0.155,8.963e-01,0.155,0.004,68,1,No/No (0),311,before S337TMK,S337TMK,26,K547SG,30.491,same-position overlap,Laboratory (see Supplementary S3.2)
+Weak,2B,M571I,0.065,0.019,3/122,-,0.147,5.976e-02,0.046,-0.14,14,1,No/No (0),571,SXN-KTG/KSG interval,K615TG,44,S386VVK,19.31,not previously highlighted,none in existing overlap file
+Weak,2B,M571I,0.014,0.007,2/367,-,0.147,5.976e-02,0.046,-0.14,14,1,No/No (0),571,SXN-KTG/KSG interval,K615TG,44,S386VVK,19.31,not previously highlighted,none in existing overlap file
+Weak,2B,M571I,0.067,0.004,77/91,-,0.147,5.976e-02,0.046,-0.14,14,1,No/No (0),571,SXN-KTG/KSG interval,K615TG,44,S386VVK,19.31,not previously highlighted,none in existing overlap file
+Weak,2B,M571I,0.045,0.011,5/198,-,0.147,5.976e-02,0.046,-0.14,14,1,No/No (0),571,SXN-KTG/KSG interval,K615TG,44,S386VVK,19.31,not previously highlighted,none in existing overlap file
+Weak,1A,D533E,0,-,2/1,-,0.115,3.970e-02,-0.064,0.096,48,1,No/No (0),533,SXN-KTG/KSG interval,K557TG,24,K557TG,11.525,not previously highlighted,none in existing overlap file
+Weak,2B,N538D,0,0,1/2,-,0.074,6.503e-01,-0.055,0.049,9,1,No/No (0),538,SXN-KTG/KSG interval,K615TG,77,K615TG,16.033,not previously highlighted,none in existing overlap file
+Weak,1A,T623S,-,-,-/-,-,0.057,1.000e+00,-0.056,-0.004,43,1,No/No (0),623,after KTG/KSG,K557TG,64,K557TG,16.906,not previously highlighted,none in existing overlap file
+Weak,2B,A446T,1.376,-,1/1,-,,Not Tested Due to Low Sample Size,-,-,-,1,No/No (0),446,SXN-KTG/KSG interval,S443SN,1,S443SN,3.749,same-position overlap,Li et al. CDC study; Laboratory (see Supplementary S3.2)
+Weak,2X,A491S,0.03,0.017,168/1,Strong,,Not Tested Due to Low Sample Size,-,-,-,1,No/No (0),491,SXN-KTG/KSG interval,K547SG,56,S337TMK,38.42,same-position overlap,Chewapreecha et al. GWAS
+Weak,2X,A550T,1.599,0.036,2/327,-,,Not Tested Due to Low Sample Size,-,-,-,1,No/No (0),550,after KTG/KSG,K547SG,1,K547SG,3.799,same-position overlap,Laboratory (see Supplementary S3.2)
+Weak,2X,A551G,1.132,0.184,19/1,-,,Not Tested Due to Low Sample Size,-,-,-,1,No/No (0),551,after KTG/KSG,K547SG,2,S337TMK,6.281,not previously highlighted,none in existing overlap file
+Weak,2X,D378E,1.254,0.172,19/1,-,,Not Tested Due to Low Sample Size,-,-,-,1,No/No (0),378,SXXK-SXN interval,S395SN,17,S395SN,12.915,not previously highlighted,none in existing overlap file
+Weak,2X,D378E,1.286,0.069,1/138,-,,Not Tested Due to Low Sample Size,-,-,-,1,No/No (0),378,SXXK-SXN interval,S395SN,17,S395SN,12.915,not previously highlighted,none in existing overlap file
+Weak,2B,D483G,1.518,0.076,1/138,-,,Not Tested Due to Low Sample Size,-,-,-,1,No/No (0),483,SXN-KTG/KSG interval,S443SN,38,S386VVK,11.8,not previously highlighted,none in existing overlap file
+Weak,2B,G404E,1.429,0.178,1/138,-,,Not Tested Due to Low Sample Size,-,-,-,1,No/No (0),404,SXXK-SXN interval,S386VVK,15,S386VVK,15.821,not previously highlighted,none in existing overlap file
+Weak,1A,G417D,1.057,0.073,1/148,-,,Not Tested Due to Low Sample Size,-,-,-,1,No/No (0),417,SXXK-SXN interval,S370TMK,44,S370TMK,18.9,not previously highlighted,none in existing overlap file
+Weak,2X,K230T,1.028,0.252,1/9,-,,Not Tested Due to Low Sample Size,-,-,-,1,No/No (0),230,before S337TMK,S337TMK,107,S337TMK,45.8,not previously highlighted,none in existing overlap file
+Weak,2B,L504P,1.088,0.29,1/46,-,,Not Tested Due to Low Sample Size,-,-,-,1,No/No (0),504,SXN-KTG/KSG interval,S443SN,59,S386VVK,17.885,not previously highlighted,none in existing overlap file
+Weak,2X,M339,-,-,-/-,Strong,,Not Tested Due to Low Sample Size,-,-,-,1,No/No (0),339,within active-site motif,S337TMK,0,S337TMK,0.0,same-position overlap,Laboratory (see Supplementary S3.2)
+Weak,2X,N326D,1.013,0.047,136/1,-,,Not Tested Due to Low Sample Size,-,-,-,1,No/No (0),326,before S337TMK,S337TMK,11,S337TMK,20.709,not previously highlighted,none in existing overlap file
+Weak,2X,T400M,1.077,-,1/9,-,,Not Tested Due to Low Sample Size,-,-,-,1,No/No (0),400,SXN-KTG/KSG interval,S395SN,3,S395SN,5.46,same-position overlap,Laboratory (see Supplementary S3.2)
+Weak,1A,V386F,0.18,0.055,2/59,Strong,,Not Tested Due to Low Sample Size,-,-,-,1,No/No (0),386,SXXK-SXN interval,S370TMK,13,S370TMK,15.223,not previously highlighted,none in existing overlap file
+Weak,2B,V542M,1.324,0.368,1/11,-,,Not Tested Due to Low Sample Size,-,-,-,1,No/No (0),542,SXN-KTG/KSG interval,K615TG,73,S386VVK,18.129,not previously highlighted,none in existing overlap file
+Weak,2X,V572A,1.462,0,1/2,-,,Not Tested Due to Low Sample Size,-,-,-,1,No/No (0),572,after KTG/KSG,K547SG,23,K547SG,4.066,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2X,A434T,-,-,-/-,-,1.132,1.574e-02,1.068,0.376,-,0,No/No (0),434,SXN-KTG/KSG interval,S395SN,37,S337TMK,16.442,not previously highlighted,none in existing overlap file
+Weak/No Evidence,1A,E512K,-,-,-/-,Weak,0.973,1.000e+00,0.777,0.584,-,0,No/No (0),512,SXN-KTG/KSG interval,S466SN,44,S466SN,38.796,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2B,N470K,-,-,-/-,-,0.942,<1e-16,-0.299,0.893,-,0,Yes/No (0),470,SXN-KTG/KSG interval,S443SN,25,S443SN,21.27,not previously highlighted,none in existing overlap file
+Weak/No Evidence,1A,N643S,-,-,-/-,-,0.881,6.895e-03,0.829,0.299,-,0,No/No (0),643,after KTG/KSG,K557TG,84,K557TG,22.919,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2X,V251I,-,-,-/-,-,0.872,<1e-16,-0.32,0.811,-,0,Yes/No (0),251,before S337TMK,S337TMK,86,S337TMK,58.203,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2B,A516S,-,-,-/-,Weak,0.715,2.530e-04,0.699,0.151,-,0,Yes/Yes (3),516,SXN-KTG/KSG interval,S443SN,71,S386VVK,7.374,not previously highlighted,none in existing overlap file
+Weak/No Evidence,1A,S629T,-,-,-/-,Weak,0.333,1.000e+00,0.264,0.203,-,0,No/No (0),629,after KTG/KSG,K557TG,70,K557TG,22.711,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2B,G597E,0,-,1/1,-,0.289,<1e-16,0.134,-0.256,-,0,Yes/No (0),597,SXN-KTG/KSG interval,K615TG,18,S443SN,12.313,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2B,G597E,0.08,0.027,96/2,-,0.289,<1e-16,0.134,-0.256,-,0,Yes/No (0),597,SXN-KTG/KSG interval,K615TG,18,S443SN,12.313,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2B,G597E,0.065,0.019,3/122,-,0.289,<1e-16,0.134,-0.256,-,0,Yes/No (0),597,SXN-KTG/KSG interval,K615TG,18,S443SN,12.313,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2B,G597E,0,0,2/10,-,0.289,<1e-16,0.134,-0.256,-,0,Yes/No (0),597,SXN-KTG/KSG interval,K615TG,18,S443SN,12.313,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2B,G597E,0,0,2/24,-,0.289,<1e-16,0.134,-0.256,-,0,Yes/No (0),597,SXN-KTG/KSG interval,K615TG,18,S443SN,12.313,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2B,G597E,0.014,0.006,3/367,-,0.289,<1e-16,0.134,-0.256,-,0,Yes/No (0),597,SXN-KTG/KSG interval,K615TG,18,S443SN,12.313,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2B,G597E,0.221,0.009,59/91,-,0.289,<1e-16,0.134,-0.256,-,0,Yes/No (0),597,SXN-KTG/KSG interval,K615TG,18,S443SN,12.313,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2B,G597E,0,0,1/17,-,0.289,<1e-16,0.134,-0.256,-,0,Yes/No (0),597,SXN-KTG/KSG interval,K615TG,18,S443SN,12.313,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2B,G597E,0.26,0.02,48/173,-,0.289,<1e-16,0.134,-0.256,-,0,Yes/No (0),597,SXN-KTG/KSG interval,K615TG,18,S443SN,12.313,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2B,G597E,0.35,0.303,1/41,-,0.289,<1e-16,0.134,-0.256,-,0,Yes/No (0),597,SXN-KTG/KSG interval,K615TG,18,S443SN,12.313,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2B,G597E,0.289,0.024,7/198,-,0.289,<1e-16,0.134,-0.256,-,0,Yes/No (0),597,SXN-KTG/KSG interval,K615TG,18,S443SN,12.313,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2B,G597E,0.022,0.011,3/142,-,0.289,<1e-16,0.134,-0.256,-,0,Yes/No (0),597,SXN-KTG/KSG interval,K615TG,18,S443SN,12.313,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2B,G597E,0,0,12/3,-,0.289,<1e-16,0.134,-0.256,-,0,Yes/No (0),597,SXN-KTG/KSG interval,K615TG,18,S443SN,12.313,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2B,G597E,0.224,0.049,16/30,-,0.289,<1e-16,0.134,-0.256,-,0,Yes/No (0),597,SXN-KTG/KSG interval,K615TG,18,S443SN,12.313,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2B,A490E,0,-,2/1,-,0.257,1.000e+00,-0.047,0.253,-,0,No/No (0),490,SXN-KTG/KSG interval,S443SN,45,S386VVK,16.845,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2B,A490E,0.128,0.01,198/19,-,0.257,1.000e+00,-0.047,0.253,-,0,No/No (0),490,SXN-KTG/KSG interval,S443SN,45,S386VVK,16.845,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2X,A279S,-,-,-/-,-,0.247,4.311e-01,-0.007,-0.247,-,0,No/No (0),279,before S337TMK,S337TMK,58,K547SG,19.933,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2B,S640Y,0.052,0.001,367/168,-,0.233,1.141e-02,0.071,-0.222,-,0,No/No (0),640,after KTG/KSG,K615TG,23,K615TG,12.684,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2X,T385M,-,-,-/-,-,0.228,3.406e-07,-0.121,0.193,-,0,Yes/No (0),385,SXXK-SXN interval,S395SN,10,S395SN,10.944,not previously highlighted,none in existing overlap file
+Weak/No Evidence,1A,T392A,0.033,0.023,1/142,-,0.226,2.699e-01,0.07,-0.215,-,0,No/No (0),392,SXXK-SXN interval,S370TMK,19,S370TMK,16.583,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2B,S473F,-,-,-/-,Weak,0.22,5.782e-01,0.1,-0.196,-,0,No/No (0),473,SXN-KTG/KSG interval,S443SN,28,S386VVK,19.893,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2B,V383A,-,-,-/-,-,0.22,5.782e-01,0.1,-0.196,-,0,No/No (0),383,before S386VVK,S386VVK,3,S386VVK,9.716,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2X,I483V,-,-,-/-,-,0.218,2.463e-01,0.133,-0.173,-,0,No/No (0),483,SXN-KTG/KSG interval,K547SG,64,S337TMK,34.277,not previously highlighted,none in existing overlap file
+Weak/No Evidence,1A,A522V,0.223,0.023,77/30,-,0.212,1.000e+00,0.082,-0.195,-,0,No/No (0),522,SXN-KTG/KSG interval,K557TG,35,S370TMK,15.789,not previously highlighted,none in existing overlap file
+Weak/No Evidence,1A,S629R,0.987,0,1/3,Weak,0.091,1.000e+00,0.079,-0.045,-,0,No/No (0),629,after KTG/KSG,K557TG,70,K557TG,22.711,not previously highlighted,none in existing overlap file
+Weak/No Evidence,1A,S629R,0,-,1/3,Weak,0.091,1.000e+00,0.079,-0.045,-,0,No/No (0),629,after KTG/KSG,K557TG,70,K557TG,22.711,not previously highlighted,none in existing overlap file
+Weak/No Evidence,1A,S629R,0.239,0.018,41/142,Weak,0.091,1.000e+00,0.079,-0.045,-,0,No/No (0),629,after KTG/KSG,K557TG,70,K557TG,22.711,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2B,N656X,-,-,-/-,Weak,0.056,1.000e+00,0.035,0.044,-,0,No/Yes (1),656,after KTG/KSG,K615TG,39,K615TG,14.066,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2X,A296V,0.146,0.022,59/8,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),296,before S337TMK,S337TMK,41,K547SG,16.172,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2X,A367V,0.033,0.023,142/1,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),367,SXXK-SXN interval,S337TMK,27,S395SN,16.304,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2B,A390T,0.049,0.049,61/1,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),390,SXXK-SXN interval,S386VVK,1,S386VVK,3.836,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2B,A391V,0.074,0.018,198/4,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),391,SXXK-SXN interval,S386VVK,2,S386VVK,5.485,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2X,A393T,0.064,0.031,48/2,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),393,SXXK-SXN interval,S395SN,2,S395SN,5.378,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2X,A393V,0.828,0.031,96/2,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),393,SXXK-SXN interval,S395SN,2,S395SN,5.378,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2X,A393V,0,0,17/2,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),393,SXXK-SXN interval,S395SN,2,S395SN,5.378,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2X,A393V,0.211,0.064,54/2,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),393,SXXK-SXN interval,S395SN,2,S395SN,5.378,not previously highlighted,none in existing overlap file
+Weak/No Evidence,1A,A489T,0.098,0.054,16/3,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),489,SXN-KTG/KSG interval,S466SN,21,K557TG,14.192,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2B,A516V,0.011,0.011,173/1,Weak,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),516,SXN-KTG/KSG interval,S443SN,71,S386VVK,7.374,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2B,A529T,0,0,11/1,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),529,SXN-KTG/KSG interval,S443SN,84,S386VVK,10.764,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2B,A533V,0,0,327/1,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),533,SXN-KTG/KSG interval,K615TG,82,K615TG,12.353,not previously highlighted,none in existing overlap file
+Weak/No Evidence,1A,A547S,0.651,0.067,54/1,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),547,SXN-KTG/KSG interval,K557TG,10,K557TG,9.27,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2B,A634T,0.058,0.02,367/1,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),634,after KTG/KSG,K615TG,17,K615TG,4.434,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2X,D488V,0.017,0.008,142/4,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),488,SXN-KTG/KSG interval,K547SG,59,S337TMK,46.21,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2B,D506E,0.585,-,1/1,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),506,SXN-KTG/KSG interval,S443SN,61,S386VVK,21.572,not previously highlighted,none in existing overlap file
+Weak/No Evidence,1A,D533N,0.074,0.014,198/6,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),533,SXN-KTG/KSG interval,K557TG,24,K557TG,11.525,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2B,D538N,0,0,2/3,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),538,SXN-KTG/KSG interval,K615TG,77,K615TG,16.033,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2B,D538N,0,0,6/3,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),538,SXN-KTG/KSG interval,K615TG,77,K615TG,16.033,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2B,D538N,0.113,0.003,327/96,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),538,SXN-KTG/KSG interval,K615TG,77,K615TG,16.033,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2B,D578N,0,0,1/3,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),578,SXN-KTG/KSG interval,K615TG,37,S386VVK,17.879,not previously highlighted,none in existing overlap file
+Weak/No Evidence,1A,E514Q,0.034,0.017,91/2,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),514,SXN-KTG/KSG interval,K557TG,43,S370TMK,33.616,not previously highlighted,none in existing overlap file
+Weak/No Evidence,1A,E533D,0,0,1/12,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),533,SXN-KTG/KSG interval,K557TG,24,K557TG,11.525,not previously highlighted,none in existing overlap file
+Weak/No Evidence,1A,E533D,0.014,0.007,367/2,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),533,SXN-KTG/KSG interval,K557TG,24,K557TG,11.525,not previously highlighted,none in existing overlap file
+Weak/No Evidence,1A,E533D,0.081,0.005,91/61,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),533,SXN-KTG/KSG interval,K557TG,24,K557TG,11.525,not previously highlighted,none in existing overlap file
+Weak/No Evidence,1A,E533D,0,0,17/3,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),533,SXN-KTG/KSG interval,K557TG,24,K557TG,11.525,not previously highlighted,none in existing overlap file
+Weak/No Evidence,1A,E645V,0.049,0.049,61/1,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),645,after KTG/KSG,K557TG,86,K557TG,17.978,not previously highlighted,none in existing overlap file
+Weak/No Evidence,1A,F626S,0.014,0.007,2/367,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),626,after KTG/KSG,K557TG,67,K557TG,18.611,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2X,G384R,0.027,0.015,1/198,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),384,SXXK-SXN interval,S395SN,11,S395SN,10.44,same-position overlap,Li et al. CDC study; Laboratory (see Supplementary S3.2)
+Weak/No Evidence,1A,G417D,0.081,0.081,1/77,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),417,SXXK-SXN interval,S370TMK,44,S370TMK,18.9,not previously highlighted,none in existing overlap file
+Weak/No Evidence,1A,G441R,0.014,0.01,367/1,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),441,SXXK-SXN interval,S466SN,25,S370TMK,14.268,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2B,G467C,0.069,0.03,1/122,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),467,SXN-KTG/KSG interval,S443SN,22,S443SN,21.607,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2B,G467D,0,0,1/2,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),467,SXN-KTG/KSG interval,S443SN,22,S443SN,21.607,not previously highlighted,none in existing overlap file
+Weak/No Evidence,1A,G510S,0.976,0.14,136/1,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),510,SXN-KTG/KSG interval,S466SN,42,S466SN,44.57,not previously highlighted,none in existing overlap file
+Weak/No Evidence,1A,G610D,0.011,0.011,1/173,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),610,after KTG/KSG,K557TG,51,K557TG,13.77,not previously highlighted,none in existing overlap file
+Weak/No Evidence,1A,G610D,0.235,0.235,1/7,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),610,after KTG/KSG,K557TG,51,K557TG,13.77,not previously highlighted,none in existing overlap file
+Weak/No Evidence,1A,G639E,0,0,1/87,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),639,after KTG/KSG,K557TG,80,S370TMK,23.95,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2X,H394Y,0.069,0.03,122/1,Weak,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),394,SXXK-SXN interval,S395SN,1,S395SN,3.82,same-position overlap,Laboratory (see Supplementary S3.2)
+Weak/No Evidence,1A,I386F,0,0,2/3,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),386,SXXK-SXN interval,S370TMK,13,S370TMK,15.223,not previously highlighted,none in existing overlap file
+Weak/No Evidence,1A,I386V,0.049,0.019,3/77,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),386,SXXK-SXN interval,S370TMK,13,S370TMK,15.223,not previously highlighted,none in existing overlap file
+Weak/No Evidence,1A,I386V,0,0,96/3,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),386,SXXK-SXN interval,S370TMK,13,S370TMK,15.223,not previously highlighted,none in existing overlap file
+Weak/No Evidence,1A,I386V,0.229,0.052,3/59,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),386,SXXK-SXN interval,S370TMK,13,S370TMK,15.223,not previously highlighted,none in existing overlap file
+Weak/No Evidence,1A,I386V,0,-,1/1,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),386,SXXK-SXN interval,S370TMK,13,S370TMK,15.223,not previously highlighted,none in existing overlap file
+Weak/No Evidence,1A,I386V,0.03,0.01,2/367,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),386,SXXK-SXN interval,S370TMK,13,S370TMK,15.223,not previously highlighted,none in existing overlap file
+Weak/No Evidence,1A,I386V,0.085,0.004,122/91,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),386,SXXK-SXN interval,S370TMK,13,S370TMK,15.223,not previously highlighted,none in existing overlap file
+Weak/No Evidence,1A,I386V,0.198,0.06,5/173,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),386,SXXK-SXN interval,S370TMK,13,S370TMK,15.223,not previously highlighted,none in existing overlap file
+Weak/No Evidence,1A,I386V,0,0,11/1,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),386,SXXK-SXN interval,S370TMK,13,S370TMK,15.223,not previously highlighted,none in existing overlap file
+Weak/No Evidence,1A,I386V,0.028,0.015,327/2,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),386,SXXK-SXN interval,S370TMK,13,S370TMK,15.223,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2B,I434V,0.235,0.235,7/1,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),434,SXXK-SXN interval,S443SN,9,S443SN,8.986,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2X,I480L,0.029,0.006,77/24,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),480,SXN-KTG/KSG interval,K547SG,67,S337TMK,26.608,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2X,I480L,0.076,0.043,59/1,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),480,SXN-KTG/KSG interval,K547SG,67,S337TMK,26.608,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2X,I531S,0.133,0.007,29/198,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),531,SXN-KTG/KSG interval,K547SG,16,K547SG,18.945,same-position overlap,Li et al. CDC study; Laboratory (see Supplementary S3.2)
+Weak/No Evidence,1A,I568,-,-,-/-,Weak,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),568,after KTG/KSG,K557TG,9,S466SN,17.472,not previously highlighted,none in existing overlap file
+Weak/No Evidence,1A,I572,-,-,-/-,Weak,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),572,after KTG/KSG,K557TG,13,S466SN,20.095,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2X,L402F,0.963,0,1/6,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),402,SXN-KTG/KSG interval,S395SN,5,S395SN,8.807,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2X,L562I,0.012,0.006,5/327,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),562,after KTG/KSG,K547SG,13,S337TMK,16.575,not previously highlighted,none in existing overlap file
+Weak/No Evidence,1A,L603,-,-,-/-,Weak,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),603,after KTG/KSG,K557TG,44,S466SN,15.8,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2X,M342I,0.049,0.049,1/61,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),342,SXXK-SXN interval,S337TMK,2,S337TMK,5.246,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2X,M342V,0.967,0.161,138/1,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),342,SXXK-SXN interval,S337TMK,2,S337TMK,5.246,not previously highlighted,none in existing overlap file
+Weak/No Evidence,1A,M372I,0.543,0.231,1/46,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),372,within active-site motif,S370TMK,0,S370TMK,0.0,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2X,M385T,0.065,0.015,122/5,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),385,SXXK-SXN interval,S395SN,10,S395SN,10.944,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2X,M385T,0,0,10/3,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),385,SXXK-SXN interval,S395SN,10,S395SN,10.944,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2X,M385T,0,0,3/1,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),385,SXXK-SXN interval,S395SN,10,S395SN,10.944,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2X,M385T,0.249,0.013,59/48,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),385,SXXK-SXN interval,S395SN,10,S395SN,10.944,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2X,M385T,0.039,0.004,367/17,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),385,SXXK-SXN interval,S395SN,10,S395SN,10.944,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2X,M385T,0.224,0.014,91/173,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),385,SXXK-SXN interval,S395SN,10,S395SN,10.944,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2X,M385T,0.963,0,8/2,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),385,SXXK-SXN interval,S395SN,10,S395SN,10.944,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2X,M385T,0.157,0.006,198/77,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),385,SXXK-SXN interval,S395SN,10,S395SN,10.944,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2X,M385T,0,0,2/3,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),385,SXXK-SXN interval,S395SN,10,S395SN,10.944,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2X,M385T,0,0,327/2,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),385,SXXK-SXN interval,S395SN,10,S395SN,10.944,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2X,M400I,0,0,1/77,Weak,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),400,SXN-KTG/KSG interval,S395SN,3,S395SN,5.46,same-position overlap,Laboratory (see Supplementary S3.2)
+Weak/No Evidence,2X,N360,-,-,-/-,Weak,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),360,SXXK-SXN interval,S337TMK,20,S395SN,10.38,not previously highlighted,none in existing overlap file
+Weak/No Evidence,1A,N443I,0.013,0.013,1/168,Weak,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),443,SXXK-SXN interval,S466SN,23,S370TMK,15.995,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2B,P433H,0.13,0.051,1/198,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),433,SXXK-SXN interval,S443SN,10,S443SN,11.044,not previously highlighted,none in existing overlap file
+Weak/No Evidence,1A,P457L,0.013,0.013,1/168,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),457,SXXK-SXN interval,S466SN,9,S466SN,11.251,not previously highlighted,none in existing overlap file
+Weak/No Evidence,1A,P499A,0.367,0.124,1/59,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),499,SXN-KTG/KSG interval,S466SN,31,S370TMK,18.476,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2B,Q411R,0.091,0.024,198/3,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),411,SXXK-SXN interval,S386VVK,22,S443SN,9.647,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2B,Q458E,0.35,0.303,1/41,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),458,SXN-KTG/KSG interval,S443SN,13,S443SN,17.297,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2X,Q542R,0.014,0.01,367/1,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),542,SXN-KTG/KSG interval,K547SG,5,K547SG,16.115,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2B,Q586K,0.963,-,1/1,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),586,SXN-KTG/KSG interval,K615TG,29,K615TG,11.448,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2X,R286G,0.605,0.013,367/9,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),286,before S337TMK,S337TMK,51,K547SG,15.473,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2X,S354P,0.014,0.01,367/1,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),354,SXXK-SXN interval,S337TMK,14,S395SN,15.367,not previously highlighted,none in existing overlap file
+Weak/No Evidence,1A,S540T,0.896,0.244,12/2,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),540,SXN-KTG/KSG interval,K557TG,17,K557TG,11.237,same-position overlap,Li et al. CDC study
+Weak/No Evidence,1A,S540T,0,0,96/2,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),540,SXN-KTG/KSG interval,K557TG,17,K557TG,11.237,same-position overlap,Li et al. CDC study
+Weak/No Evidence,1A,S540T,0,0,3/2,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),540,SXN-KTG/KSG interval,K557TG,17,K557TG,11.237,same-position overlap,Li et al. CDC study
+Weak/No Evidence,1A,S540T,0,0,2/10,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),540,SXN-KTG/KSG interval,K557TG,17,K557TG,11.237,same-position overlap,Li et al. CDC study
+Weak/No Evidence,1A,S540T,0.141,0.009,122/24,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),540,SXN-KTG/KSG interval,K557TG,17,K557TG,11.237,same-position overlap,Li et al. CDC study
+Weak/No Evidence,2B,S579F,0.058,0.02,1/367,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),579,SXN-KTG/KSG interval,K615TG,36,S386VVK,17.482,not previously highlighted,none in existing overlap file
+Weak/No Evidence,1A,S629N,0.404,0.085,3/29,Weak,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),629,after KTG/KSG,K557TG,70,K557TG,22.711,not previously highlighted,none in existing overlap file
+Weak/No Evidence,1A,S629N,0.694,0.062,1/148,Weak,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),629,after KTG/KSG,K557TG,70,K557TG,22.711,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2X,T381N,0.096,0.046,1/77,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),381,SXXK-SXN interval,S395SN,14,S395SN,12.826,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2B,T435A,0,-,1/1,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),435,SXXK-SXN interval,S443SN,8,S443SN,10.098,not previously highlighted,none in existing overlap file
+Weak/No Evidence,1A,T436I,0.743,0.067,1/148,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),436,SXXK-SXN interval,S466SN,30,S370TMK,9.656,not previously highlighted,none in existing overlap file
+Weak/No Evidence,1A,T436N,0.056,0.042,1/122,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),436,SXXK-SXN interval,S466SN,30,S370TMK,9.656,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2X,T466A,0.096,0.046,1/77,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),466,SXN-KTG/KSG interval,S395SN,69,S337TMK,13.537,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2X,T526S,0.828,0.045,1/96,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),526,SXN-KTG/KSG interval,K547SG,21,S395SN,6.93,same-position overlap,Laboratory (see Supplementary S3.2)
+Weak/No Evidence,2B,T599I,0,0,1/29,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),599,SXN-KTG/KSG interval,K615TG,16,S443SN,8.133,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2X,V284I,0.487,0.122,6/41,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),284,before S337TMK,S337TMK,53,K547SG,15.853,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2X,V393A,0.288,0.011,367/8,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),393,SXXK-SXN interval,S395SN,2,S395SN,5.378,not previously highlighted,none in existing overlap file
+Weak/No Evidence,1A,V408I,0.017,0.012,2/142,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),408,SXXK-SXN interval,S370TMK,35,S466SN,12.49,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2X,V488N,0,0,1/4,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),488,SXN-KTG/KSG interval,K547SG,59,S337TMK,46.21,not previously highlighted,none in existing overlap file
+Weak/No Evidence,1A,V506I,0.894,0.03,1/122,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),506,SXN-KTG/KSG interval,S466SN,38,S466SN,38.332,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2X,V518I,0.887,0.03,2/59,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),518,SXN-KTG/KSG interval,K547SG,29,K547SG,6.73,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2X,V518I,0.096,0.046,1/77,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),518,SXN-KTG/KSG interval,K547SG,29,K547SG,6.73,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2X,V518I,0.201,0.008,17/327,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),518,SXN-KTG/KSG interval,K547SG,29,K547SG,6.73,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2X,V544,-,-,-/-,Weak,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),544,SXN-KTG/KSG interval,K547SG,3,K547SG,9.625,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2X,V565L,0.101,0.024,96/3,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),565,after KTG/KSG,K547SG,16,K547SG,13.732,same-position overlap,Li et al. CDC study
+Weak/No Evidence,2X,V565L,0.064,0.025,2/122,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),565,after KTG/KSG,K547SG,16,K547SG,13.732,same-position overlap,Li et al. CDC study
+Weak/No Evidence,2X,V565L,0,0,2/2,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),565,after KTG/KSG,K547SG,16,K547SG,13.732,same-position overlap,Li et al. CDC study
+Weak/No Evidence,2X,V565L,0,0,10/24,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),565,after KTG/KSG,K547SG,16,K547SG,13.732,same-position overlap,Li et al. CDC study
+Weak/No Evidence,2X,V565L,0,0,2/77,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),565,after KTG/KSG,K547SG,16,K547SG,13.732,same-position overlap,Li et al. CDC study
+Weak/No Evidence,2X,V565L,0.076,0.024,3/59,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),565,after KTG/KSG,K547SG,16,K547SG,13.732,same-position overlap,Li et al. CDC study
+Weak/No Evidence,2X,V565L,0.05,0.002,367/91,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),565,after KTG/KSG,K547SG,16,K547SG,13.732,same-position overlap,Li et al. CDC study
+Weak/No Evidence,2X,V565L,0.177,0.177,7/3,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),565,after KTG/KSG,K547SG,16,K547SG,13.732,same-position overlap,Li et al. CDC study
+Weak/No Evidence,2X,V565L,0.091,0.003,198/142,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),565,after KTG/KSG,K547SG,16,K547SG,13.732,same-position overlap,Li et al. CDC study
+Weak/No Evidence,2X,V565L,0,-,1/3,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),565,after KTG/KSG,K547SG,16,K547SG,13.732,same-position overlap,Li et al. CDC study
+Weak/No Evidence,2X,V565L,0,0,1/5,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),565,after KTG/KSG,K547SG,16,K547SG,13.732,same-position overlap,Li et al. CDC study
+Weak/No Evidence,2X,V565L,0.049,0.034,2/61,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),565,after KTG/KSG,K547SG,16,K547SG,13.732,same-position overlap,Li et al. CDC study
+Weak/No Evidence,2B,V591I,0.011,0.011,1/173,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),591,SXN-KTG/KSG interval,K615TG,24,K615TG,6.257,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2B,V591I,0.965,0,1/4,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),591,SXN-KTG/KSG interval,K615TG,24,K615TG,6.257,not previously highlighted,none in existing overlap file
+Weak/No Evidence,1A,V613I,0.034,0.014,3/91,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),613,after KTG/KSG,K557TG,54,K557TG,11.47,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2X,Y288D,0.014,0.01,1/367,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),288,before S337TMK,S337TMK,49,K547SG,16.552,not previously highlighted,none in existing overlap file
+Weak/No Evidence,2X,Y586H,0,0,1/24,-,,Not Tested Due to Low Sample Size,-,-,-,0,No/No (0),586,after KTG/KSG,K547SG,37,S337TMK,9.486,not previously highlighted,none in existing overlap file

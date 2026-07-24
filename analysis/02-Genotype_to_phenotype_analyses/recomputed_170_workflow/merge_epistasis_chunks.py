@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Merge epistasis chunks and derive marker support."""
+"""Merge epistasis chunks and derive marker support.
+
+Input: observed epistasis chunks, candidate effect sizes, and 100 permutation
+chunks. Output: merged p-values, permutation minima, supported interactions,
+and parent-marker support counts. For the recomputed manuscript analysis the
+threshold mode should be `lowest-min-p`.
+"""
 
 from __future__ import annotations
 

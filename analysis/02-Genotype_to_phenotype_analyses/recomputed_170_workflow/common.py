@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
-"""Shared utilities for corrected-panel mvLMM recomputation."""
+"""Shared utilities for corrected-panel mvLMM recomputation.
+
+This file contains the small pieces of logic reused across the rerun scripts:
+historical constants, expected shape checks, marker parsing, Galwey-adjusted
+p-values, interaction generation, and model-fitting helpers. Start here when
+checking whether raw p-values, adjusted p-values, marker names, and interaction
+rules are handled consistently.
+"""
 
 from __future__ import annotations
 

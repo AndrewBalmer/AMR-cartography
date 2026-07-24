@@ -37,12 +37,17 @@ cache/
 
 # Local manuscript review notes (never commit)
 reviewer-comments/
+manuscript_revision_workspace/
+travel_audit_pack_*/
+travel_audit_pack_*.tar.gz
+travel_audit_pack_*.tar.gz.sha256
+
+# Superseded manuscript drafts and internal pre-submission QA notes (kept local)
+manuscript/legacy/
+manuscript/Final_Pre-Submission_Audit.pdf
 
 # Local audit notes (never commit; adjust this line to push selectively)
 audit/
-
-# Local configuration
-analysis/config.R
 
 # Local external data bundles used for reproducibility
 AMRC-repo-files/
@@ -51,11 +56,16 @@ local-data/
 local-data
 analysis_outputs/
 analysis_outputs
+farm_outputs/
+farm_outputs
 
 # Private manuscript/reference drafts and local review artifacts
-AMRC Manuscript draft V9*.pdf
-AMRC - Supplementary Information v8*.pdf
+AMRC Manuscript draft*.pdf
+AMRC Manuscript draft*.docx
+AMRC - Supplementary Information*.pdf
+AMRC - Supplementary Information*.docx
 BBSRC PhD thesis*.pdf
+BBSRC PhD thesis*.docx
 fmb.12.2.pdf
 analysis/02-Genotype_to_phenotype_analyses/recomputed_170_workflow/claude_*.md
 analysis/02-Genotype_to_phenotype_analyses/recomputed_170_workflow/claude_*.pdf

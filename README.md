@@ -32,12 +32,17 @@ This repo contains the analysis scripts to reproduce the figures/tables in the a
 AMR-cartography/
 ├─ analysis/
 │  ├─ 01-Phenotype_and_map_analyses/
-│  └─ 02-Genotype_to_phenotype_analyses/
+│  ├─ 02-Genotype_to_phenotype_analyses/
+│  │  └─ recomputed_170_workflow/   (corrected 170-marker mvLMM/epistasis rerun)
+│  └─ config.R                      (portable data-directory + map-transform constants)
 ├─ manuscript/
-│  ├─ Manuscript.pdf
-│  ├─ Supplementary_Information.pdf
-│  └─ Supplementary_File_1.csv
+│  ├─ Manuscript.docx
+│  ├─ Supplementary_Information.docx
+│  ├─ Supplementary_File_1.csv
+│  ├─ source_data/                  (source figures/tables for the supplement)
+│  └─ README.md
 ├─ .gitignore
+├─ LICENSE
 └─ README.md (this file)
 ```
 

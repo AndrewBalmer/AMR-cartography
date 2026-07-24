@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Wrapper for a corrected-panel epistasis permutation chunk."""
+"""Wrapper for a corrected-panel epistasis permutation chunk.
+
+This delegates to `run_epistasis_chunk.py` with a deterministic permutation
+seed. It exists so each permutation/chunk can be run or submitted separately
+without duplicating the model-fitting code.
+"""
 
 from __future__ import annotations
 

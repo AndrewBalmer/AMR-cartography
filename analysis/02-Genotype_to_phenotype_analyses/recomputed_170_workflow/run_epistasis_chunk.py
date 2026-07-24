@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Run a chunk of corrected-panel epistatic mvLMM interaction tests."""
+"""Run a chunk of corrected-panel epistatic mvLMM interaction tests.
+
+Each test fits one interaction marker while including both parent markers as
+additive covariates. The same runner is used for observed chunks and for
+permuted-phenotype chunks; the permutation wrapper supplies the seed.
+"""
 
 from __future__ import annotations
 

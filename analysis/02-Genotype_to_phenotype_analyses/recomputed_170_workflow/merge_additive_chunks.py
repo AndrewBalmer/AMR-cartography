@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Merge recomputed 170-marker additive mvLMM chunks and thresholds."""
+"""Merge recomputed 170-marker additive mvLMM chunks and thresholds.
+
+Input: observed additive chunks and 100 additive null/permutation chunks.
+Output: merged p-values/effects plus raw and Galwey-adjusted thresholds. The
+primary threshold is the lowest of the 100 per-permutation minimum p-values.
+"""
 
 from __future__ import annotations
 

@@ -13,6 +13,7 @@ It is important to ensure MDS solutions represent the data accurately. There are
 
 # Clear the workspace
 remove(list = ls())
+source(Sys.getenv("AMRC_CONFIG", unset = path.expand("~/AMR-cartography/analysis/config.R")))  # portable data dir + map constants (see analysis/config.R)
 
 # Load required packages
 library(tidyverse)     # For data manipulation and visualization
@@ -20,13 +21,13 @@ library(smacof)        # For multidimensional scaling
 library(RColorBrewer)  # For color palettes
 
 # Set the working directory
-setwd("/Users/ajb306/AMR-cartography/analysis/01-Phenotype_and_map_analyses/05-07-Estimating-goodness-of-fit")
+# non-portable setwd() removed; knitr uses the document directory
 
 # Read the MIC table data
-tablemic <- read.csv("/Users/ajb306/AMR-cartography-results/data/MIC_table_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+tablemic <- read.csv(amrc_data_path("MIC_table_Spneumoniae.csv"), header=TRUE, sep=",", skip = 0)
 
 # Specify the full path to the data file
-gen_map <- "/Users/ajb306/AMR-cartography-results/data/Spneumo_3628_PCA_start_2D_METRIC_genetic.RData"
+gen_map <- amrc_data_path("Spneumo_3628_PCA_start_2D_METRIC_genetic.RData")
 
 # Load the precomputed PCA start 2D metric data
 load(gen_map)

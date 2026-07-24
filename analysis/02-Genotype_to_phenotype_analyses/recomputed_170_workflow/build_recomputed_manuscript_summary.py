@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Build old-vs-recomputed manuscript result summary artifacts."""
+"""Build old-vs-recomputed manuscript result summary artifacts.
+
+This is a reporting script, not a model-fitting step. It compares the old
+preprint public table with the recomputed public table, writes gained/lost
+multi-method rows, and drafts manuscript replacement text for review.
+"""
 
 from __future__ import annotations
 

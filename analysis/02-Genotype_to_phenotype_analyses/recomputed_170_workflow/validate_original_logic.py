@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Validate exact original-logic replication before trusting corrected outputs."""
+"""Validate exact original-logic replication before trusting corrected outputs.
+
+This is the golden-test harness. It checks that the old 157-marker snapshot
+reproduces the old manuscript Supplementary File 1 counts and that the corrected
+170-marker panel is the old panel plus the validated 13 added markers.
+"""
 
 from __future__ import annotations
 

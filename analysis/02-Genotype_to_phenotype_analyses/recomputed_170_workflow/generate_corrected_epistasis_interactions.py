@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Generate epistasis candidates with the original manuscript four-cell rule."""
+"""Generate epistasis candidates with the original manuscript four-cell rule.
+
+Input: the corrected 170-marker binary matrix.
+Output: interaction metadata for marker pairs where all four parent genotype
+cells are present in at least 1% of isolates. This script defines the epistasis
+testing universe, so review it before reviewing any epistasis model results.
+"""
 
 from __future__ import annotations
 

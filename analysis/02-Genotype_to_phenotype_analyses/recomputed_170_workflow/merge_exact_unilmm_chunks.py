@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Merge full corrected-panel exact uvLMM chunks."""
+"""Merge full corrected-panel exact uvLMM chunks.
+
+Input: all uvLMM marker-drug chunks. Output: 1,020 marker-drug tests plus a
+marker-level support table used only for the public `Sig. mvLMM/uvLMM` display
+column. This script must not add uvLMM as a fifth evidence stream.
+"""
 
 from __future__ import annotations
 

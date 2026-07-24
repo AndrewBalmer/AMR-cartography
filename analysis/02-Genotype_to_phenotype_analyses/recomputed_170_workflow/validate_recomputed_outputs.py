@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Validate primary recomputed 170-marker outputs before manuscript use."""
+"""Validate primary recomputed 170-marker outputs before manuscript use.
+
+Run this after merging and rebuilding outputs. It checks that all observed and
+permutation families are complete, that primary fits have no non-ok rows, and
+that final public/marker-level tables have the accepted shapes.
+"""
 
 from __future__ import annotations
 

@@ -9,6 +9,7 @@ output: html_document
 
 # Clear the workspace
 remove(list = ls())
+source(Sys.getenv("AMRC_CONFIG", unset = path.expand("~/AMR-cartography/analysis/config.R")))  # portable data dir + map constants (see analysis/config.R)
 
 # Load required packages
 library(RColorBrewer)  # For color palettes
@@ -26,17 +27,17 @@ library(proxy)
   knitr::opts_chunk$set(message = FALSE)
   
 # Set working directory
-setwd("/Users/ajb306/AMR-cartography-results/data")
+setwd(AMRC_DATA_DIR)
 
 # Read the MIC table data
-tablemic <- read.csv("/Users/ajb306/AMR-cartography-results/data/MIC_table_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+tablemic <- read.csv(amrc_data_path("MIC_table_Spneumoniae.csv"), header=TRUE, sep=",", skip = 0)
 
 # Read in the relevant meta data
-tablemic_meta <- read.csv("/Users/ajb306/AMR-cartography-results/data/meta_data_Spneumoniae.csv", header=TRUE, sep=",", skip = 0)
+tablemic_meta <- read.csv(amrc_data_path("meta_data_Spneumoniae.csv"), header=TRUE, sep=",", skip = 0)
 
 
 # Specify the full path to the data file
-phen_map <- "/Users/ajb306/AMR-cartography-results/data/Spneumo_3628_PCA_start_2D_METRIC.RData"
+phen_map <- amrc_data_path("Spneumo_3628_PCA_start_2D_METRIC.RData")
 
 # Load the pre-computed PCA start 2D metric data
 load(phen_map)
@@ -48,7 +49,7 @@ for (i in 1:ncol(tablemic)) {
 }
 
   res_samp <- torg_met
-  theta <- 326*pi/180 ## degrees to radians
+  theta <- AMRC_MAP_ROTATION_DEGREES * pi / 180 ## degrees to radians
   rot <- matrix(c(cos(theta), sin(theta), -sin(theta), cos(theta)), ncol = 2)
   res_samp$conf <- res_samp$conf %*% rot ## rotated configurations
   
@@ -59,19 +60,19 @@ for (i in 1:ncol(tablemic)) {
                            "2014200662", "5869-99", "2513-99")
 
   # Specify the full path to the data file
-  gen_map <- "/Users/ajb306/AMR-cartography-results/data/Spneumo_3628_PCA_start_2D_METRIC_genetic.RData"
+  gen_map <- amrc_data_path("Spneumo_3628_PCA_start_2D_METRIC_genetic.RData")
   
   # Load the pre-computed PCA start 2D metric data
   load(gen_map)
 
   # Set working directory
-  setwd("/Users/ajb306/AMR-cartography-results/data")
+  setwd(AMRC_DATA_DIR)
   
   genotype_mds <- as.data.frame(torg_met$conf)
   
   colnames(genotype_mds) <- c("G1","G2")
   
-slope <- 0.1842996
+slope <- AMRC_PHEN_DILATION_SLOPE
 dilation <- 1/slope
 slope
 map_coords <- as.data.frame(res_samp$conf)
@@ -91,7 +92,7 @@ AA_matrix_phenotype <- bind_cols(map_coords, tablemic_meta) %>%
 
 
 ## import MDS transformations for phenotype and genotype maps
-gen_slope <- 0.01814108
+gen_slope <- AMRC_GEN_DILATION_SLOPE
 
 
 ## set up ggplot theme for rest of markdown visualisations
