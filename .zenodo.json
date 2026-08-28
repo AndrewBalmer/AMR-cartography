@@ -1,0 +1,37 @@
+{
+  "title": "AMR Cartography: a generalisable framework for studying multivariate drug resistance",
+  "description": "<p>Code, analysis workflows and manuscript source data for Antimicrobial Resistance (AMR) Cartography &mdash; a multidimensional-scaling and multivariate linear mixed model framework for analysing continuous, correlated minimum inhibitory concentration (MIC) profiles, applied to beta-lactam resistance in <em>Streptococcus pneumoniae</em>.</p>",
+  "license": "mit",
+  "upload_type": "software",
+  "access_right": "open",
+  "creators": [
+    {
+      "name": "Balmer, Andrew J.",
+      "affiliation": "University of Cambridge; Wellcome Sanger Institute"
+    },
+    {
+      "name": "Murray, Gemma G. R.",
+      "affiliation": "University College London"
+    },
+    {
+      "name": "Lo, Stephanie",
+      "affiliation": "Parasites and Microbes, Wellcome Sanger Institute, Hinxton, UK; Milner Centre for Evolution, University of Bath, UK; Great Ormond Street Institute of Child Health, University College London, UK"
+    },
+    {
+      "name": "Restif, Olivier",
+      "affiliation": "University of Cambridge"
+    },
+    {
+      "name": "Weinert, Lucy A.",
+      "affiliation": "University of Cambridge"
+    }
+  ],
+  "keywords": [
+    "antimicrobial resistance",
+    "Streptococcus pneumoniae",
+    "beta-lactams",
+    "multidimensional scaling",
+    "multivariate linear mixed models",
+    "penicillin-binding proteins"
+  ]
+}
