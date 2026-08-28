@@ -13,6 +13,10 @@ accompanying the AMR Cartography paper.
   table, including structure-context annotation columns (position, motif
   interval, nearest motif by sequence/3D, distances, prior evidence
   source/category).
+- `figures/` — main-text figures extracted at full embedded resolution from
+  `Manuscript.docx` (`Figure1.jpg`, `Figure2.jpg`, `Figure3.jpg`; 2048 px wide,
+  ~289 dpi at 180 mm column width). Supplied as separate submission assets;
+  see the note below.
 - `source_data/` — source data and figures underlying the supplementary
   tables/figures (see below).
 
@@ -40,3 +44,14 @@ from the original analysis and generated elsewhere in `analysis/`.
 The recomputed 170-marker mvLMM/uvLMM/epistasis analysis behind
 `Supplementary_File_1.csv` and the `source_data/` figures is documented in
 `analysis/02-Genotype_to_phenotype_analyses/recomputed_170_workflow/`.
+
+## Main-text figure assets
+
+`figures/` holds Figures 1-3 exactly as embedded in `Manuscript.docx`. They are
+2048 px wide JPEGs, which is ~289 dpi at a 180 mm full-page width and ~612 dpi
+at an 85 mm single-column width. That clears the 300 dpi bar at single-column
+size but sits marginally under it full-width, and they are lossy raster rather
+than vector. For final production, regenerate the panels as vector PDF/EPS from
+the plotting scripts under `analysis/` (Figure 1 and 2 panels from
+`01-Phenotype_and_map_analyses/`, Figure 3 panels from
+`02-Genotype_to_phenotype_analyses/`) and re-assemble the composites.
