@@ -1487,7 +1487,7 @@ Narrow sense heritability estimates for each axis were moderate, yet broadly in 
 > corrected 170-marker relatedness matrix
 > (`AMRC-repo-files/pythonProject1-additive-production-20260507-150112/S.pneumo_map_dummy_gen_relatedness_matrix.csv`)
 > gives h² = 0.714 (axis 1) and 0.578 (axis 2), matching the manuscript and
-> Supplementary Table S10's reported 71%/57.2%. Do not quote 0.746/0.597 as
+> Supplementary Table S10's reported 71.4%/57.8%. Do not quote 0.746/0.597 as
 > the current analysis's narrow-sense heritability.
 
 ```{r, echo = F}
@@ -1766,4 +1766,3 @@ ggplot(blups_predictions_fold_1, aes(x=fold_1_test_D2, y=predictions_D2)) +
 
 
 ```
-

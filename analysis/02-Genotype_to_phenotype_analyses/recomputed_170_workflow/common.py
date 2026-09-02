@@ -10,6 +10,7 @@ rules are handled consistently.
 
 from __future__ import annotations
 
+import hashlib
 import math
 import sys
 import types
@@ -43,6 +44,38 @@ EXPECTED_OLD_ADDITIVE_MARKERS = 157
 EXPECTED_CORRECTED_ADDITIVE_MARKERS = 170
 EXPECTED_OLD_EPISTASIS_CANDIDATES = 3542
 EXPECTED_CORRECTED_EPISTASIS_CANDIDATES = 4052
+
+# Frozen copy of the historical (157-marker) public Supplementary File 1, as
+# published in the bioRxiv release commit c7890d7a76ebe611f0ad6e0001d0dcf8a03bb572.
+# The historical comparisons must never read this table from a mutable branch
+# pointer such as `main`, which now carries the corrected 170-marker table.
+HISTORICAL_PUBLIC_SUPPLEMENT = Path(__file__).resolve().parent / "fixtures" / "Supplementary_File_1_historical_354rows.csv"
+HISTORICAL_PUBLIC_SUPPLEMENT_SHA256 = "0fdd239d438dcbab610e3bf05f2611def83f2bd6672704753914bca0a4ec06f5"
+HISTORICAL_PUBLIC_SUPPLEMENT_SOURCE_COMMIT = "c7890d7a76ebe611f0ad6e0001d0dcf8a03bb572"
+EXPECTED_HISTORICAL_PUBLIC_SUPPLEMENT_ROWS = 354
+
+
+def load_historical_public_supplement(path: Path | None = None) -> pd.DataFrame:
+    """Load the frozen historical public Supplementary File 1, checksum-verified.
+
+    This replaces the previous `git show main:manuscript/Supplementary_File_1.csv`
+    lookup, which silently changed meaning once the corrected table was merged
+    to main.
+    """
+    fixture = Path(path) if path is not None else HISTORICAL_PUBLIC_SUPPLEMENT
+    if not fixture.exists():
+        raise FileNotFoundError(
+            f"Historical public supplement fixture not found: {fixture}\n"
+            f"Restore it with: git show {HISTORICAL_PUBLIC_SUPPLEMENT_SOURCE_COMMIT}"
+            ":manuscript/Supplementary_File_1.csv > " + str(fixture)
+        )
+    digest = hashlib.sha256(fixture.read_bytes()).hexdigest()
+    if digest != HISTORICAL_PUBLIC_SUPPLEMENT_SHA256:
+        raise AssertionError(
+            f"Historical public supplement fixture checksum mismatch for {fixture}: "
+            f"expected {HISTORICAL_PUBLIC_SUPPLEMENT_SHA256}, observed {digest}"
+        )
+    return pd.read_csv(fixture)
 
 
 def require_files(paths: list[Path]) -> None:

@@ -87,10 +87,17 @@ for Studying Multivariate Drug Resistance*.
 
 ---
 
-## License
+## Licensing
 
-This project is released under the **MIT License** (permissive).
-**Attribution**: in academic or public outputs that use the methods or scripts here, please include the citation above.
+Code, analysis scripts and configuration files are released under the **MIT
+License**. Author-created manuscript text, tables and figures are released
+under **CC BY 4.0**. Third-party data and materials derived from third-party
+sources are not relicensed; their reuse remains subject to the terms of the
+originating data providers. See [`LICENSES.md`](LICENSES.md) for the complete
+scope statement.
+
+**Attribution**: in academic or public outputs that use the methods or scripts
+here, please include the citation above.
 
 ---
 

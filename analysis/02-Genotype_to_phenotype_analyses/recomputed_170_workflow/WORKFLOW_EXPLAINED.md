@@ -39,16 +39,19 @@ Each prints a list of checks that either say **`PASS`** or the script **stops an
 tells you exactly what failed**. If both end with "All … checks passed," the
 pipeline is internally consistent end-to-end.
 
-There are **three independent self-checks** built in, and this is really the
+There are **three internal checks** built in, and this is really the
 heart of why it's trustworthy:
 
 1. **Golden test** — it re-derives the old paper's exact numbers (the 354-row
    table, the 1 / 5 / 82 / 105 / 161 evidence counts, 157 markers, 3,542
    epistasis candidates). If it can reproduce the old results, its machinery is
    faithful.
-2. **Engine equivalence** — the farm uses a faster maths engine than the
-   original. A check confirms the fast engine gives the *same answer* as the
-   original slow one (agreement to ~8 decimal places).
+2. **Targeted engine comparison** — the farm uses a faster maths engine than
+   the original. A check of 20 selected interactions (10 highly significant
+   and 10 random) found close agreement: the maximum absolute differences were
+   7.23 × 10⁻⁵ for the raw p-value and 9.48 × 10⁻⁵ for the joint
+   effect estimate. This checks those selected interactions; it does not prove
+   global numerical identity between the engines.
 3. **Completeness** — it confirms every model finished with **no failed fits**
    and the exact expected number of rows.
 
@@ -108,6 +111,12 @@ confirms they match, and checks the 13 new markers are legitimate (truly binary,
 common enough to test, not duplicates of existing markers). If anything is off,
 it stops here.
 
+The "old published results" it compares against are a frozen copy of the
+354-row bioRxiv Supplementary File 1, stored at
+`fixtures/Supplementary_File_1_historical_354rows.csv` and verified by SHA256 on
+every load. It is deliberately **not** read from the `main` branch, which now
+carries the corrected 170-marker table.
+
 ### 2. `generate_corrected_epistasis_interactions.py` — list the pairs to test
 Builds the list of marker-pairs to test for epistasis, using the **exact same
 rule** the original used (a pair is eligible only if all four combinations of
@@ -143,7 +152,7 @@ a pair counts, credit is given back to **both** markers in it.
 
 ### 7. `build_corrected_evidence_table.py` — score and assemble
 Each substitution gets an evidence score from **0 to 4** by counting how many of
-**four independent methods** flagged it:
+**four analytical methods** flagged it:
 
 > single-substitution effect · clustering · additive mvLMM · epistasis
 
@@ -155,8 +164,9 @@ It writes **two tables that are kept carefully separate** (see below).
 ### 8. The checks and figures
 - `validate_recomputed_outputs.py` — the completeness self-check (right counts,
   no failures).
-- `verify_epistasis_engine_equivalence.py` — confirms the fast engine ≡ the
-  original engine.
+- `verify_epistasis_engine_equivalence.py` — compares 20 selected interactions
+  between the fast and original engines and reports their observed numerical
+  differences.
 - `generate_recomputed_supplement_figures_original_style.R` — redraws the
   supplement figures in the original style from the new numbers.
 

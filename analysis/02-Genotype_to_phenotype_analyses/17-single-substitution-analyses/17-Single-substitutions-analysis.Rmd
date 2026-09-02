@@ -256,6 +256,8 @@ nat_exp_rankings_summary <- nat_exp_rankings %>%
           Loci,
           AA_1,
           AA_2) %>%
+    # Historical column name retained for compatibility with script 32. The
+    # value calculated here is the mean pairwise distance, not the median.
     summarise(median_phenotypic_distance = mean(Phenotypic_distance),
               sd = sd(Phenotypic_distance),
               n = n(),
@@ -322,7 +324,7 @@ individual_subs <- individual_subs %>% unite("Substitution", Location,AA, remove
   unite("Substitution", Substitution,n, remove = FALSE, na.rm =T, sep = ", n=")
 
   
-individual_subs$Label <- paste(individual_subs$PBP_position, " - Dist:",  round(as.numeric(individual_subs$median_phenotypic_distance), 3),sep="") 
+individual_subs$Label <- paste(individual_subs$PBP_position, " - Mean:",  round(as.numeric(individual_subs$median_phenotypic_distance), 3),sep="")
 
 temp <- individual_subs %>% filter(Comparison_type == "Comparison_PBP") %>% 
   ungroup() %>%
@@ -693,7 +695,7 @@ ggplot(aes(x = Substitution_of_interest, y = median_phenotypic_distance)) +
         geom_hline(yintercept = 1) + 
       theme(legend.position = "none") +
   xlab("Loci (PBP TPD region)") +
-  ylab("Median phenotypic distance (log2 MIC titres)") +
+  ylab("Mean pairwise phenotypic distance (log2 MIC units)") +
   theme(aspect.ratio=2)
 
 ggsave("Spneumoniae_individual_subs_figure.jpg")

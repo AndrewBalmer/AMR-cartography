@@ -75,6 +75,17 @@ $PYTHON analysis/02-Genotype_to_phenotype_analyses/recomputed_170_workflow/valid
   --out-dir "$RESULTS_DIR/validation"
 ```
 
+The historical public table used by these checks is read from a frozen,
+checksum-verified fixture in the repository, not from a branch pointer:
+
+- `recomputed_170_workflow/fixtures/Supplementary_File_1_historical_354rows.csv`
+- SHA256 `0fdd239d438dcbab610e3bf05f2611def83f2bd6672704753914bca0a4ec06f5`
+- extracted from the bioRxiv release commit `c7890d7a76ebe611f0ad6e0001d0dcf8a03bb572`
+
+Override it with `--historical-public-supplement` if needed. The checksum is
+verified on every load, so an altered or truncated fixture fails loudly rather
+than silently changing the comparison.
+
 The validation checks include:
 
 - old Supplementary File 1 has 354 component-expanded rows;
@@ -228,6 +239,8 @@ Primary output locations:
 - `$RESULTS_DIR/manuscript_outputs/Supplementary_File_1.csv`
 - `$RESULTS_DIR/manuscript_outputs/Supplementary_File_1_corrected_marker_level.csv`
 - `$RESULTS_DIR/manuscript_outputs/corrected_rerun_manuscript_summary.md`
+  (the shipped results tree carries this file under its earlier name,
+  `corrected_rerun_manuscript_audit.md`; the content is the same artefact)
 - `$RESULTS_DIR/manuscript_outputs/recomputed_170_manuscript_statistics.md`
 - `$RESULTS_DIR/manuscript_outputs/manuscript_summary/recomputed_170_manuscript_result_summary.md`
 - `$RESULTS_DIR/manuscript_outputs/manuscript_summary/recomputed_170_table3_top20.csv`
