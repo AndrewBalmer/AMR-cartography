@@ -5,7 +5,7 @@
 
 Code and analysis workflows for the paper *Mapping the Phenotypic Landscape of Beta-lactam Resistance in Streptococcus pneumoniae*.
 
-Andrew J. Balmer\*, Gemma G. R. Murray, Stephanie Lo, Olivier Restif⍅ and Lucy A. Weinert⍅
+Andrew J. Balmer\*, Gemma G. R. Murray, Stephanie W. Lo, Olivier Restif⍅ and Lucy A. Weinert⍅
 
 \*Corresponding author; ⍅ Joint senior author
 
@@ -76,14 +76,26 @@ AMR Cartography analyses are primarily in R, although the mvLMM steps use Python
 
 If you use **AMR Cartography** (methods or code), **please cite**:
 
-> Balmer AJ, Murray GGR, Lo S, Restif O, Weinert LA. *Mapping the Phenotypic Landscape of Beta-lactam Resistance in Streptococcus pneumoniae*.
+> Balmer AJ, Murray GGR, Lo SW, Restif O, Weinert LA. *Mapping the Phenotypic Landscape of Beta-lactam Resistance in Streptococcus pneumoniae*.
 >
 > **Preprint**: https://doi.org/10.1101/2025.09.12.675231
 
-Use the preprint DOI above when citing this repository or manuscript. The
-preprint DOI resolves to the latest posted version; earlier versions carry the
-former title, *Antimicrobial Resistance Cartography: A Generalisable Framework
-for Studying Multivariate Drug Resistance*.
+Use the preprint DOI above when citing this repository or manuscript.
+
+**Please read this before citing numbers from the posted preprint.** Only one
+version has been posted to bioRxiv to date: **v1, 16 September 2025**. It
+carries the paper's former title, *Antimicrobial Resistance Cartography: A
+Generalisable Framework for Studying Multivariate Drug Resistance*, and it
+reports the earlier **157-marker** genotype-to-phenotype analysis. The marker
+panel was subsequently corrected to **170 markers** and every affected analysis
+was recomputed in full, so the association results, significance thresholds and
+substitution/position counts in the posted preprint are **superseded**.
+
+The current figures are those in `manuscript/` (`Manuscript.docx`,
+`Supplementary_Information.docx`, `Supplementary_File_1.csv`), reproducible via
+`analysis/02-Genotype_to_phenotype_analyses/recomputed_170_workflow/`. Until a
+revised preprint version is posted, quote the current numbers from this
+repository rather than from the posted preprint PDF.
 
 ---
 
