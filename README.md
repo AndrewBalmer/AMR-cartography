@@ -1,9 +1,7 @@
 
 # AMR Cartography
 
-**A generalisable framework for studying multivariate drug resistance**
-
-Code and analysis workflows for the paper *Mapping the Phenotypic Landscape of Beta-lactam Resistance in Streptococcus pneumoniae*.
+**Code and analysis workflows for the paper *Mapping the Phenotypic Landscape of Beta-lactam Resistance in Streptococcus pneumoniae.**
 
 Andrew J. Balmer\*, Gemma G. R. Murray, Stephanie W. Lo, Olivier Restif⍅ and Lucy A. Weinert⍅
 
