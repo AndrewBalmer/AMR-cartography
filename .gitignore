@@ -84,3 +84,7 @@ analysis/02-Genotype_to_phenotype_analyses/recomputed_170_workflow/pandoc_thin_t
 # Submission figure assets (override the generic figures/ rule above)
 !manuscript/figures/
 !manuscript/figures/**
+
+# Local pre-submission checker and scratch derivations (not part of the package)
+.local-checks/
+rederived_single_subs.csv
