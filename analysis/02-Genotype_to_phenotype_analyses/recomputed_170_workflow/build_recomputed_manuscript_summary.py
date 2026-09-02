@@ -11,11 +11,11 @@ from __future__ import annotations
 import argparse
 import json
 import re
-import subprocess
-from io import StringIO
 from pathlib import Path
 
 import pandas as pd
+
+from common import HISTORICAL_PUBLIC_SUPPLEMENT, load_historical_public_supplement
 
 
 EVIDENCE_ORDER = ["Very Strong", "Strong", "Moderate", "Weak", "Weak/No Evidence"]
@@ -33,13 +33,19 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=Path("analysis_outputs/original_logic_rebuild/manuscript_outputs/Supplementary_File_1.csv"),
     )
+    parser.add_argument(
+        "--historical-public-supplement",
+        default=HISTORICAL_PUBLIC_SUPPLEMENT,
+        type=Path,
+        help="Frozen, checksum-verified copy of the old preprint 354-row public Supplementary File 1.",
+    )
     parser.add_argument("--out-dir", type=Path)
     return parser.parse_args()
 
 
-def load_main_public() -> pd.DataFrame:
-    text = subprocess.check_output(["git", "show", "main:manuscript/Supplementary_File_1.csv"], text=True)
-    return pd.read_csv(StringIO(text))
+def load_old_preprint_public(path: Path | None = None) -> pd.DataFrame:
+    """Old preprint (157-marker) public table, from the frozen fixture."""
+    return load_historical_public_supplement(path)
 
 
 def position_series(df: pd.DataFrame) -> pd.Series:
@@ -262,7 +268,7 @@ def main() -> None:
     recomputed_public = pd.read_csv(args.results_dir / "manuscript_outputs" / "Supplementary_File_1.csv")
     marker_level = pd.read_csv(args.results_dir / "manuscript_outputs" / "Supplementary_File_1_corrected_marker_level.csv")
     historical_public = pd.read_csv(args.historical_public)
-    old_public = load_main_public()
+    old_public = load_old_preprint_public(args.historical_public_supplement)
     manifest = load_json(args.results_dir / "thresholds" / "recomputed_thresholds.json")
 
     tables = {

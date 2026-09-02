@@ -2,12 +2,19 @@
 #
 # Copy or symlink the full AMRC-repo-files/ directory before running the workflow.
 # The files below are the minimum inputs used by the recomputation scripts.
+#
+# Note: the historical 354-row public Supplementary File 1 used by the
+# historical comparisons is NOT part of this bundle. It is version-controlled in
+# recomputed_170_workflow/fixtures/ and checksum-verified at load time.
 
 AMRC-repo-files/pythonProject1/S.pneumo_map_mvlmm_MIC_values.csv
 AMRC-repo-files/pythonProject1/uniLMM_p_val_normal_MIC_pneumo.csv
 AMRC-repo-files/pythonProject1/uniLMM_effect_normal_MIC_pneumo.csv
 AMRC-repo-files/pythonProject1/mvLMM_p_values_normal_pneumo_low_freq_vars.csv
 AMRC-repo-files/pythonProject1/mvLMM_effect_sizes_normal_pneumo_low_freq_vars.csv
+AMRC-repo-files/pythonProject1/Counts_of_each_AA_combination_epi.csv
+AMRC-repo-files/pythonProject1/S.pneumo_map_test_markers_incl_2nd_order_epistatic.csv
+AMRC-repo-files/pythonProject1/mvLMM_p_values_epi_pneumo.csv
 
 AMRC-repo-files/pythonProject1-additive-production-20260507-150112/S.pneumo_map_dummy_gen_relatedness_matrix.csv
 AMRC-repo-files/pythonProject1-additive-production-20260507-150112/S.pneumo_map_dummy_gen_test_markers.csv
@@ -27,4 +34,7 @@ AMRC-repo-files/Streptococcus pneumoniae analysis/Sig_AA_subs_Cluster_gen7_S.pne
 AMRC-repo-files/Streptococcus pneumoniae analysis/Sig_AA_subs_Cluster_gen8_S.pneumo.csv
 AMRC-repo-files/Streptococcus pneumoniae analysis/Sig_AA_subs_Cluster_gen10_S.pneumo.csv
 AMRC-repo-files/Streptococcus pneumoniae analysis/Sig_AA_subs_Cluster_gen12_S.pneumo.csv
+AMRC-repo-files/Streptococcus pneumoniae analysis/Sub_effect_sizes_mv_pneumo.csv
 AMRC-repo-files/Streptococcus pneumoniae analysis/CDC_GWAS_overlap_TPD.csv
+
+AMRC-repo-files/AMR-cartography-results/data/PBP_Sequence_dataset2.csv

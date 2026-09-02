@@ -9,9 +9,7 @@ reproduces the old manuscript Supplementary File 1 counts and that the corrected
 from __future__ import annotations
 
 import argparse
-import io
 import json
-import subprocess
 from pathlib import Path
 
 import numpy as np
@@ -20,13 +18,16 @@ import pandas as pd
 from common import (
     EXPECTED_CORRECTED_ADDITIVE_MARKERS,
     EXPECTED_CORRECTED_EPISTASIS_CANDIDATES,
+    EXPECTED_HISTORICAL_PUBLIC_SUPPLEMENT_ROWS,
     EXPECTED_OLD_ADDITIVE_MARKERS,
     EXPECTED_OLD_EPISTASIS_CANDIDATES,
     HISTORICAL_ADDITIVE_GALWEY_MEFF,
     HISTORICAL_ADDITIVE_THRESHOLD,
+    HISTORICAL_PUBLIC_SUPPLEMENT,
     HISTORICAL_UV_THRESHOLD,
     add_galwey_adjusted_pvalues,
     four_cell_interaction_metadata,
+    load_historical_public_supplement,
     marker_order_from_effects,
     read_csv,
 )
@@ -58,6 +59,12 @@ def parse_args() -> argparse.Namespace:
         default=Path("analysis_outputs/original_logic_rebuild/additive/added_markers.csv"),
         type=Path,
     )
+    parser.add_argument(
+        "--historical-public-supplement",
+        default=HISTORICAL_PUBLIC_SUPPLEMENT,
+        type=Path,
+        help="Frozen, checksum-verified copy of the historical 354-row public Supplementary File 1.",
+    )
     parser.add_argument("--rebuilt-output-dir", default=None, type=Path)
     parser.add_argument("--out-dir", default=Path("analysis_outputs/original_logic_rebuild/validation"), type=Path)
     return parser.parse_args()
@@ -76,14 +83,8 @@ def assert_true(label: str, condition: bool, report: list[str], detail: str = ""
     report.append(f"- PASS `{label}`.{suffix}")
 
 
-def old_supplement_from_main() -> pd.DataFrame:
-    result = subprocess.run(
-        ["git", "show", "main:manuscript/Supplementary_File_1.csv"],
-        check=True,
-        text=True,
-        capture_output=True,
-    )
-    return pd.read_csv(io.StringIO(result.stdout))
+def old_supplement_from_fixture(path: Path | None = None) -> pd.DataFrame:
+    return load_historical_public_supplement(path)
 
 
 def additive_marker_order(directory: Path) -> list[str]:
@@ -98,9 +99,14 @@ def unordered_pairs(interactions: pd.Series) -> set[tuple[str, str]]:
     return pairs
 
 
-def validate_old_supplement(report: list[str]) -> None:
-    df = old_supplement_from_main()
-    assert_equal("old Supplementary_File_1 rows", len(df), 354, report)
+def validate_old_supplement(report: list[str], fixture: Path | None = None) -> None:
+    df = old_supplement_from_fixture(fixture)
+    assert_equal(
+        "old Supplementary_File_1 rows",
+        len(df),
+        EXPECTED_HISTORICAL_PUBLIC_SUPPLEMENT_ROWS,
+        report,
+    )
     counts = df["Evidence"].value_counts().reindex(list(EXPECTED_OLD_SUPPLEMENT_COUNTS), fill_value=0).to_dict()
     assert_equal("old Supplementary_File_1 evidence counts", counts, EXPECTED_OLD_SUPPLEMENT_COUNTS, report)
     multi = df[df["Evidence"].isin(["Very Strong", "Strong", "Moderate"])].copy()
@@ -259,7 +265,7 @@ def main() -> None:
         "",
     ]
 
-    validate_old_supplement(report)
+    validate_old_supplement(report, args.historical_public_supplement)
     _, _, added = validate_marker_panels(args, report)
     validate_epistasis_candidates(args, added, report)
     validate_scoring_frames(args, report)

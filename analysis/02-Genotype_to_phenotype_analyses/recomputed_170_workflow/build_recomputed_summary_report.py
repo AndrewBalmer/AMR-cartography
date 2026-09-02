@@ -6,11 +6,11 @@ from __future__ import annotations
 import argparse
 import json
 import re
-import subprocess
-from io import StringIO
 from pathlib import Path
 
 import pandas as pd
+
+from common import HISTORICAL_PUBLIC_SUPPLEMENT, load_historical_public_supplement
 
 
 EVIDENCE_ORDER = ["Very Strong", "Strong", "Moderate", "Weak", "Weak/No Evidence"]
@@ -20,6 +20,12 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--results-dir", required=True, type=Path)
     parser.add_argument("--original-logic-public", type=Path)
+    parser.add_argument(
+        "--historical-public-supplement",
+        default=HISTORICAL_PUBLIC_SUPPLEMENT,
+        type=Path,
+        help="Frozen, checksum-verified copy of the historical 354-row public Supplementary File 1.",
+    )
     parser.add_argument("--out-dir", type=Path)
     return parser.parse_args()
 
@@ -28,9 +34,9 @@ def load_json(path: Path) -> dict[str, object]:
     return json.loads(path.read_text()) if path.exists() else {"missing": str(path)}
 
 
-def load_main_public() -> pd.DataFrame:
-    text = subprocess.check_output(["git", "show", "main:manuscript/Supplementary_File_1.csv"], text=True)
-    return pd.read_csv(StringIO(text))
+def load_historical_public(path: Path | None = None) -> pd.DataFrame:
+    """Historical (157-marker) public table, from the frozen fixture."""
+    return load_historical_public_supplement(path)
 
 
 def evidence_counts(df: pd.DataFrame) -> str:
@@ -101,7 +107,12 @@ def main() -> None:
     (threshold_dir / "recomputed_thresholds.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
 
     rows: list[dict[str, object]] = []
-    rows.append({"name": "main old preprint", "stats": table_stats(load_main_public())})
+    rows.append(
+        {
+            "name": "historical old preprint (frozen fixture)",
+            "stats": table_stats(load_historical_public(args.historical_public_supplement)),
+        }
+    )
 
     original_public = args.original_logic_public
     if original_public is not None and original_public.exists():
