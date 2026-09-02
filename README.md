@@ -1,7 +1,9 @@
 
 # AMR Cartography
 
-**A Generalisable Framework for Studying Multivariate Drug Resistance**
+**A generalisable framework for studying multivariate drug resistance**
+
+Code and analysis workflows for the paper *Mapping the Phenotypic Landscape of Beta-lactam Resistance in Streptococcus pneumoniae*.
 
 Andrew J. Balmer\*, Gemma G. R. Murray, Stephanie Lo, Olivier Restif⍅ and Lucy A. Weinert⍅
 
@@ -74,11 +76,14 @@ AMR Cartography analyses are primarily in R, although the mvLMM steps use Python
 
 If you use **AMR Cartography** (methods or code), **please cite**:
 
-> Balmer AJ, Murray GGR, Lo S, Restif O, Weinert LA. *Antimicrobial Resistance Cartography: A Generalisable Framework for Studying Multivariate Drug Resistance*.
+> Balmer AJ, Murray GGR, Lo S, Restif O, Weinert LA. *Mapping the Phenotypic Landscape of Beta-lactam Resistance in Streptococcus pneumoniae*.
 >
 > **Preprint**: https://doi.org/10.1101/2025.09.12.675231
 
-Use the preprint DOI above when citing this repository or manuscript.
+Use the preprint DOI above when citing this repository or manuscript. The
+preprint DOI resolves to the latest posted version; earlier versions carry the
+former title, *Antimicrobial Resistance Cartography: A Generalisable Framework
+for Studying Multivariate Drug Resistance*.
 
 ---
 

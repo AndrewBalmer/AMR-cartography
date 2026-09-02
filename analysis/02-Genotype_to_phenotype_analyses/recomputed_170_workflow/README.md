@@ -245,20 +245,6 @@ The validation report is written to:
 
 - `$RESULTS_DIR/validation/recomputed_170_validation_report.md`
 
-## Structure context outputs
-
-Structural annotations are generated separately from the evidence scoring and
-are used only for biological interpretation.
-
-```bash
-$PYTHON analysis/02-Genotype_to_phenotype_analyses/recomputed_170_workflow/annotate_structure_context.py \
-  --results-dir "$RESULTS_DIR"
-```
-
-Outputs are written under:
-
-- `$RESULTS_DIR/manuscript_outputs/structure_context/`
-
 ## Optional engine-equivalence check
 
 This check compares the recomputed low-rank epistatic mvLMM implementation

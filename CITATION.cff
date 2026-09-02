@@ -1,8 +1,9 @@
 cff-version: 1.2.0
 message: "If you use this software or the analyses in this repository, please cite it as below."
-title: "AMR Cartography: a generalisable framework for studying multivariate drug resistance"
+title: "Mapping the Phenotypic Landscape of Beta-lactam Resistance in Streptococcus pneumoniae"
 abstract: >-
-  Code and analysis workflows for Antimicrobial Resistance (AMR) Cartography, a
+  Code and analysis workflows for the paper above, which introduces Antimicrobial
+  Resistance (AMR) Cartography, a
   multidimensional-scaling and multivariate linear mixed model framework for
   analysing continuous, correlated minimum inhibitory concentration (MIC)
   profiles, applied to beta-lactam resistance in Streptococcus pneumoniae.

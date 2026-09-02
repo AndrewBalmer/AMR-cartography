@@ -10,9 +10,8 @@ accompanying the AMR Cartography paper.
   supplementary information.
 - `Supplementary_File_1.csv` — public Supplementary File 1: the
   component-expanded, 170-marker-corrected, recomputed-threshold evidence
-  table, including structure-context annotation columns (position, motif
-  interval, nearest motif by sequence/3D, distances, prior evidence
-  source/category).
+  table (394 rows, 14 columns). Column set matches the original preprint
+  version; only the values are recomputed.
 - `figures/` — main-text figures extracted at full embedded resolution from
   `Manuscript.docx` (`Figure1.jpg`, `Figure2.jpg`, `Figure3.jpg`; 2048 px wide,
   ~289 dpi at 180 mm column width). Supplied as separate submission assets;
@@ -33,7 +32,6 @@ categorisation, S20 = prior-work overlap):
 - `FigureS18_epistatic_interaction_LMM.{pdf,png}`
 - `FigureS19_effect_size_axis_categorisation.{pdf,png}`
 - `FigureS20_prior_work_overlap_venn.{pdf,png}`
-- `StructureContext_distance_histogram.png` + `StructureContext_legend.md`
 
 Supplementary Figure S17 (clustering) is not part of this set — clustering
 evidence is unaffected by the 157→170 marker correction, so it is unchanged

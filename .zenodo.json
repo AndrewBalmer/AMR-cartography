@@ -1,6 +1,6 @@
 {
-  "title": "AMR Cartography: a generalisable framework for studying multivariate drug resistance",
-  "description": "<p>Code, analysis workflows and manuscript source data for Antimicrobial Resistance (AMR) Cartography &mdash; a multidimensional-scaling and multivariate linear mixed model framework for analysing continuous, correlated minimum inhibitory concentration (MIC) profiles, applied to beta-lactam resistance in <em>Streptococcus pneumoniae</em>.</p>",
+  "title": "Mapping the Phenotypic Landscape of Beta-lactam Resistance in Streptococcus pneumoniae",
+  "description": "<p>Code, analysis workflows and manuscript source data for the paper <em>Mapping the Phenotypic Landscape of Beta-lactam Resistance in Streptococcus pneumoniae</em>, which introduces Antimicrobial Resistance (AMR) Cartography &mdash; a multidimensional-scaling and multivariate linear mixed model framework for analysing continuous, correlated minimum inhibitory concentration (MIC) profiles.</p>",
   "license": "mit",
   "upload_type": "software",
   "access_right": "open",

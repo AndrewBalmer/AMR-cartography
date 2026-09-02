@@ -84,7 +84,7 @@ from the raw outputs and matched.
                 │
    CHECK + DRAW
    8. validate_recomputed_outputs.py, verify_epistasis_engine_equivalence.py
-      generate_recomputed_supplement_figures_original_style.R, annotate_structure_context.py
+      generate_recomputed_supplement_figures_original_style.R
 ```
 
 ### The inputs (what goes in)
@@ -159,8 +159,6 @@ It writes **two tables that are kept carefully separate** (see below).
   original engine.
 - `generate_recomputed_supplement_figures_original_style.R` — redraws the
   supplement figures in the original style from the new numbers.
-- `annotate_structure_context.py` — adds structural context for interpretation
-  only; it does **not** change any score.
 
 ---
 

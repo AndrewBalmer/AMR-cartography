@@ -46,6 +46,8 @@ travel_audit_pack_*.tar.gz.sha256
 manuscript/legacy/
 manuscript/Final_Pre-Submission_Audit.pdf
 manuscript/PNAS_review_changes_summary.*
+manuscript/Cover_Letter_eLife.*
+manuscript/source_data/StructureContext_*
 
 # Local audit notes (never commit; adjust this line to push selectively)
 audit/
